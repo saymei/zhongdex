@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "collectedAt": "2026-08-23T05:05:51.973Z",
+  "metrics": [
+    {
+      "key": "github.stars",
+      "label": "GitHub stars",
+      "value": null,
+      "unavailable": "not published yet (404)",
+      "source": "github.com/lelandchar/zhongdex"
+    },
+    {
+      "key": "github.forks",
+      "label": "GitHub forks",
+      "value": null,
+      "unavailable": "not published yet (404)",
+      "source": "github.com/lelandchar/zhongdex"
+    },
+    {
+      "key": "github.watchers",
+      "label": "GitHub watchers",
+      "value": null,
+      "unavailable": "not published yet (404)",
+      "source": "github.com/lelandchar/zhongdex"
+    },
+    {
+      "key": "github.open_issues",
+      "label": "Open issues + PRs",
+      "value": null,
+      "unavailable": "not published yet (404)",
+      "source": "github.com/lelandchar/zhongdex"
+    },
+    {
+      "key": "github.clones_14d",
+      "label": "Clones (14d)",
+      "value": null,
+      "unavailable": "HTTP 401",
+      "source": "github.com/lelandchar/zhongdex"
+    },
+    {
+      "key": "github.views_14d",
+      "label": "Repo views (14d)",
+      "value": null,
+      "unavailable": "HTTP 401",
+      "source": "github.com/lelandchar/zhongdex"
+    },
+    {
+      "key": "github.release_downloads",
+      "label": "Release asset downloads",
+      "value": null,
+      "unavailable": "not published yet (404)",
+      "source": "github.com/lelandchar/zhongdex"
+    },
+    {
+      "key": "npm.downloads_7d",
+      "label": "npm downloads (7d)",
+      "value": null,
+      "unavailable": "not published yet (404)",
+      "source": "npmjs.com/package/zhongdex"
+    },
+    {
+      "key": "hf.downloads_30d",
+      "label": "HF downloads (30d)",
+      "value": null,
+      "unavailable": "HTTP 401",
+      "source": "huggingface.co/datasets/saymei/zhongdex"
+    },
+    {
+      "key": "hf.likes",
+      "label": "HF likes",
+      "value": null,
+      "unavailable": "HTTP 401",
+      "source": "huggingface.co/datasets/saymei/zhongdex"
+    }
+  ]
+}

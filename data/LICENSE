@@ -1,0 +1,94 @@
+Zhongdex data — Creative Commons Attribution-ShareAlike 4.0 International
+(CC BY-SA 4.0)
+
+Copyright (c) 2026 SayMei and the upstream sources listed in ../NOTICE
+
+Everything in this directory — the word canon, the sentence records, the packs,
+the manifests, and every artifact derived from them (Yomitan packs, Anki decks,
+CSV/TSV/JSONL/Parquet exports, Pleco files, API responses, and MCP tool
+responses) — is licensed under the Creative Commons
+Attribution-ShareAlike 4.0 International licence.
+
+  Human-readable summary: https://creativecommons.org/licenses/by-sa/4.0/
+  Full legal code:        https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+The full legal code at that URL is the licence. The summary below is not a
+substitute for it; it states plainly what this licence requires of you.
+
+--------------------------------------------------------------------------
+YOU ARE FREE TO
+--------------------------------------------------------------------------
+
+  Share    — copy and redistribute the material in any medium or format,
+             including by making it available over a network on demand.
+  Adapt    — remix, transform, and build upon the material.
+
+For any purpose, including commercially. These freedoms cannot be revoked so
+long as you follow the terms below.
+
+--------------------------------------------------------------------------
+UNDER THE FOLLOWING TERMS
+--------------------------------------------------------------------------
+
+1. ATTRIBUTION. You must give appropriate credit, provide a link to the
+   licence, and indicate if changes were made.
+
+   The attribution line to reproduce:
+
+     Zhongdex by SayMei — https://zhongdex.org — CC BY-SA 4.0.
+     Contains data from CC-CEDICT (CC BY-SA 4.0), Wiktionary (CC BY-SA 4.0),
+     and Tatoeba (CC BY 2.0 FR).
+
+   Keep the per-record attribution that ships with the data. Sentence records
+   carry `source.corpus` and, for Tatoeba rows, `source.sourceId`; that field
+   IS the attribution for those rows and must survive your transformation.
+
+2. SHAREALIKE. If you remix, transform, or build upon the material, you must
+   distribute your contributions under CC BY-SA 4.0 or a
+   ShareAlike-compatible licence.
+
+   MIT and Apache-2.0 are NOT on Creative Commons' compatible-licence list.
+   You cannot relicense this data under them.
+
+   ShareAlike propagates through a merge: a database containing a substantial
+   portion of this data is Adapted Material under §4 (sui generis database
+   rights) and must itself be BY-SA.
+
+   "Share" is defined by the licence as making the material available such
+   that members of the public may access it from a place and at a time
+   individually chosen by them. That definition covers an HTTP API and an MCP
+   server exactly as it covers a download.
+
+3. NO ADDITIONAL RESTRICTIONS. You may not apply legal terms or technological
+   measures that legally restrict others from doing anything the licence
+   permits.
+
+--------------------------------------------------------------------------
+WHY THIS LICENCE, AND NOT A PERMISSIVE ONE
+--------------------------------------------------------------------------
+
+This is not a preference. CC-CEDICT and Wiktionary are both CC BY-SA 4.0, and
+their glosses are merged into the word canon. ShareAlike propagates through
+that merge, so BY-SA is the only licence this corpus can carry. The code that
+builds it is MIT (see ../LICENSE); the corpus cannot be.
+
+--------------------------------------------------------------------------
+WHAT IS NOT COVERED
+--------------------------------------------------------------------------
+
+  * The audio recordings. They are served from a separate host under their
+    own terms, are referenced by URL and never bundled here, and AS OF v0.1
+    ARE NOT PUBLISHED AT ALL — every audio field reports status "pending".
+    See the README.
+  * SayMei trademarks, the SayMei and Zhongdex names, and the logos. Licence
+    terms do not grant trademark rights.
+  * The build code in ../src, which is MIT.
+
+--------------------------------------------------------------------------
+DISCLAIMER
+--------------------------------------------------------------------------
+
+Unless otherwise separately undertaken by the Licensor, to the extent
+possible, the Licensor offers the Licensed Material as-is and as-available,
+and makes no representations or warranties of any kind concerning the
+Licensed Material. See §5 of the full legal code.

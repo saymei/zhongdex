@@ -1,0 +1,145 @@
+Zhongdex
+Copyright (c) 2026 SayMei
+
+This product includes code licensed under the MIT License (see LICENSE) and
+data licensed under CC BY-SA 4.0 (see data/LICENSE).
+
+The data is a derivative work. The upstream sources below are the reason it is
+CC BY-SA 4.0, and this file is the attribution their licences require. If you
+redistribute Zhongdex data in any form — a file, a fork, a deck, a dictionary
+pack, an API response — you must carry these credits with it.
+
+================================================================================
+1. CC-CEDICT
+================================================================================
+
+  Source        CC-CEDICT, the Chinese-English dictionary maintained at MDBG
+  Home          https://www.mdbg.net/chinese/dictionary?page=cc-cedict
+  Licence       Creative Commons Attribution-ShareAlike 4.0 International
+                https://creativecommons.org/licenses/by-sa/4.0/
+  Used for      Headwords, simplified/traditional pairing, numbered pinyin,
+                English glosses, part-of-speech and register tags, and the
+                measure-word (CL:) annotations.
+
+  Required attribution, reproduce verbatim:
+
+    This work uses data from CC-CEDICT, made available by MDBG under the
+    Creative Commons Attribution-ShareAlike 4.0 International licence
+    (https://creativecommons.org/licenses/by-sa/4.0/).
+    Changes were made: entries were merged with other sources, re-keyed to
+    Zhongdex ids, re-banded against HSK 3.0 (2026), and reformatted.
+
+  CC-CEDICT's own terms additionally ask that you state the licence and link
+  back to the CC-CEDICT home page above. Both are satisfied by reproducing
+  this section.
+
+================================================================================
+2. Wiktionary
+================================================================================
+
+  Source        English Wiktionary (Wikimedia Foundation) sense data
+  Home          https://en.wiktionary.org/
+  Licence       Creative Commons Attribution-ShareAlike 4.0 International
+                (Wiktionary text is dual-licensed CC BY-SA 4.0 / GFDL;
+                Zhongdex relies on the CC BY-SA 4.0 grant only)
+                https://creativecommons.org/licenses/by-sa/4.0/
+  Used for      Supplementary senses, part-of-speech refinement, and usage
+                notes where CC-CEDICT is thin.
+
+  Required attribution, reproduce verbatim:
+
+    This work includes material from English Wiktionary
+    (https://en.wiktionary.org/), by Wiktionary contributors, licensed
+    CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).
+    Changes were made: senses were extracted, deduplicated against CC-CEDICT,
+    truncated, and reformatted.
+
+  Attribution to "Wiktionary contributors" collectively is the form Wikimedia's
+  own reuse guidance accepts for a derived database; per-editor attribution is
+  satisfied by the link to the source page history.
+
+================================================================================
+3. Tatoeba
+================================================================================
+
+  Source        Tatoeba Project sentence corpus
+  Home          https://tatoeba.org/
+  Licence       Creative Commons Attribution 2.0 France (CC BY 2.0 FR)
+                https://creativecommons.org/licenses/by/2.0/fr/
+  Used for      A subset of the example sentences, where a sentence record
+                carries source.corpus == "tatoeba".
+
+  Required attribution, reproduce verbatim:
+
+    Example sentences marked source.corpus "tatoeba" are from the Tatoeba
+    Project (https://tatoeba.org/), by Tatoeba contributors, licensed
+    CC BY 2.0 FR (https://creativecommons.org/licenses/by/2.0/fr/).
+
+  IMPORTANT — the per-row obligation. Every Tatoeba-derived sentence record
+  carries the upstream sentence identifier in `source.sourceId`. That field IS
+  the attribution for that row. Do not strip it, and do not aggregate the rows
+  in a way that severs it. CC BY 2.0 FR is attribution-only and is compatible
+  with redistribution inside a CC BY-SA 4.0 collection; it does not become
+  BY-SA, so keep it labelled.
+
+================================================================================
+4. complete-hsk-vocabulary
+================================================================================
+
+  Source        drkameleon/complete-hsk-vocabulary
+  Home          https://github.com/drkameleon/complete-hsk-vocabulary
+  Licence       MIT
+  Used for      The HSK 3.0 (2026) band assignment, levels 1-7, pinned to a
+                specific upstream commit. Vendored at scripts/hsk30.csv.
+
+  MIT requires that its copyright notice and permission notice travel with
+  substantial portions of the work. The vendored file retains its upstream
+  header; the pinned commit is recorded in the build metadata.
+
+  Note on counts: this repository's pinned snapshot contains 11,092 rows split
+  500 / 772 / 973 / 1,000 / 1,071 / 1,140 / 5,636 across levels 1-6 and the
+  combined 7-9 band. Other vintages of the HSK 3.0 list circulate with
+  different totals. The contract eval asserts against the pinned snapshot, so
+  a silent upstream change fails CI rather than shipping.
+
+================================================================================
+5. Unicode / Unihan
+================================================================================
+
+  Status        NOT bundled in v0.1.
+
+  The v0.1 canon derives simplified/traditional pairing and pinyin from
+  CC-CEDICT and the pinned HSK list, not from the Unicode Han Database. If a
+  later release adds radical decomposition, variant mappings, or stroke data
+  sourced from Unihan, this section becomes live and the following applies:
+
+    Source      Unicode Han Database (Unihan), Unicode Character Database
+    Home        https://www.unicode.org/charts/unihan.html
+    Licence     Unicode License v3
+                https://www.unicode.org/license.txt
+
+  The Unicode License requires the copyright notice and permission notice to
+  accompany the data. Do not add Unihan-derived fields without adding that
+  notice here in the same commit.
+
+================================================================================
+6. Audio
+================================================================================
+
+  Status        NOT published in v0.1. Every audio field in every record
+                reports status "pending" and emits no URL.
+
+  When audio ships it is SayMei-generated (ElevenLabs synthesis in two named
+  voices, plus lines extracted from SayMei's own dialogue masters), served by
+  URL from a SayMei host, and never bundled into the dataset. It is not
+  covered by data/LICENSE; its terms will be published alongside it. Nothing
+  in this repository grants rights to audio that does not yet exist.
+
+================================================================================
+7. Trademarks
+================================================================================
+
+  "SayMei" and "Zhongdex" are trademarks of SayMei. The MIT licence on the
+  code and the CC BY-SA 4.0 licence on the data grant no trademark rights.
+  You may say your work is built from Zhongdex data; do not present it as
+  published by SayMei.

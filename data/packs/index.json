@@ -1,0 +1,478 @@
+{
+  "schemaVersion": "pack-v1",
+  "corpusVersion": "2026.09",
+  "version": "2026.09.1",
+  "count": 20,
+  "packs": [
+    {
+      "id": "dex:p:hsk-2026-complete",
+      "slug": "hsk-2026-complete",
+      "file": "hsk-2026-complete.json",
+      "kind": "band",
+      "title": "HSK 1–9 complete (2026 syllabus)",
+      "description": "The entire syllabus in one pack. Closure is asserted at bands 1–9, which for this pack means every word in the canon carries a 2026 band label.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": 9,
+        "bandRange": "1-9",
+        "cumulative": true
+      },
+      "size": 11092,
+      "tags": [
+        "computed",
+        "hsk",
+        "hsk-2026",
+        "cumulative",
+        "complete",
+        "reference"
+      ],
+      "source": "computed",
+      "digest": "sha256:de7aac5a48a4938762e2e44f975c4ebcc259305c343c2a7205a91f58c192c0a5"
+    },
+    {
+      "id": "dex:p:hsk-2026-t1",
+      "slug": "hsk-2026-t1",
+      "file": "hsk-2026-t1.json",
+      "kind": "band",
+      "title": "HSK 1 (2026 syllabus)",
+      "description": "Band t1 of HSK 3.0 (2026), exactly as published. Nothing is added, nothing is promoted from a neighbouring band, and the build asserts closure: every word in this file carries band 1 in the canon or the pack does not ship.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": 1,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 500,
+      "tags": [
+        "computed",
+        "hsk",
+        "hsk-2026",
+        "band",
+        "t1"
+      ],
+      "source": "computed",
+      "digest": "sha256:b2ab9da63f460c1808be9eea4d507c64acb5f7101038cc0bb38ed0f00fa0db03"
+    },
+    {
+      "id": "dex:p:hsk-2026-t1-t3",
+      "slug": "hsk-2026-t1-t3",
+      "file": "hsk-2026-t1-t3.json",
+      "kind": "band",
+      "title": "HSK 1–3 cumulative (2026 syllabus)",
+      "description": "Bands 1, 2 and 3 of HSK 3.0 (2026) unioned. Closure is asserted at band 3: no word above the claimed level can be present.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": 3,
+        "bandRange": "1-3",
+        "cumulative": true
+      },
+      "size": 2245,
+      "tags": [
+        "computed",
+        "hsk",
+        "hsk-2026",
+        "cumulative",
+        "t1-t3",
+        "beginner"
+      ],
+      "source": "computed",
+      "digest": "sha256:3a211e6136069529bfeb9c16166c56f02a13eb66295286199845f9e65126e6ac"
+    },
+    {
+      "id": "dex:p:hsk-2026-t1-t6",
+      "slug": "hsk-2026-t1-t6",
+      "file": "hsk-2026-t1-t6.json",
+      "kind": "band",
+      "title": "HSK 1–6 cumulative (2026 syllabus)",
+      "description": "Bands 1 through 6 of HSK 3.0 (2026) unioned — the whole syllabus short of the advanced level. Closure is asserted at band 6.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": 6,
+        "bandRange": "1-6",
+        "cumulative": true
+      },
+      "size": 5456,
+      "tags": [
+        "computed",
+        "hsk",
+        "hsk-2026",
+        "cumulative",
+        "t1-t6",
+        "intermediate"
+      ],
+      "source": "computed",
+      "digest": "sha256:fe51657fb562a751b2531a71b8cbf98256539ee37fafc59f60d9fa84fb469329"
+    },
+    {
+      "id": "dex:p:hsk-2026-t2",
+      "slug": "hsk-2026-t2",
+      "file": "hsk-2026-t2.json",
+      "kind": "band",
+      "title": "HSK 2 (2026 syllabus)",
+      "description": "Band t2 of HSK 3.0 (2026), exactly as published. Nothing is added, nothing is promoted from a neighbouring band, and the build asserts closure: every word in this file carries band 2 in the canon or the pack does not ship.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": 2,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 772,
+      "tags": [
+        "computed",
+        "hsk",
+        "hsk-2026",
+        "band",
+        "t2"
+      ],
+      "source": "computed",
+      "digest": "sha256:7b872c550613ff3e21dde32365c00fe7521dab7b210042e8e5a68a4dc996ec67"
+    },
+    {
+      "id": "dex:p:hsk-2026-t3",
+      "slug": "hsk-2026-t3",
+      "file": "hsk-2026-t3.json",
+      "kind": "band",
+      "title": "HSK 3 (2026 syllabus)",
+      "description": "Band t3 of HSK 3.0 (2026), exactly as published. Nothing is added, nothing is promoted from a neighbouring band, and the build asserts closure: every word in this file carries band 3 in the canon or the pack does not ship.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": 3,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 973,
+      "tags": [
+        "computed",
+        "hsk",
+        "hsk-2026",
+        "band",
+        "t3"
+      ],
+      "source": "computed",
+      "digest": "sha256:b4ed4bd63161a206faa23112546480e0bdde6c6598d59caeaa8eb65c8c221464"
+    },
+    {
+      "id": "dex:p:hsk-2026-t4",
+      "slug": "hsk-2026-t4",
+      "file": "hsk-2026-t4.json",
+      "kind": "band",
+      "title": "HSK 4 (2026 syllabus)",
+      "description": "Band t4 of HSK 3.0 (2026), exactly as published. Nothing is added, nothing is promoted from a neighbouring band, and the build asserts closure: every word in this file carries band 4 in the canon or the pack does not ship.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": 4,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 1000,
+      "tags": [
+        "computed",
+        "hsk",
+        "hsk-2026",
+        "band",
+        "t4"
+      ],
+      "source": "computed",
+      "digest": "sha256:0ea4daf400187a0207806f89bca18397043a9a89761b07ff9284849a61b8d96d"
+    },
+    {
+      "id": "dex:p:hsk-2026-t5",
+      "slug": "hsk-2026-t5",
+      "file": "hsk-2026-t5.json",
+      "kind": "band",
+      "title": "HSK 5 (2026 syllabus)",
+      "description": "Band t5 of HSK 3.0 (2026), exactly as published. Nothing is added, nothing is promoted from a neighbouring band, and the build asserts closure: every word in this file carries band 5 in the canon or the pack does not ship.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": 5,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 1071,
+      "tags": [
+        "computed",
+        "hsk",
+        "hsk-2026",
+        "band",
+        "t5"
+      ],
+      "source": "computed",
+      "digest": "sha256:7946a1da084e680d1edb66421e76bada54c8d043581b10ea7e18b801fe990013"
+    },
+    {
+      "id": "dex:p:hsk-2026-t6",
+      "slug": "hsk-2026-t6",
+      "file": "hsk-2026-t6.json",
+      "kind": "band",
+      "title": "HSK 6 (2026 syllabus)",
+      "description": "Band t6 of HSK 3.0 (2026), exactly as published. Nothing is added, nothing is promoted from a neighbouring band, and the build asserts closure: every word in this file carries band 6 in the canon or the pack does not ship.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": 6,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 1140,
+      "tags": [
+        "computed",
+        "hsk",
+        "hsk-2026",
+        "band",
+        "t6"
+      ],
+      "source": "computed",
+      "digest": "sha256:a627d240ee85680c44c25e6564241ae9206abe6b5a8e75a81e6bf4c91471bc41"
+    },
+    {
+      "id": "dex:p:hsk-2026-t7-9",
+      "slug": "hsk-2026-t7-9",
+      "file": "hsk-2026-t7-9.json",
+      "kind": "band",
+      "title": "HSK 7–9 (2026 syllabus)",
+      "description": "HSK 3.0 publishes 7, 8 and 9 as one undivided advanced level, so this pack does too. The build asserts closure at bands 7–9: a word labelled 6 or lower cannot appear here.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": 7,
+        "bandRange": "7-9",
+        "cumulative": false
+      },
+      "size": 5636,
+      "tags": [
+        "computed",
+        "hsk",
+        "hsk-2026",
+        "band",
+        "t7-9",
+        "advanced"
+      ],
+      "source": "computed",
+      "digest": "sha256:e9f62e91e48caf6e0665942762b185717cbbc25ccdfd74519a421f0da0fad090"
+    },
+    {
+      "id": "dex:p:pos-adjectives",
+      "slug": "pos-adjectives",
+      "file": "pos-adjectives.json",
+      "kind": "pos",
+      "title": "Adjectives",
+      "description": "Every adjective in the HSK 3.0 (2026) list. Membership is the part-of-speech column of the HSK 3.0 (2026) word list, read as an any-tag match: a word tagged 'V/N' belongs to both the verb pack and the noun pack. The pack spans every band, so it makes no band-closure claim; each word keeps its own band label.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 1447,
+      "tags": [
+        "computed",
+        "pos",
+        "adjectives"
+      ],
+      "source": "computed",
+      "digest": "sha256:70ee5c6f9a4e91b9b9ae6d0a7418801e6a378d8e5aabb182d2303c6b061149ca"
+    },
+    {
+      "id": "dex:p:pos-adverbs",
+      "slug": "pos-adverbs",
+      "file": "pos-adverbs.json",
+      "kind": "pos",
+      "title": "Adverbs",
+      "description": "Every adverb in the HSK 3.0 (2026) list. Membership is the part-of-speech column of the HSK 3.0 (2026) word list, read as an any-tag match: a word tagged 'V/N' belongs to both the verb pack and the noun pack. The pack spans every band, so it makes no band-closure claim; each word keeps its own band label.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 453,
+      "tags": [
+        "computed",
+        "pos",
+        "adverbs"
+      ],
+      "source": "computed",
+      "digest": "sha256:ed5d947db061a4b94b5f54fe61a96ea1339fd5421bd03786f05c985d9ac8cd4e"
+    },
+    {
+      "id": "dex:p:pos-auxiliaries",
+      "slug": "pos-auxiliaries",
+      "file": "pos-auxiliaries.json",
+      "kind": "pos",
+      "title": "Auxiliaries and Particles",
+      "description": "Every auxiliary and particle in the HSK 3.0 (2026) list. Membership is the part-of-speech column of the HSK 3.0 (2026) word list, read as an any-tag match: a word tagged 'V/N' belongs to both the verb pack and the noun pack. The pack spans every band, so it makes no band-closure claim; each word keeps its own band label.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 24,
+      "tags": [
+        "computed",
+        "pos",
+        "auxiliaries",
+        "particles",
+        "grammar"
+      ],
+      "source": "computed",
+      "digest": "sha256:5e5bce417179dd8191cf073e8c963cac38ee08f5d36d5398bd9cf2b0afa8c13b"
+    },
+    {
+      "id": "dex:p:pos-conjunctions",
+      "slug": "pos-conjunctions",
+      "file": "pos-conjunctions.json",
+      "kind": "pos",
+      "title": "Conjunctions",
+      "description": "Every conjunction in the HSK 3.0 (2026) list. Membership is the part-of-speech column of the HSK 3.0 (2026) word list, read as an any-tag match: a word tagged 'V/N' belongs to both the verb pack and the noun pack. The pack spans every band, so it makes no band-closure claim; each word keeps its own band label.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 106,
+      "tags": [
+        "computed",
+        "pos",
+        "conjunctions",
+        "connectives"
+      ],
+      "source": "computed",
+      "digest": "sha256:882a03591d50054833579b354e290f7e71e737ee1896aae4048c42071046bc87"
+    },
+    {
+      "id": "dex:p:pos-measure-words",
+      "slug": "pos-measure-words",
+      "file": "pos-measure-words.json",
+      "kind": "pos",
+      "title": "Measure Words",
+      "description": "Every measure word in the HSK 3.0 (2026) list. Membership is the part-of-speech column of the HSK 3.0 (2026) word list, read as an any-tag match: a word tagged 'V/N' belongs to both the verb pack and the noun pack. The pack spans every band, so it makes no band-closure claim; each word keeps its own band label.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 156,
+      "tags": [
+        "computed",
+        "pos",
+        "measure-words",
+        "classifiers"
+      ],
+      "source": "computed",
+      "digest": "sha256:5f305755938a72aa2b19826e70c1687f5efafc2f18de114302bdc8a04a6c7510"
+    },
+    {
+      "id": "dex:p:pos-nouns",
+      "slug": "pos-nouns",
+      "file": "pos-nouns.json",
+      "kind": "pos",
+      "title": "Nouns",
+      "description": "Every noun in the HSK 3.0 (2026) list. Membership is the part-of-speech column of the HSK 3.0 (2026) word list, read as an any-tag match: a word tagged 'V/N' belongs to both the verb pack and the noun pack. The pack spans every band, so it makes no band-closure claim; each word keeps its own band label.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 4600,
+      "tags": [
+        "computed",
+        "pos",
+        "nouns"
+      ],
+      "source": "computed",
+      "digest": "sha256:e042fa43826c8ed7b67086903a67058da47aabe2f2f6da4caba9e4b97eccc791"
+    },
+    {
+      "id": "dex:p:pos-numerals",
+      "slug": "pos-numerals",
+      "file": "pos-numerals.json",
+      "kind": "pos",
+      "title": "Numerals",
+      "description": "Every numeral in the HSK 3.0 (2026) list. Membership is the part-of-speech column of the HSK 3.0 (2026) word list, read as an any-tag match: a word tagged 'V/N' belongs to both the verb pack and the noun pack. The pack spans every band, so it makes no band-closure claim; each word keeps its own band label.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 23,
+      "tags": [
+        "computed",
+        "pos",
+        "numerals",
+        "numbers"
+      ],
+      "source": "computed",
+      "digest": "sha256:3d579fa4d5de85c51d928c3c71060d6f2733b709eb6ce62fdc87b3a0664a4fc9"
+    },
+    {
+      "id": "dex:p:pos-prepositions",
+      "slug": "pos-prepositions",
+      "file": "pos-prepositions.json",
+      "kind": "pos",
+      "title": "Prepositions",
+      "description": "Every preposition in the HSK 3.0 (2026) list. Membership is the part-of-speech column of the HSK 3.0 (2026) word list, read as an any-tag match: a word tagged 'V/N' belongs to both the verb pack and the noun pack. The pack spans every band, so it makes no band-closure claim; each word keeps its own band label.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 60,
+      "tags": [
+        "computed",
+        "pos",
+        "prepositions",
+        "coverbs"
+      ],
+      "source": "computed",
+      "digest": "sha256:af5a688ce0deff13fc2db1d9683c1b245c11e1fdcc9cc0b6e7bb370afe9751ef"
+    },
+    {
+      "id": "dex:p:pos-pronouns",
+      "slug": "pos-pronouns",
+      "file": "pos-pronouns.json",
+      "kind": "pos",
+      "title": "Pronouns",
+      "description": "Every pronoun in the HSK 3.0 (2026) list. Membership is the part-of-speech column of the HSK 3.0 (2026) word list, read as an any-tag match: a word tagged 'V/N' belongs to both the verb pack and the noun pack. The pack spans every band, so it makes no band-closure claim; each word keeps its own band label.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 83,
+      "tags": [
+        "computed",
+        "pos",
+        "pronouns"
+      ],
+      "source": "computed",
+      "digest": "sha256:36d362a3b2023e67048bb4223d81713674d95b57a130cea971e2f6c2b703a46e"
+    },
+    {
+      "id": "dex:p:pos-verbs",
+      "slug": "pos-verbs",
+      "file": "pos-verbs.json",
+      "kind": "pos",
+      "title": "Verbs",
+      "description": "Every verb in the HSK 3.0 (2026) list. Membership is the part-of-speech column of the HSK 3.0 (2026) word list, read as an any-tag match: a word tagged 'V/N' belongs to both the verb pack and the noun pack. The pack spans every band, so it makes no band-closure claim; each word keeps its own band label.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 3629,
+      "tags": [
+        "computed",
+        "pos",
+        "verbs"
+      ],
+      "source": "computed",
+      "digest": "sha256:6a6087618f6cb6c973b9857dc98eaf1c9e583abeda12bfe88d322439394d031d"
+    }
+  ]
+}

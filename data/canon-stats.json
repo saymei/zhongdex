@@ -1,0 +1,94 @@
+{
+  "schema": "zhongdex/canon-stats/v1",
+  "generator": "src/build/canon.ts",
+  "license": {
+    "wordList": "HSK 3.0 (2026) word list, as vendored in scripts/hsk30.csv",
+    "definitions": "CC-BY-SA-4.0",
+    "attribution": [
+      "Definitions from CC-CEDICT (https://cc-cedict.org/), CC BY-SA 4.0.",
+      "HSK 3.0 (2026) banding from the vendored word list in scripts/hsk30.csv."
+    ]
+  },
+  "inputs": {
+    "hsk30Csv": {
+      "path": "scripts/hsk30.csv",
+      "sha256": "8c2b73f74776240bcf154624730fc6fb2c42c254d5c5d0f88943878b8e575b9b",
+      "bytes": 948891,
+      "rows": 11092
+    },
+    "ccCedict": {
+      "path": "/Users/lelandchar/Desktop/SayMei-Web/server/data/cedict.json",
+      "sha256": "96aa9e46bcd37efc6225941a98d5120d6e6a388e865f19e9fd140eeb48971da9",
+      "bytes": 16839971,
+      "version": "1",
+      "date": "2025-11-29T08:25:17Z",
+      "entries": 124139,
+      "headwords": 120400
+    }
+  },
+  "rows": {
+    "in": 11092,
+    "out": 11092,
+    "dropped": 0
+  },
+  "bands": {
+    "1": 500,
+    "2": 772,
+    "3": 973,
+    "4": 1000,
+    "5": 1071,
+    "6": 1140,
+    "7": 5636
+  },
+  "bandRanges": {
+    "1": 500,
+    "2": 772,
+    "3": 973,
+    "4": 1000,
+    "5": 1071,
+    "6": 1140,
+    "7-9": 5636
+  },
+  "cedict": {
+    "rowsWithKey": 11062,
+    "rowsWithoutKey": 30,
+    "rowsMatched": 11062,
+    "rowsUnmatched": 30,
+    "rowsWithZeroDefinitions": 30,
+    "joinHitRateKeyedRows": 1,
+    "joinHitRateAllRows": 0.9972953479985576,
+    "keysSeen": 11095,
+    "keysMatched": 11095,
+    "keysUnmatched": 0,
+    "matchTiers": {
+      "exact": 11079,
+      "case-insensitive": 3,
+      "neutral-tone": 10,
+      "pinyin-only": 3,
+      "pinyin-only-neutral-tone": 0,
+      "traditional-only": 0
+    },
+    "definitionsEmitted": 30899
+  },
+  "polyphones": {
+    "distinctSimplifiedForms": 10959,
+    "simplifiedFormsOnMultipleRows": 126,
+    "rowsSharingASimplifiedForm": 259,
+    "maxRowsForOneSimplifiedForm": 3
+  },
+  "pinyinNumberedOrigin": {
+    "cedict-key": 11062,
+    "derived-from-marked": 30,
+    "toneless-fallback": 0
+  },
+  "band2021": {
+    "known": 0,
+    "unknown": 11092,
+    "note": "The 2021 banding is not one of this build's inputs; null means unknown, not absent."
+  },
+  "audio": {
+    "pending": 11092,
+    "resolved": 0,
+    "note": "Audio hosting does not exist yet. No URLs are emitted rather than URLs that would 404."
+  }
+}

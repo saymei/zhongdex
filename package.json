@@ -1,0 +1,36 @@
+{
+  "name": "zhongdex",
+  "version": "0.1.0",
+  "description": "Every HSK 3.0 (2026) word with pinyin, glosses, difficulty-graded sentences and real audio in a male and a female voice. Free, keyless, and it works in Yomitan, Anki, Pleco and your agent.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lelandchar/zhongdex.git"
+  },
+  "scripts": {
+    "build:canon": "tsx src/build/canon.ts",
+    "build:packs": "tsx src/build/packs.ts",
+    "build": "npm run build:canon && npm run build:packs",
+    "mcp": "tsx src/mcp/server.ts",
+    "eval:contract": "tsx evals/contract.ts",
+    "typecheck": "tsc --noEmit",
+    "metrics": "tsx src/metrics/collect.ts",
+    "dashboard": "tsx src/metrics/dashboard.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "bugs": {
+    "url": "https://github.com/lelandchar/zhongdex/issues"
+  }
+}
