@@ -17,7 +17,7 @@
       "rows": 11092
     },
     "ccCedict": {
-      "path": "/Users/lelandchar/Desktop/SayMei-Web/server/data/cedict.json",
+      "path": "/Users/lelandchar/Desktop/zhongdex/scripts/cedict.json",
       "sha256": "96aa9e46bcd37efc6225941a98d5120d6e6a388e865f19e9fd140eeb48971da9",
       "bytes": 16839971,
       "version": "1",
@@ -81,14 +81,51 @@
     "derived-from-marked": 30,
     "toneless-fallback": 0
   },
-  "band2021": {
-    "known": 0,
-    "unknown": 11092,
-    "note": "The 2021 banding is not one of this build's inputs; null means unknown, not absent."
-  },
-  "audio": {
-    "pending": 11092,
-    "resolved": 0,
-    "note": "Audio hosting does not exist yet. No URLs are emitted rather than URLs that would 404."
+  "enrichment": {
+    "snapshot": {
+      "path": "data/enrichment.json",
+      "sha256": "06bebcddbe9b2d1f3184ef8c31bf1ab2d8e7b9ece5f75308997ae7d2d280d27e",
+      "bytes": 1043724,
+      "schema": "zhongdex/enrichment/v1",
+      "capturedAt": "2026-08-23T05:28:40.959Z",
+      "tableRows": 201830,
+      "rows": 11674
+    },
+    "joined": {
+      "reading": 11011,
+      "form": 31,
+      "unjoinedAmbiguous": 2,
+      "unjoinedNoRow": 48
+    },
+    "coverage": {
+      "band2021": 10786,
+      "band2_0": 4442,
+      "frequencyRank": 11029,
+      "zipf": 11020,
+      "audioAvailable": 11040,
+      "audioNone": 2,
+      "audioUnknown": 50
+    },
+    "band2021Bands": {
+      "1": 486,
+      "2": 736,
+      "3": 938,
+      "4": 954,
+      "5": 1043,
+      "6": 1090,
+      "7": 5539
+    },
+    "delta2026": {
+      "bandMoved": 68,
+      "noBand2021": 306,
+      "total": 374
+    },
+    "notes": [
+      "Enriched from the committed snapshot, not from a live database. The build is offline and reproducible.",
+      "band2021 / band2_0 / frequency / audio are null or \"unknown\" on the 50 records that did not join. Read `enrichedVia` on the record before treating a null as an absence.",
+      "delta2026.noBand2021 counts 50 unjoined records among its total. Those are unknown, not demonstrably new in 2026, so the true delta is a range, not a point.",
+      "audio records availability only. No clip URL is emitted anywhere in this dataset: the clips are on metered object storage and republishing their paths would bill a third party per download.",
+      "audio.female is evidenced — the single upstream audio_url column is written only by SayMei's word-audio pipeline, which synthesises with the ElevenLabs voice that repo registers as female. male.available is false everywhere: no male word audio exists upstream to be available."
+    ]
   }
 }

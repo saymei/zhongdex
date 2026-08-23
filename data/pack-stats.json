@@ -3,14 +3,27 @@
   "corpusVersion": "2026.09",
   "version": "2026.09.1",
   "canonWords": 11092,
-  "packCount": 20,
-  "totalSlots": 40466,
+  "packCount": 22,
+  "totalSlots": 51626,
   "audio": {
     "overallFemale": 0,
     "overallMale": 0,
     "note": "Every clip is still pending for this corpus version. The 100% word-audio publish gate is reported but non-blocking until audio ships."
   },
   "packs": [
+    {
+      "id": "dex:p:hsk-2021-complete",
+      "slug": "hsk-2021-complete",
+      "size": 10786,
+      "digest": "sha256:072fb6b1f392a8a175ff1c6e7e3eccd5841451a00ea25948491cd620888e4a06",
+      "bandClosed": false,
+      "audioCompleteness": {
+        "female": 0,
+        "male": 0,
+        "pending": 0,
+        "status": "pending"
+      }
+    },
     {
       "id": "dex:p:hsk-2026-complete",
       "slug": "hsk-2026-complete",
@@ -20,7 +33,20 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
+        "status": "pending"
+      }
+    },
+    {
+      "id": "dex:p:hsk-2026-delta",
+      "slug": "hsk-2026-delta",
+      "size": 374,
+      "digest": "sha256:45542e9b488fb2fd5513ddb4cd902b048b2e7636d599091f5be2dcb674f83df4",
+      "bandClosed": false,
+      "audioCompleteness": {
+        "female": 0,
+        "male": 0,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -33,7 +59,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -46,7 +72,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -59,7 +85,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -72,7 +98,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -85,7 +111,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -98,7 +124,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -111,7 +137,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -124,7 +150,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -137,7 +163,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -150,7 +176,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -163,7 +189,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -176,7 +202,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -189,7 +215,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -202,7 +228,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -215,7 +241,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -228,7 +254,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -241,7 +267,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -254,7 +280,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     },
@@ -267,7 +293,7 @@
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 1,
+        "pending": 0,
         "status": "pending"
       }
     }
@@ -278,80 +304,48 @@
       "slug": "core-1000",
       "title": "Zhongdex Core 1000",
       "kind": "frequency",
-      "reason": "canon does not provide the column(s) this query needs: frequencyRank",
-      "missing": [
-        "frequencyRank"
-      ]
+      "reason": "query selected 0 words, below the minimum pack size of 20",
+      "missing": []
     },
     {
       "id": "dex:p:core-2000",
       "slug": "core-2000",
       "title": "Zhongdex Core 2000",
       "kind": "frequency",
-      "reason": "canon does not provide the column(s) this query needs: frequencyRank",
-      "missing": [
-        "frequencyRank"
-      ]
+      "reason": "query selected 0 words, below the minimum pack size of 20",
+      "missing": []
     },
     {
       "id": "dex:p:core-3000",
       "slug": "core-3000",
       "title": "Zhongdex Core 3000",
       "kind": "frequency",
-      "reason": "canon does not provide the column(s) this query needs: frequencyRank",
-      "missing": [
-        "frequencyRank"
-      ]
+      "reason": "query selected 0 words, below the minimum pack size of 20",
+      "missing": []
     },
     {
       "id": "dex:p:core-500",
       "slug": "core-500",
       "title": "Zhongdex Core 500",
       "kind": "frequency",
-      "reason": "canon does not provide the column(s) this query needs: frequencyRank",
-      "missing": [
-        "frequencyRank"
-      ]
+      "reason": "query selected 0 words, below the minimum pack size of 20",
+      "missing": []
     },
     {
       "id": "dex:p:core-5000",
       "slug": "core-5000",
       "title": "Zhongdex Core 5000",
       "kind": "frequency",
-      "reason": "canon does not provide the column(s) this query needs: frequencyRank",
-      "missing": [
-        "frequencyRank"
-      ]
+      "reason": "query selected 0 words, below the minimum pack size of 20",
+      "missing": []
     },
     {
       "id": "dex:p:hsk-2-0-t1-t6",
       "slug": "hsk-2-0-t1-t6",
       "title": "HSK 1–6 (HSK 2.0, legacy)",
       "kind": "band",
-      "reason": "canon does not provide the column(s) this query needs: hsk.band2_0",
-      "missing": [
-        "hsk.band2_0"
-      ]
-    },
-    {
-      "id": "dex:p:hsk-2021-complete",
-      "slug": "hsk-2021-complete",
-      "title": "HSK 1–9 (2021 revision, legacy)",
-      "kind": "band",
-      "reason": "canon does not provide the column(s) this query needs: hsk.band2021",
-      "missing": [
-        "hsk.band2021"
-      ]
-    },
-    {
-      "id": "dex:p:hsk-2026-delta",
-      "slug": "hsk-2026-delta",
-      "title": "HSK 2026 Delta — what changed",
-      "kind": "delta",
-      "reason": "canon does not provide the column(s) this query needs: hsk.band2021",
-      "missing": [
-        "hsk.band2021"
-      ]
+      "reason": "query selected 0 words, below the minimum pack size of 20",
+      "missing": []
     }
   ]
 }

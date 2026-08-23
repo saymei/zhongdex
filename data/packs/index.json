@@ -2,8 +2,31 @@
   "schemaVersion": "pack-v1",
   "corpusVersion": "2026.09",
   "version": "2026.09.1",
-  "count": 20,
+  "count": 22,
   "packs": [
+    {
+      "id": "dex:p:hsk-2021-complete",
+      "slug": "hsk-2021-complete",
+      "file": "hsk-2021-complete.json",
+      "kind": "band",
+      "title": "HSK 1–9 (2021 revision, legacy)",
+      "description": "Every headword carrying a band label under the 2021 revision. The pack spans the 2021 scheme rather than the 2026 one, so it makes no 2026 closure claim; each word keeps both labels in the canon.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": "1-9",
+        "cumulative": true
+      },
+      "size": 10786,
+      "tags": [
+        "computed",
+        "hsk",
+        "hsk-2021",
+        "legacy"
+      ],
+      "source": "computed",
+      "digest": "sha256:072fb6b1f392a8a175ff1c6e7e3eccd5841451a00ea25948491cd620888e4a06"
+    },
     {
       "id": "dex:p:hsk-2026-complete",
       "slug": "hsk-2026-complete",
@@ -28,6 +51,31 @@
       ],
       "source": "computed",
       "digest": "sha256:de7aac5a48a4938762e2e44f975c4ebcc259305c343c2a7205a91f58c192c0a5"
+    },
+    {
+      "id": "dex:p:hsk-2026-delta",
+      "slug": "hsk-2026-delta",
+      "file": "hsk-2026-delta.json",
+      "kind": "delta",
+      "title": "HSK 2026 Delta — what changed",
+      "description": "The symmetric difference between the 2021 revision and the 2026 syllabus: words new to the list, words whose band moved, and words no longer carrying their old label. Computed at build time from the two band columns, so it re-derives whenever either moves. The pack spans all bands and claims no closure.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 374,
+      "tags": [
+        "computed",
+        "hsk",
+        "hsk-2026",
+        "hsk-2021",
+        "delta",
+        "migration"
+      ],
+      "source": "computed",
+      "digest": "sha256:45542e9b488fb2fd5513ddb4cd902b048b2e7636d599091f5be2dcb674f83df4"
     },
     {
       "id": "dex:p:hsk-2026-t1",

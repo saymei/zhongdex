@@ -1,0 +1,965 @@
+{
+  "schema": "zhongdex/audio-migration-plan/v1",
+  "generator": "src/audio/plan-migration.ts",
+  "dryRun": true,
+  "movesBytes": false,
+  "contactsRemote": false,
+  "note": "A PLAN, not an execution. Nothing here has been uploaded, copied, or reserved. No timestamp is emitted so two runs over the same canon are byte-identical.",
+  "corpus": {
+    "canonPath": "data/hsk_bands.json",
+    "sha256": "54a7331b407b1493fb8bb2f2ce05283aeb358fc88fae70837cac8747a89ebd2b",
+    "bytes": 7427701,
+    "rows": 11092
+  },
+  "canonAudio": {
+    "metadataPresent": false,
+    "rowsWithAudioObject": 11092,
+    "fieldsObserved": [
+      "female",
+      "male",
+      "status"
+    ],
+    "voiceFieldShape": "null",
+    "statusCounts": {
+      "pending": 11092
+    },
+    "availability": {
+      "female": {
+        "available": 0,
+        "unavailable": 0,
+        "unknown": 11092
+      },
+      "male": {
+        "available": 0,
+        "unavailable": 0,
+        "unknown": 11092
+      }
+    },
+    "urlsPresent": 0,
+    "byteSizesPresent": 0,
+    "totalBytesFromCanon": null,
+    "note": "The canon carries NO per-word audio availability metadata: every voice slot reads as unmeasured. The migration set below is taken from the reuse ledger (ZHONGDEX.md §3.1) and is an ASSUMPTION, not a measurement. Re-run after the enrichment pass lands and the basis switches to \"canon-metadata\"."
+  },
+  "scheme": {
+    "host": "audio.zhongdex.org",
+    "pathPrefix": "/v1/w",
+    "natural": "/v1/w/<voice>/<word>.mp3",
+    "slow": "/v1/w/<voice>/<word>.slow.mp3",
+    "polyphone": "/v1/w/<voice>/<word>.<numberedPinyin>.mp3",
+    "voices": [
+      "amy",
+      "james"
+    ],
+    "variants": [
+      "natural",
+      "slow"
+    ],
+    "r2KeyEqualsUrlPath": true,
+    "r2KeyTemplate": "v1/w/<voice>/<word>[.<reading>][.slow].mp3",
+    "encoding": "The R2 key holds the raw UTF-8 word. The URL percent-encodes the final path segment only. Both forms are recorded per batch so an uploader never has to guess which one to use.",
+    "rejected": {
+      "sha256Paths": "REVISION1 §1.2 — /v1/w/ab/<64-hex>.amy.mp3 is a transcription trap; models retype URLs into card fields and storeMediaFile arguments and a 64-hex segment fails silently into a 404.",
+      "workerRouteMap": "A Worker executes before the cache lookup and therefore bills on every cache HIT (~$302/mo at 1B, REVISION1 §6.6). Making the key equal the path removes the Worker from the audio route entirely."
+    },
+    "pathLength": {
+      "maxObserved": 57,
+      "maxObservedKey": "v1/w/james/一路平安.slow.mp3",
+      "wafGuard": 96,
+      "headroom": 39,
+      "note": "The WAF rule in docs/HOSTING.md rejects /v1/w/ paths longer than the guard. Measured against every key this plan would mint, so the guard and the corpus cannot drift apart unnoticed."
+    }
+  },
+  "headwords": {
+    "canonRows": 11092,
+    "distinctForms": 10916,
+    "distinctFormReadingPairs": 10976,
+    "clipBearingHeadwords": 10976,
+    "collapsedRows": 73,
+    "collapseNote": "Canon rows split on POS as well as reading (下/N,V at band 1 and 下/M at band 2 are two rows). Audio depends only on the reading, so rows sharing (form, reading) share one clip.",
+    "polyphoneFormCount": 58,
+    "polyphoneForms": [
+      {
+        "form": "为",
+        "readings": [
+          "wei2",
+          "wei4"
+        ]
+      },
+      {
+        "form": "了",
+        "readings": [
+          "le5",
+          "liao3"
+        ]
+      },
+      {
+        "form": "传",
+        "readings": [
+          "chuan2",
+          "zhuan4"
+        ]
+      },
+      {
+        "form": "倒",
+        "readings": [
+          "dao3",
+          "dao4"
+        ]
+      },
+      {
+        "form": "倒车",
+        "readings": [
+          "dao3che1",
+          "dao4che1"
+        ]
+      },
+      {
+        "form": "冲",
+        "readings": [
+          "chong1",
+          "chong4"
+        ]
+      },
+      {
+        "form": "划",
+        "readings": [
+          "hua2",
+          "hua4"
+        ]
+      },
+      {
+        "form": "卡",
+        "readings": [
+          "ka3",
+          "qia3"
+        ]
+      },
+      {
+        "form": "卷",
+        "readings": [
+          "juan3",
+          "juan4"
+        ]
+      },
+      {
+        "form": "只",
+        "readings": [
+          "zhi1",
+          "zhi3"
+        ]
+      },
+      {
+        "form": "吐",
+        "readings": [
+          "tu3",
+          "tu4"
+        ]
+      },
+      {
+        "form": "哄",
+        "readings": [
+          "hong1",
+          "hong3",
+          "hong4"
+        ]
+      },
+      {
+        "form": "哪",
+        "readings": [
+          "na3",
+          "na5"
+        ]
+      },
+      {
+        "form": "啊",
+        "readings": [
+          "a1",
+          "a5"
+        ]
+      },
+      {
+        "form": "圈",
+        "readings": [
+          "juan4",
+          "quan1"
+        ]
+      },
+      {
+        "form": "地",
+        "readings": [
+          "de5",
+          "di4"
+        ]
+      },
+      {
+        "form": "地方",
+        "readings": [
+          "di4fang1",
+          "di4fang5"
+        ]
+      },
+      {
+        "form": "地道",
+        "readings": [
+          "di4dao4",
+          "di4dao5"
+        ]
+      },
+      {
+        "form": "大意",
+        "readings": [
+          "da4yi4",
+          "da4yi5"
+        ]
+      },
+      {
+        "form": "好",
+        "readings": [
+          "hao3",
+          "hao4"
+        ]
+      },
+      {
+        "form": "尽",
+        "readings": [
+          "jin3",
+          "jin4"
+        ]
+      },
+      {
+        "form": "干",
+        "readings": [
+          "gan1",
+          "gan4"
+        ]
+      },
+      {
+        "form": "应",
+        "readings": [
+          "ying1",
+          "ying4"
+        ]
+      },
+      {
+        "form": "当",
+        "readings": [
+          "dang1",
+          "dang4"
+        ]
+      },
+      {
+        "form": "待",
+        "readings": [
+          "dai1",
+          "dai4"
+        ]
+      },
+      {
+        "form": "得",
+        "readings": [
+          "de2",
+          "de5",
+          "dei3"
+        ]
+      },
+      {
+        "form": "扇",
+        "readings": [
+          "shan1",
+          "shan4"
+        ]
+      },
+      {
+        "form": "打",
+        "readings": [
+          "da2",
+          "da3"
+        ]
+      },
+      {
+        "form": "担",
+        "readings": [
+          "dan1",
+          "dan4"
+        ]
+      },
+      {
+        "form": "拧",
+        "readings": [
+          "ning2",
+          "ning3"
+        ]
+      },
+      {
+        "form": "挑",
+        "readings": [
+          "tiao1",
+          "tiao3"
+        ]
+      },
+      {
+        "form": "散",
+        "readings": [
+          "san3",
+          "san4"
+        ]
+      },
+      {
+        "form": "晃",
+        "readings": [
+          "huang3",
+          "huang4"
+        ]
+      },
+      {
+        "form": "横",
+        "readings": [
+          "heng2",
+          "heng4"
+        ]
+      },
+      {
+        "form": "涨",
+        "readings": [
+          "zhang3",
+          "zhang4"
+        ]
+      },
+      {
+        "form": "炸",
+        "readings": [
+          "zha2",
+          "zha4"
+        ]
+      },
+      {
+        "form": "看",
+        "readings": [
+          "kan1",
+          "kan4"
+        ]
+      },
+      {
+        "form": "着",
+        "readings": [
+          "zhao2",
+          "zhe5"
+        ]
+      },
+      {
+        "form": "种",
+        "readings": [
+          "zhong3",
+          "zhong4"
+        ]
+      },
+      {
+        "form": "空",
+        "readings": [
+          "kong1",
+          "kong4"
+        ]
+      },
+      {
+        "form": "精神",
+        "readings": [
+          "jing1shen2",
+          "jing1shen5"
+        ]
+      },
+      {
+        "form": "系",
+        "readings": [
+          "ji4",
+          "xi4"
+        ]
+      },
+      {
+        "form": "结",
+        "readings": [
+          "jie1",
+          "jie2"
+        ]
+      },
+      {
+        "form": "结果",
+        "readings": [
+          "jie1guo3",
+          "jie2guo3"
+        ]
+      },
+      {
+        "form": "缝",
+        "readings": [
+          "feng2",
+          "feng4"
+        ]
+      },
+      {
+        "form": "背",
+        "readings": [
+          "bei1",
+          "bei4"
+        ]
+      },
+      {
+        "form": "落",
+        "readings": [
+          "la4",
+          "luo4"
+        ]
+      },
+      {
+        "form": "蒙",
+        "readings": [
+          "meng1",
+          "meng2"
+        ]
+      },
+      {
+        "form": "行",
+        "readings": [
+          "hang2",
+          "xing2"
+        ]
+      },
+      {
+        "form": "调",
+        "readings": [
+          "diao4",
+          "tiao2"
+        ]
+      },
+      {
+        "form": "转",
+        "readings": [
+          "zhuan3",
+          "zhuan4"
+        ]
+      },
+      {
+        "form": "转动",
+        "readings": [
+          "zhuan3dong4",
+          "zhuan4dong4"
+        ]
+      },
+      {
+        "form": "过",
+        "readings": [
+          "guo4",
+          "guo5"
+        ]
+      },
+      {
+        "form": "还",
+        "readings": [
+          "hai2",
+          "huan2"
+        ]
+      },
+      {
+        "form": "重",
+        "readings": [
+          "chong2",
+          "zhong4"
+        ]
+      },
+      {
+        "form": "长",
+        "readings": [
+          "chang2",
+          "zhang3"
+        ]
+      },
+      {
+        "form": "闷",
+        "readings": [
+          "men1",
+          "men4"
+        ]
+      },
+      {
+        "form": "露",
+        "readings": [
+          "lou4",
+          "lu4"
+        ]
+      }
+    ],
+    "blockedCount": 43,
+    "blocked": [
+      {
+        "form": "…分之…",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "…极了",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "业（服务业）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "们（朋友们）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "初（初一）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "力（影响力）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "化（现代化）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "员（服务员）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "品（工艺品）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "哥哥|哥",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "头（里头）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "好（不）容易",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "妈妈|妈",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "妹妹|妹",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "姐姐|姐",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "子（桌子）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "家（科学家）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "小（小王）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "差（一）点儿",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "度（知名度）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "弟弟|弟",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "性（积极性）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "感（责任感）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "族（上班族）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "有时候|有时",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "有（一）些",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "有（一）点儿",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "爸爸|爸",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "率（成功率）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "界（文艺界）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "称1",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "称2",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "第（第二）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "老（老王）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "者（志愿者）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "茅台（酒）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "这时候|这时",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "那时候|那时",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "长（秘书长）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "零|〇",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "非（非金属）",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "面1",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      },
+      {
+        "form": "面2",
+        "rows": 1,
+        "reason": "headword carries source-list annotation (parenthetical, ellipsis or alternation) and is not a bare word; no constructible key can be minted until a normalisation rule is published"
+      }
+    ],
+    "readinglessRowIds": []
+  },
+  "clips": {
+    "bytesPerClip": 67125,
+    "bytesBasis": "measured single-clip size, ZHONGDEX.md §7.2 (67125 bytes); the canon carries no sizes",
+    "cells": [
+      {
+        "voice": "amy",
+        "canonVoice": "female",
+        "variant": "slow",
+        "action": "migrate",
+        "clips": 10976,
+        "unmeasuredHeadwords": 10976,
+        "estimatedBytes": 736764000,
+        "basis": "ledger",
+        "source": "ZHONGDEX.md §3.1 — 186,791 Amy word clips, 100% time-stretched to 0.7x"
+      },
+      {
+        "voice": "amy",
+        "canonVoice": "female",
+        "variant": "natural",
+        "action": "gap",
+        "clips": 0,
+        "unmeasuredHeadwords": 10976,
+        "estimatedBytes": 0,
+        "basis": "ledger",
+        "source": "ZHONGDEX.md §3.3 G2b — no natural-speed word clip exists anywhere; the master was deleted"
+      },
+      {
+        "voice": "james",
+        "canonVoice": "male",
+        "variant": "natural",
+        "action": "gap",
+        "clips": 0,
+        "unmeasuredHeadwords": 10976,
+        "estimatedBytes": 0,
+        "basis": "ledger",
+        "source": "ZHONGDEX.md §3.3 G2 — James has zero word clips corpus-wide"
+      },
+      {
+        "voice": "james",
+        "canonVoice": "male",
+        "variant": "slow",
+        "action": "gap",
+        "clips": 0,
+        "unmeasuredHeadwords": 10976,
+        "estimatedBytes": 0,
+        "basis": "ledger",
+        "source": "derivative of G2; ffmpeg transcode once G2 renders, no TTS"
+      }
+    ],
+    "migrate": {
+      "clips": 10976,
+      "estimatedBytes": 736764000,
+      "basis": "ledger"
+    },
+    "gap": [
+      {
+        "voice": "amy",
+        "canonVoice": "female",
+        "variant": "natural",
+        "action": "gap",
+        "clips": 0,
+        "unmeasuredHeadwords": 10976,
+        "estimatedBytes": 0,
+        "basis": "ledger",
+        "source": "ZHONGDEX.md §3.3 G2b — no natural-speed word clip exists anywhere; the master was deleted"
+      },
+      {
+        "voice": "james",
+        "canonVoice": "male",
+        "variant": "natural",
+        "action": "gap",
+        "clips": 0,
+        "unmeasuredHeadwords": 10976,
+        "estimatedBytes": 0,
+        "basis": "ledger",
+        "source": "ZHONGDEX.md §3.3 G2 — James has zero word clips corpus-wide"
+      },
+      {
+        "voice": "james",
+        "canonVoice": "male",
+        "variant": "slow",
+        "action": "gap",
+        "clips": 0,
+        "unmeasuredHeadwords": 10976,
+        "estimatedBytes": 0,
+        "basis": "ledger",
+        "source": "derivative of G2; ffmpeg transcode once G2 renders, no TTS"
+      }
+    ]
+  },
+  "batches": {
+    "size": 1000,
+    "order": "band ascending, then form, then reading — band 1 lands first and is useful before the run finishes",
+    "count": 11,
+    "list": [
+      {
+        "index": 1,
+        "clips": 1000,
+        "estimatedBytes": 67125000,
+        "bands": [
+          1,
+          2
+        ],
+        "firstKey": "v1/w/amy/一.slow.mp3",
+        "lastKey": "v1/w/amy/瓶子.slow.mp3",
+        "voice": "amy",
+        "variant": "slow"
+      },
+      {
+        "index": 2,
+        "clips": 1000,
+        "estimatedBytes": 67125000,
+        "bands": [
+          2,
+          3
+        ],
+        "firstKey": "v1/w/amy/生.slow.mp3",
+        "lastKey": "v1/w/amy/自从.slow.mp3",
+        "voice": "amy",
+        "variant": "slow"
+      },
+      {
+        "index": 3,
+        "clips": 1000,
+        "estimatedBytes": 67125000,
+        "bands": [
+          3,
+          4
+        ],
+        "firstKey": "v1/w/amy/自动.slow.mp3",
+        "lastKey": "v1/w/amy/获奖.slow.mp3",
+        "voice": "amy",
+        "variant": "slow"
+      },
+      {
+        "index": 4,
+        "clips": 1000,
+        "estimatedBytes": 67125000,
+        "bands": [
+          4,
+          5
+        ],
+        "firstKey": "v1/w/amy/获得.slow.mp3",
+        "lastKey": "v1/w/amy/羽绒服.slow.mp3",
+        "voice": "amy",
+        "variant": "slow"
+      },
+      {
+        "index": 5,
+        "clips": 1000,
+        "estimatedBytes": 67125000,
+        "bands": [
+          5,
+          6
+        ],
+        "firstKey": "v1/w/amy/考核.slow.mp3",
+        "lastKey": "v1/w/amy/球拍.slow.mp3",
+        "voice": "amy",
+        "variant": "slow"
+      },
+      {
+        "index": 6,
+        "clips": 1000,
+        "estimatedBytes": 67125000,
+        "bands": [
+          6,
+          7
+        ],
+        "firstKey": "v1/w/amy/球星.slow.mp3",
+        "lastKey": "v1/w/amy/入境.slow.mp3",
+        "voice": "amy",
+        "variant": "slow"
+      },
+      {
+        "index": 7,
+        "clips": 1000,
+        "estimatedBytes": 67125000,
+        "bands": [
+          7
+        ],
+        "firstKey": "v1/w/amy/入手.slow.mp3",
+        "lastKey": "v1/w/amy/妄想.slow.mp3",
+        "voice": "amy",
+        "variant": "slow"
+      },
+      {
+        "index": 8,
+        "clips": 1000,
+        "estimatedBytes": 67125000,
+        "bands": [
+          7
+        ],
+        "firstKey": "v1/w/amy/妒忌.slow.mp3",
+        "lastKey": "v1/w/amy/接轨.slow.mp3",
+        "voice": "amy",
+        "variant": "slow"
+      },
+      {
+        "index": 9,
+        "clips": 1000,
+        "estimatedBytes": 67125000,
+        "bands": [
+          7
+        ],
+        "firstKey": "v1/w/amy/接送.slow.mp3",
+        "lastKey": "v1/w/amy/狭窄.slow.mp3",
+        "voice": "amy",
+        "variant": "slow"
+      },
+      {
+        "index": 10,
+        "clips": 1000,
+        "estimatedBytes": 67125000,
+        "bands": [
+          7
+        ],
+        "firstKey": "v1/w/amy/狭隘.slow.mp3",
+        "lastKey": "v1/w/amy/见钱眼开.slow.mp3",
+        "voice": "amy",
+        "variant": "slow"
+      },
+      {
+        "index": 11,
+        "clips": 976,
+        "estimatedBytes": 65514000,
+        "bands": [
+          7
+        ],
+        "firstKey": "v1/w/amy/观感.slow.mp3",
+        "lastKey": "v1/w/amy/龟.slow.mp3",
+        "voice": "amy",
+        "variant": "slow"
+      }
+    ]
+  },
+  "openDecisions": [
+    {
+      "id": "D1",
+      "title": "Dominant reading for the bare polyphone path",
+      "detail": "58 headwords carry more than one reading in the canon. Every reading gets an explicit .<pinyin> path, but /v1/w/amy/<word>.mp3 with no suffix has no owner. Leaving it unmapped returns 404 (detectable). Mapping it to the wrong reading is silent and worse. Publish a dominant-reading table or serve 404 on every bare polyphone path — pick one, in writing.",
+      "blocking": true
+    },
+    {
+      "id": "D2",
+      "title": "Normalisation rule for annotated headwords",
+      "detail": "43 canon headwords are not bare words — they carry source-list annotation such as 们（朋友们）, 哥哥|哥, …分之… or 好（不）容易. Percent-encoding them produces the unreadable URL the constructible scheme exists to avoid. They are excluded from every batch until a rule is published.",
+      "blocking": true
+    },
+    {
+      "id": "D3",
+      "title": "Legacy 0.7x disclosure",
+      "detail": "Every migrated Amy clip is time-stretched to 0.7x and no natural-speed master survives. The .slow path names that honestly; the bare .mp3 path for Amy must 404 until G2b renders natural speed, rather than aliasing to the stretched clip.",
+      "blocking": false
+    }
+  ]
+}

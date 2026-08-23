@@ -42,23 +42,91 @@ export interface HskBanding {
   /** The source's own level label; "7-9" is not split by the source. */
   bandRange: BandRange;
   /**
-   * HSK 3.0 (2021) band. Null throughout this build: the 2021 banding lives in
-   * prod Postgres, which is not an input here. Null means unknown, not "none".
+   * HSK 3.0 (2021) band, 1–7 with 7 again meaning the merged 7-9 range.
+   * Enrichment-only: it comes from `global_dictionary.hsk_new_level` via the
+   * vendored snapshot. Null is ambiguous on its own — it means either "the 2021
+   * list does not carry this word" or "we could not join this record at all".
+   * `enrichedVia` on the record disambiguates the two.
    */
   band2021: number | null;
+  /**
+   * HSK 2.0 band, 1–6. From `global_dictionary.hsk_old_level`. Same null
+   * semantics as `band2021`; most of the 2026 list has no 2.0 label at all.
+   */
+  band2_0: number | null;
   /** Row id in the source list, e.g. "L1-0001". */
   listId: string;
 }
 
 /**
- * Audio hosting does not exist yet. We emit nulls and a status rather than
- * URLs, because a URL that 404s is worse than an honest absence.
+ * Corpus frequency, from SayMei's dictionary. Both members are always present;
+ * null means unknown. They are two different measurements and neither is
+ * derived from the other, so a word can carry one without the other.
+ */
+export interface FrequencyInfo {
+  /** Corpus frequency rank, 1 = most frequent. From `frequency_rank`. */
+  rank: number | null;
+  /**
+   * Zipf score, from `zipf_score`. Observed range in the source is 0–7.79; the
+   * upstream table writes 0 for forms with no corpus attestation, and that 0 is
+   * passed through unchanged rather than reinterpreted as null.
+   */
+  zipf: number | null;
+}
+
+/**
+ * Whether a clip exists for one voice, and whether Zhongdex publishes a URL
+ * for it. `hosted` is false everywhere in this release — see `WordAudio`.
+ */
+export interface VoiceAudio {
+  available: boolean;
+  hosted: boolean;
+}
+
+/**
+ * `available-unhosted` — a clip exists upstream but this release ships no URL.
+ * `none`               — no clip exists upstream for this word.
+ * `unknown`            — the record did not join the enrichment snapshot, or
+ *                        no snapshot was present, so availability is unmeasured.
+ */
+export type AudioStatus = "available-unhosted" | "none" | "unknown";
+
+/**
+ * Availability metadata, never URLs.
+ *
+ * The clips live on Railway object storage behind the SayMei app, whose egress
+ * is metered, so republishing their paths here would bill a third party for
+ * every download of this dataset. A URL that costs someone money is worse than
+ * an honest absence, exactly as a URL that 404s would be.
+ *
+ * `female` is evidenced, not assumed: `global_dictionary.audio_url` is a single
+ * column written by only two code paths in the SayMei repo —
+ * `server/services/audio/word-audio-pipeline.ts` and
+ * `server/scripts/batch-generate-vocab-audio.ts` — and both synthesise with
+ * ElevenLabs voice id `bhJUNIXWQQ94l8eI2VUf`, which the same repo's
+ * `server/services/audio/elevenlabs-service.ts` registers as its `female`
+ * voice and the pipeline comments as "Amy". There is no male word-audio column
+ * upstream, so `male.available` is false for every record: that is a measured
+ * absence, not an unknown.
  */
 export interface WordAudio {
-  female: string | null;
-  male: string | null;
-  status: "pending";
+  female: VoiceAudio;
+  male: VoiceAudio;
+  status: AudioStatus;
 }
+
+/**
+ * How a canon record joined SayMei's dictionary.
+ *
+ * `reading` — matched on simplified form *and* normalised numbered pinyin.
+ * `form`    — the simplified form had exactly one upstream row and its reading
+ *             disagreed; taken anyway, because one unambiguous row is evidence.
+ * `null`    — no match, or no snapshot. Every enriched field is unknown.
+ *
+ * A form with several upstream rows and no reading match is deliberately left
+ * unjoined: picking one would be a guess.
+ */
+export type EnrichmentJoin = "reading" | "form" | null;
 
 export interface WordRecord {
   /** `dex:w:<numbered pinyin>:<simplified>:<primary POS>`. Stable, unique, readable. */
@@ -72,7 +140,23 @@ export interface WordRecord {
   definitions: Definition[];
   /** Prefixed provenance ids, e.g. ["hsk30:L1-0001", "cc-cedict:愛|爱[ai4]"]. */
   sourceIds: string[];
+  /** Corpus frequency. See also the flat mirrors below. */
+  frequency: FrequencyInfo;
+  /**
+   * Flat mirrors of `frequency.rank` / `frequency.zipf`.
+   *
+   * Not redundant by choice: `src/build/pack-schema.ts` declares `frequencyRank`
+   * and `zipf` at the top level of its `CanonWord` input contract, and
+   * `src/mcp/data.ts` picks the same flat names. Both read this file and
+   * neither is ours to change, so the canon satisfies the documented contract
+   * and the nested shape at once. They are written from one value; they cannot
+   * disagree.
+   */
+  frequencyRank: number | null;
+  zipf: number | null;
   audio: WordAudio;
+  /** Provenance for every enriched field above. Null means "unknown", not "none". */
+  enrichedVia: EnrichmentJoin;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -172,6 +256,111 @@ export interface CanonStats {
     maxRowsForOneSimplifiedForm: number;
   };
   pinyinNumberedOrigin: Record<PinyinNumberedOrigin, number>;
-  band2021: { known: number; unknown: number; note: string };
-  audio: { pending: number; resolved: number; note: string };
+  enrichment: EnrichmentStats;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Enrichment snapshot                                                         */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One upstream `global_dictionary` row, reduced to the columns this project
+ * uses. Keys are short because the snapshot is committed and there are ~11.7k
+ * of these; every byte is a byte in everyone's clone.
+ */
+export interface SnapshotRow {
+  /** Normalised numbered pinyin, the join key. See `normalizeReading`. */
+  py: string;
+  /** `hsk_new_level` — HSK 3.0 (2021) band. */
+  b2021: number | null;
+  /** `hsk_old_level` — HSK 2.0 band. */
+  b20: number | null;
+  /** `frequency_rank`. */
+  rank: number | null;
+  /** `zipf_score`. */
+  zipf: number | null;
+  /** `audio_url IS NOT NULL AND audio_url <> ''`. The URL itself is never captured. */
+  audio: boolean;
+}
+
+/**
+ * `data/enrichment.json` — a vendored, committed capture of the columns this
+ * build needs from SayMei's production dictionary.
+ *
+ * It exists so `npm run build:canon` is offline and reproducible on any clone.
+ * Refresh it with `npm run enrich:fetch`, which is the only thing in this repo
+ * that opens a database connection, and which needs a SayMei checkout to run.
+ */
+export interface EnrichmentSnapshot {
+  schema: "zhongdex/enrichment/v1";
+  generator: string;
+  /** When the capture ran. Provenance for a mutable upstream, not a build input. */
+  capturedAt: string;
+  source: {
+    system: string;
+    table: string;
+    /** Total rows in the table at capture time. Context for the coverage figures. */
+    tableRows: number;
+    /**
+     * Columns read, with their table-wide non-null counts at capture time.
+     * A column that was entirely null is not captured and not listed here.
+     */
+    columns: Record<string, number>;
+    /** Columns inspected and deliberately dropped, with why. */
+    droppedColumns: Record<string, string>;
+    notes: string[];
+  };
+  /** Distinct simplified forms requested (the canon's). */
+  formsRequested: number;
+  /** Distinct simplified forms that matched at least one upstream row. */
+  formsMatched: number;
+  /** Total upstream rows captured. */
+  rows: number;
+  /** Simplified form -> its upstream rows. Keys and rows are sorted for determinism. */
+  words: Record<string, SnapshotRow[]>;
+}
+
+/** Join outcome tallies. The four buckets partition the canon exactly. */
+export interface EnrichmentJoinCounts {
+  /** Matched on simplified form and reading. */
+  reading: number;
+  /** Matched on a simplified form with exactly one upstream row; reading disagreed. */
+  form: number;
+  /** Several upstream rows, none with a matching reading. Left unjoined on purpose. */
+  unjoinedAmbiguous: number;
+  /** The simplified form is not in the upstream dictionary at all. */
+  unjoinedNoRow: number;
+}
+
+/** Counts, not fractions: a fraction hides how big the denominator was. */
+export interface EnrichmentCoverage {
+  band2021: number;
+  band2_0: number;
+  frequencyRank: number;
+  zipf: number;
+  audioAvailable: number;
+  audioNone: number;
+  audioUnknown: number;
+}
+
+export interface EnrichmentStats {
+  /**
+   * The snapshot actually consumed, or null when `data/enrichment.json` was
+   * absent. Null is the offline-fallback case: the build still succeeds and
+   * every enriched field is emitted as unknown.
+   */
+  snapshot:
+    | (InputStamp & { schema: string; capturedAt: string; tableRows: number; rows: number })
+    | null;
+  joined: EnrichmentJoinCounts;
+  coverage: EnrichmentCoverage;
+  /** Records per 2021 band, among those that got one. Band 7 is the merged 7-9 range. */
+  band2021Bands: Record<string, number>;
+  /**
+   * Size of the 2026-vs-2021 difference this canon can support. `noBand2021`
+   * includes records we could not join, which are unknown rather than new —
+   * see the note.
+   */
+  delta2026: { bandMoved: number; noBand2021: number; total: number };
+  notes: string[];
 }

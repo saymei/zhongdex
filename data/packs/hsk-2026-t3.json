@@ -60,15 +60,15 @@
   "audioCompleteness": {
     "female": 0,
     "male": 0,
-    "pending": 1,
+    "pending": 0,
     "status": "pending"
   },
   "coverage": {
     "bandLabelled": 1,
-    "band2021Labelled": 0,
+    "band2021Labelled": 0.9712,
     "posLabelled": 0.9373,
     "defined": 0.9979,
-    "frequencyRanked": 0,
+    "frequencyRanked": 0.9928,
     "senseDisambiguated": 0
   },
   "version": "2026.09.1",

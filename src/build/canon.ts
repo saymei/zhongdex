@@ -25,13 +25,19 @@ import {
   tonelessSlug,
   type CedictIndex,
 } from "./cedict.js";
+import { normalizeReading } from "./db.js";
 import type {
   Band,
   BandRange,
   CanonStats,
   CedictMatchTier,
   Definition,
+  EnrichmentCoverage,
+  EnrichmentJoin,
+  EnrichmentJoinCounts,
+  EnrichmentSnapshot,
   PinyinNumberedOrigin,
+  SnapshotRow,
   WordRecord,
 } from "./types.js";
 
@@ -39,11 +45,22 @@ const REPO_ROOT = new URL("../../", import.meta.url);
 const HSK30_CSV = fileURLToPath(new URL("scripts/hsk30.csv", REPO_ROOT));
 const DATA_DIR = fileURLToPath(new URL("data/", REPO_ROOT));
 /**
- * CC-CEDICT lives in the SayMei web repo, not here. Override with
- * ZHONGDEX_CEDICT when building somewhere else.
+ * Both inputs are vendored, and both paths are resolved relative to the repo
+ * root rather than to any machine. A build that only works on one laptop is not
+ * reproducible, and CI would be the first thing to prove it.
+ *
+ * CC-CEDICT is CC BY-SA 4.0, which permits the redistribution; see NOTICE §1.
+ * The vendored copy is byte-identical to the upstream dump — its entries carry
+ * only the five fields this build reads (t, s, p, pn, d), so there was nothing
+ * to strip. Override with ZHONGDEX_CEDICT to build against a newer dump.
  */
 const CEDICT_JSON =
-  process.env["ZHONGDEX_CEDICT"] ?? "/Users/lelandchar/Desktop/SayMei-Web/server/data/cedict.json";
+  process.env["ZHONGDEX_CEDICT"] ?? fileURLToPath(new URL("scripts/cedict.json", REPO_ROOT));
+/**
+ * Optional. Absent is a supported state: the build succeeds and every enriched
+ * field is emitted as unknown. Refresh with `npm run enrich:fetch`.
+ */
+const ENRICHMENT_JSON = `${DATA_DIR}enrichment.json`;
 
 const BAND_RANGES: readonly BandRange[] = ["1", "2", "3", "4", "5", "6", "7-9"];
 
@@ -159,6 +176,86 @@ function posSlug(primary: string | undefined): string {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Enrichment                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/** The snapshot as the build sees it: parsed, plus the bytes it hashed. */
+interface LoadedEnrichment {
+  readonly buffer: Buffer;
+  readonly snapshot: EnrichmentSnapshot;
+}
+
+/**
+ * Read `data/enrichment.json` if it is there.
+ *
+ * Absent is not an error. A clone with no snapshot builds the same canon with
+ * the enriched fields marked unknown, which is the difference between a dataset
+ * that is honest about what it does not have and a build that refuses to run.
+ * Present-but-corrupt *is* an error: a snapshot that silently half-parses would
+ * produce quietly wrong coverage numbers.
+ */
+function loadEnrichment(): LoadedEnrichment | null {
+  let buffer: Buffer;
+  try {
+    buffer = readFileSync(ENRICHMENT_JSON);
+  } catch {
+    return null;
+  }
+  const parsed: unknown = JSON.parse(buffer.toString("utf8"));
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new Error(`${ENRICHMENT_JSON}: not a JSON object`);
+  }
+  const snapshot = parsed as EnrichmentSnapshot;
+  if (snapshot.schema !== "zhongdex/enrichment/v1") {
+    throw new Error(
+      `${ENRICHMENT_JSON}: unsupported schema ${JSON.stringify(snapshot.schema)}, expected ` +
+        `"zhongdex/enrichment/v1". Delete it to build without enrichment, or re-run ` +
+        `\`npm run enrich:fetch\`.`,
+    );
+  }
+  if (typeof snapshot.words !== "object" || snapshot.words === null) {
+    throw new Error(`${ENRICHMENT_JSON}: "words" is not an object`);
+  }
+  return { buffer, snapshot };
+}
+
+interface Joined {
+  readonly row: SnapshotRow | null;
+  readonly via: EnrichmentJoin;
+  /** True when several upstream rows existed and none matched the reading. */
+  readonly ambiguous: boolean;
+}
+
+const NOT_JOINED: Joined = { row: null, via: null, ambiguous: false };
+const AMBIGUOUS: Joined = { row: null, via: null, ambiguous: true };
+
+/**
+ * Resolve one canon record against the snapshot.
+ *
+ * Simplified form alone is not a key: 686 of the canon's forms have more than
+ * one upstream row, and the extra rows are exactly the ones carrying different
+ * bands and frequencies. So the reading decides, and when it cannot, a single
+ * unambiguous row is still evidence but several rows are not — those are left
+ * unjoined rather than resolved by coin flip.
+ */
+function joinRecord(
+  words: EnrichmentSnapshot["words"],
+  simplified: string,
+  numbered: string,
+): Joined {
+  const candidates = words[simplified];
+  if (candidates === undefined || candidates.length === 0) return NOT_JOINED;
+
+  const key = normalizeReading(numbered);
+  for (const candidate of candidates) {
+    if (candidate.py === key) return { row: candidate, via: "reading", ambiguous: false };
+  }
+  const only = candidates.length === 1 ? candidates[0] : undefined;
+  if (only !== undefined) return { row: only, via: "form", ambiguous: false };
+  return AMBIGUOUS;
+}
+
+/* -------------------------------------------------------------------------- */
 /* Build                                                                       */
 /* -------------------------------------------------------------------------- */
 
@@ -167,7 +264,11 @@ interface BuildResult {
   stats: CanonStats;
 }
 
-function build(csvBuffer: Buffer, cedictBuffer: Buffer): BuildResult {
+function build(
+  csvBuffer: Buffer,
+  cedictBuffer: Buffer,
+  enrichment: LoadedEnrichment | null,
+): BuildResult {
   const rows = parseCsv(csvBuffer.toString("utf8"));
   const header = rows[0];
   if (header === undefined) throw new Error("hsk30.csv: empty file");
@@ -204,6 +305,25 @@ function build(csvBuffer: Buffer, cedictBuffer: Buffer): BuildResult {
   let keysSeen = 0;
   let keysMatched = 0;
   let definitionsEmitted = 0;
+
+  const joinCounts: EnrichmentJoinCounts = {
+    reading: 0,
+    form: 0,
+    unjoinedAmbiguous: 0,
+    unjoinedNoRow: 0,
+  };
+  const coverage: EnrichmentCoverage = {
+    band2021: 0,
+    band2_0: 0,
+    frequencyRank: 0,
+    zipf: 0,
+    audioAvailable: 0,
+    audioNone: 0,
+    audioUnknown: 0,
+  };
+  const band2021Bands: Record<string, number> = {};
+  let deltaBandMoved = 0;
+  let deltaNoBand2021 = 0;
 
   const records: WordRecord[] = [];
   const simplifiedCounts = new Map<string, number>();
@@ -267,16 +387,62 @@ function build(csvBuffer: Buffer, cedictBuffer: Buffer): BuildResult {
 
     const pos = posRaw === "" ? [] : posRaw.split("/").map((p) => p.trim()).filter((p) => p !== "");
 
+    // Enrichment. Every field below is null/unknown unless the snapshot said
+    // otherwise; nothing here is inferred from the HSK list itself.
+    const joined =
+      enrichment === null
+        ? NOT_JOINED
+        : joinRecord(enrichment.snapshot.words, simplified, numbered);
+    const upstream = joined.row;
+
+    if (joined.via === "reading") joinCounts.reading += 1;
+    else if (joined.via === "form") joinCounts.form += 1;
+    else if (joined.ambiguous) joinCounts.unjoinedAmbiguous += 1;
+    else joinCounts.unjoinedNoRow += 1;
+
+    const band2021 = upstream?.b2021 ?? null;
+    const band2_0 = upstream?.b20 ?? null;
+    const rank = upstream?.rank ?? null;
+    const zipf = upstream?.zipf ?? null;
+
+    if (band2021 !== null) {
+      coverage.band2021 += 1;
+      band2021Bands[String(band2021)] = (band2021Bands[String(band2021)] ?? 0) + 1;
+      if (band2021 !== band) deltaBandMoved += 1;
+    } else {
+      deltaNoBand2021 += 1;
+    }
+    if (band2_0 !== null) coverage.band2_0 += 1;
+    if (rank !== null) coverage.frequencyRank += 1;
+    if (zipf !== null) coverage.zipf += 1;
+
+    // Availability only. See WordAudio in types.ts: the upstream paths point at
+    // metered object storage, so they are neither captured nor republished.
+    const audioKnown = upstream !== null;
+    const femaleAvailable = upstream?.audio === true;
+    if (!audioKnown) coverage.audioUnknown += 1;
+    else if (femaleAvailable) coverage.audioAvailable += 1;
+    else coverage.audioNone += 1;
+
     records.push({
       id: `dex:w:${idSlug(numbered)}:${simplified}:${posSlug(pos[0])}`,
       simplified,
       traditional,
       pinyin: { marked, numbered },
       pos,
-      hsk: { band2026: band, bandRange: range, band2021: null, listId },
+      hsk: { band2026: band, bandRange: range, band2021, band2_0, listId },
       definitions,
       sourceIds,
-      audio: { female: null, male: null, status: "pending" },
+      frequency: { rank, zipf },
+      frequencyRank: rank,
+      zipf,
+      audio: {
+        female: { available: femaleAvailable, hosted: false },
+        // No male word-audio column exists upstream. Measured absence, not unknown.
+        male: { available: false, hosted: false },
+        status: !audioKnown ? "unknown" : femaleAvailable ? "available-unhosted" : "none",
+      },
+      enrichedVia: joined.via,
     });
     simplifiedCounts.set(simplified, (simplifiedCounts.get(simplified) ?? 0) + 1);
   }
@@ -371,15 +537,47 @@ function build(csvBuffer: Buffer, cedictBuffer: Buffer): BuildResult {
       maxRowsForOneSimplifiedForm: maxRowsForOneForm,
     },
     pinyinNumberedOrigin: pinyinOrigin,
-    band2021: {
-      known: 0,
-      unknown: records.length,
-      note: "The 2021 banding is not one of this build's inputs; null means unknown, not absent.",
-    },
-    audio: {
-      pending: records.length,
-      resolved: 0,
-      note: "Audio hosting does not exist yet. No URLs are emitted rather than URLs that would 404.",
+    enrichment: {
+      snapshot:
+        enrichment === null
+          ? null
+          : {
+              path: "data/enrichment.json",
+              sha256: sha256(enrichment.buffer),
+              bytes: enrichment.buffer.byteLength,
+              schema: enrichment.snapshot.schema,
+              capturedAt: enrichment.snapshot.capturedAt,
+              tableRows: enrichment.snapshot.source.tableRows,
+              rows: enrichment.snapshot.rows,
+            },
+      joined: joinCounts,
+      coverage,
+      band2021Bands,
+      delta2026: {
+        bandMoved: deltaBandMoved,
+        noBand2021: deltaNoBand2021,
+        total: deltaBandMoved + deltaNoBand2021,
+      },
+      notes: [
+        enrichment === null
+          ? "No data/enrichment.json was present. Every enriched field is unknown; run " +
+            "`npm run enrich:fetch` to capture one."
+          : "Enriched from the committed snapshot, not from a live database. The build is " +
+            "offline and reproducible.",
+        "band2021 / band2_0 / frequency / audio are null or \"unknown\" on the " +
+          `${String(joinCounts.unjoinedAmbiguous + joinCounts.unjoinedNoRow)} records that did ` +
+          "not join. Read `enrichedVia` on the record before treating a null as an absence.",
+        `delta2026.noBand2021 counts ${String(joinCounts.unjoinedAmbiguous + joinCounts.unjoinedNoRow)} ` +
+          "unjoined records among its total. Those are unknown, not demonstrably new in 2026, " +
+          "so the true delta is a range, not a point.",
+        "audio records availability only. No clip URL is emitted anywhere in this dataset: " +
+          "the clips are on metered object storage and republishing their paths would bill a " +
+          "third party per download.",
+        "audio.female is evidenced — the single upstream audio_url column is written only by " +
+          "SayMei's word-audio pipeline, which synthesises with the ElevenLabs voice that repo " +
+          "registers as female. male.available is false everywhere: no male word audio exists " +
+          "upstream to be available.",
+      ],
     },
   };
 
@@ -390,6 +588,12 @@ function build(csvBuffer: Buffer, cedictBuffer: Buffer): BuildResult {
 /* Emit                                                                        */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * `audio_female` / `audio_male` used to hold URL columns that were empty on
+ * every row. They are now availability booleans, which is what the data
+ * actually is; the columns are renamed rather than repurposed so no consumer
+ * reads a boolean out of a column it believed held a URL.
+ */
 const CSV_HEADER = [
   "id",
   "simplified",
@@ -400,13 +604,17 @@ const CSV_HEADER = [
   "hsk_band_2026",
   "hsk_band_range",
   "hsk_band_2021",
+  "hsk_band_2_0",
   "hsk_list_id",
   "definition_count",
   "definitions",
   "source_ids",
-  "audio_female",
-  "audio_male",
+  "frequency_rank",
+  "zipf",
+  "audio_female_available",
+  "audio_male_available",
   "audio_status",
+  "enriched_via",
 ] as const;
 
 function toCsv(records: readonly WordRecord[]): string {
@@ -423,15 +631,20 @@ function toCsv(records: readonly WordRecord[]): string {
         String(r.hsk.band2026),
         r.hsk.bandRange,
         r.hsk.band2021 === null ? "" : String(r.hsk.band2021),
+        r.hsk.band2_0 === null ? "" : String(r.hsk.band2_0),
         r.hsk.listId,
         String(r.definitions.length),
         // Glosses can contain commas, semicolons, slashes and pipes, so the only
         // lossless flat encoding is a JSON array inside the CSV cell.
         JSON.stringify(r.definitions.map((d) => d.text)),
         r.sourceIds.join(";"),
-        r.audio.female ?? "",
-        r.audio.male ?? "",
+        // Empty, not 0: an unknown rank is not a rank of zero.
+        r.frequency.rank === null ? "" : String(r.frequency.rank),
+        r.frequency.zipf === null ? "" : String(r.frequency.zipf),
+        String(r.audio.female.available),
+        String(r.audio.male.available),
         r.audio.status,
+        r.enrichedVia ?? "",
       ]
         .map(csvCell)
         .join(","),
@@ -453,11 +666,13 @@ function main(): void {
     cedictBuffer = readFileSync(CEDICT_JSON);
   } catch {
     throw new Error(
-      `CC-CEDICT dump not readable at ${CEDICT_JSON}. Set ZHONGDEX_CEDICT to its location.`,
+      `CC-CEDICT dump not readable at ${CEDICT_JSON}. It is vendored at scripts/cedict.json; ` +
+        `set ZHONGDEX_CEDICT to build against a copy somewhere else.`,
     );
   }
+  const enrichment = loadEnrichment();
 
-  const { records, stats } = build(csvBuffer, cedictBuffer);
+  const { records, stats } = build(csvBuffer, cedictBuffer, enrichment);
 
   mkdirSync(DATA_DIR, { recursive: true });
   writeFileSync(`${DATA_DIR}hsk_bands.json`, toJson(records));
@@ -477,6 +692,37 @@ function main(): void {
     `canon: ${stats.polyphones.simplifiedFormsOnMultipleRows} simplified forms span multiple rows` +
       ` (${stats.polyphones.rowsSharingASimplifiedForm} rows) — kept, never deduped`,
   );
+
+  const e = stats.enrichment;
+  const total = stats.rows.out;
+  const pct = (n: number): string => `${((n / total) * 100).toFixed(2)}%`;
+  if (e.snapshot === null) {
+    log(
+      `canon: NO enrichment snapshot at data/enrichment.json — band2021, band2_0, frequency` +
+        ` and audio are unknown on all ${total} records. Run \`npm run enrich:fetch\`.`,
+    );
+  } else {
+    log(
+      `canon: enrichment ${e.joined.reading} joined on reading + ${e.joined.form} on form` +
+        ` = ${e.joined.reading + e.joined.form}/${total} (${pct(e.joined.reading + e.joined.form)});` +
+        ` ${e.joined.unjoinedNoRow} forms absent upstream, ${e.joined.unjoinedAmbiguous} ambiguous`,
+    );
+    log(
+      `canon: coverage band2021 ${e.coverage.band2021} (${pct(e.coverage.band2021)})` +
+        ` · band2_0 ${e.coverage.band2_0} (${pct(e.coverage.band2_0)})` +
+        ` · rank ${e.coverage.frequencyRank} (${pct(e.coverage.frequencyRank)})` +
+        ` · zipf ${e.coverage.zipf} (${pct(e.coverage.zipf)})`,
+    );
+    log(
+      `canon: audio ${e.coverage.audioAvailable} available (unhosted) ·` +
+        ` ${e.coverage.audioNone} none · ${e.coverage.audioUnknown} unknown — 0 URLs emitted`,
+    );
+    log(
+      `canon: 2026-vs-2021 delta ${e.delta2026.total} words` +
+        ` (${e.delta2026.bandMoved} moved band, ${e.delta2026.noBand2021} with no 2021 label,` +
+        ` of which ${e.joined.unjoinedAmbiguous + e.joined.unjoinedNoRow} are unjoined = unknown)`,
+    );
+  }
   log(`canon: wrote data/hsk_bands.json, data/hsk_bands.csv, data/canon-stats.json`);
 }
 

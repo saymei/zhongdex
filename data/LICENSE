@@ -2,6 +2,7 @@ Zhongdex data — Creative Commons Attribution-ShareAlike 4.0 International
 (CC BY-SA 4.0)
 
 Copyright (c) 2026 SayMei and the upstream sources listed in ../NOTICE
+(v0.1 sources: CC-CEDICT, and the vendored HSK 3.0 (2026) word list)
 
 Everything in this directory — the word canon, the sentence records, the packs,
 the manifests, and every artifact derived from them (Yomitan packs, Anki decks,
@@ -33,15 +34,18 @@ UNDER THE FOLLOWING TERMS
 1. ATTRIBUTION. You must give appropriate credit, provide a link to the
    licence, and indicate if changes were made.
 
-   The attribution line to reproduce:
+   The attribution line to reproduce, matching what v0.1 actually contains:
 
      Zhongdex by SayMei — https://zhongdex.org — CC BY-SA 4.0.
-     Contains data from CC-CEDICT (CC BY-SA 4.0), Wiktionary (CC BY-SA 4.0),
-     and Tatoeba (CC BY 2.0 FR).
+     Contains data from CC-CEDICT (CC BY-SA 4.0) and the HSK 3.0 (2026)
+     word list.
 
-   Keep the per-record attribution that ships with the data. Sentence records
-   carry `source.corpus` and, for Tatoeba rows, `source.sourceId`; that field
-   IS the attribution for those rows and must survive your transformation.
+   ../NOTICE is always the current source list; later releases add to it.
+   Keep the per-record attribution that ships with the data: every record
+   carries `sourceIds`, and every gloss carries its own `source` and
+   `license`. When sentence records ship, Tatoeba rows will carry their
+   upstream id the same way; that field IS the attribution for those rows and
+   must survive your transformation.
 
 2. SHAREALIKE. If you remix, transform, or build upon the material, you must
    distribute your contributions under CC BY-SA 4.0 or a
@@ -67,10 +71,11 @@ UNDER THE FOLLOWING TERMS
 WHY THIS LICENCE, AND NOT A PERMISSIVE ONE
 --------------------------------------------------------------------------
 
-This is not a preference. CC-CEDICT and Wiktionary are both CC BY-SA 4.0, and
-their glosses are merged into the word canon. ShareAlike propagates through
-that merge, so BY-SA is the only licence this corpus can carry. The code that
-builds it is MIT (see ../LICENSE); the corpus cannot be.
+This is not a preference. Every gloss in the v0.1 canon comes from CC-CEDICT,
+which is CC BY-SA 4.0. ShareAlike propagates through the merge, so BY-SA is the
+only licence this corpus can carry. Wiktionary senses and Tatoeba sentences are
+planned and neither changes the outcome. The code that builds it is MIT
+(see ../LICENSE); the corpus cannot be.
 
 --------------------------------------------------------------------------
 WHAT IS NOT COVERED

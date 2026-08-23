@@ -13,9 +13,12 @@
   },
   "scripts": {
     "build:canon": "tsx src/build/canon.ts",
+    "enrich:fetch": "tsx src/build/enrich.ts",
     "build:packs": "tsx src/build/packs.ts",
+    "build:sentences": "tsx src/build/sentences.ts",
     "build": "npm run build:canon && npm run build:packs",
     "mcp": "tsx src/mcp/server.ts",
+    "plan:audio-migration": "tsx src/audio/plan-migration.ts",
     "eval:contract": "tsx evals/contract.ts",
     "typecheck": "tsc --noEmit",
     "metrics": "tsx src/metrics/collect.ts",

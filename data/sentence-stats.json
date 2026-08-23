@@ -1,0 +1,134 @@
+{
+  "schema": "zhongdex/sentence-stats/v1",
+  "generator": "src/build/sentences.ts",
+  "source": {
+    "corpus": "example_json",
+    "table": "global_dictionary",
+    "column": "example_sentences_json",
+    "note": "Chosen over example_sentences + entry_sentences: that pairing is 95% Tatoeba, largely traditional script, numbered pinyin only, and its links are substring matches rather than sense alignment. See the header of src/build/sentences.ts for the full comparison.",
+    "license": "SayMei production data; sentences are SayMei-owned, not CC-CEDICT."
+  },
+  "grading": {
+    "definition": "ZSG = the highest HSK 3.0 (2026) band of any content token after segmentation, clamped to 1-7. Computed from the canon word list plus the sentence text; no model, no copied grade.",
+    "segmenter": "Forward maximum matching over the canon's own simplified forms. Unmatched single characters take the lowest band of any canon word containing them.",
+    "beyondHsk": "A character no canon word contains is outside HSK 3.0; it forces the grade to 7 and is counted in beyondHskTokens.",
+    "newWordCount": "Per band prefix 1..7, the count of DISTINCT content token forms outside that prefix. A value of 1 is an i+1 sentence. Tokens outside HSK 3.0 count against every prefix, including 7.",
+    "charLengthPercentile": "Mid-rank percentile of the sentence's character count against every GRADED sentence of the same ZSG band — the full pool, not the shipped subset, which is chosen partly on length. Measured on this corpus rather than imported from the dialogue corpus."
+  },
+  "input": {
+    "canonRows": 11092,
+    "canonDistinctForms": 10959,
+    "canonFormsFoundInSource": 10938,
+    "rawSentenceRows": 138777,
+    "distinctRawTexts": 138391
+  },
+  "drops": {
+    "total": 981,
+    "byReason": {
+      "empty-hanzi": 0,
+      "no-han": 0,
+      "too-short": 1,
+      "too-long": 0,
+      "latin-prose": 18,
+      "mojibake": 0,
+      "missing-english": 0,
+      "missing-pinyin": 0,
+      "headword-absent": 867,
+      "duplicate-for-headword": 95,
+      "no-content-token": 0
+    }
+  },
+  "graded": {
+    "distinctSentences": 137541,
+    "headwordsWithAtLeastOne": 11072,
+    "gradeDistribution": {
+      "1": 1605,
+      "2": 4526,
+      "3": 8784,
+      "4": 11143,
+      "5": 12400,
+      "6": 14330,
+      "7": 84753
+    }
+  },
+  "selected": {
+    "totalSentences": 19976,
+    "totalLinks": 20312,
+    "headwordsCovered": 11072,
+    "coveragePctOfCanonRows": 99.82,
+    "coveragePctOfCanonForms": 99.82,
+    "gradeDistribution": {
+      "1": 489,
+      "2": 825,
+      "3": 1169,
+      "4": 1806,
+      "5": 2302,
+      "6": 2759,
+      "7": 10626
+    },
+    "slotDistribution": {
+      "easy": 452,
+      "atLevel": 11028,
+      "stretch": 8832
+    },
+    "triadFullness": {
+      "0": 20,
+      "1": 5522,
+      "2": 1860,
+      "3": 3690
+    },
+    "withAudio": 16784,
+    "withAudioPct": 84.02,
+    "audioTier": {
+      "two-speed": 10363,
+      "slow-only": 6421,
+      "none": 3192
+    },
+    "withPinyinNumbered": 19951,
+    "withSenseIndex": 716,
+    "charLenPercentileTable": {
+      "1": {
+        "n": 1605,
+        "p50": 7,
+        "p90": 10
+      },
+      "2": {
+        "n": 4526,
+        "p50": 8,
+        "p90": 12
+      },
+      "3": {
+        "n": 8784,
+        "p50": 9,
+        "p90": 14
+      },
+      "4": {
+        "n": 11143,
+        "p50": 10,
+        "p90": 15
+      },
+      "5": {
+        "n": 12400,
+        "p50": 10,
+        "p90": 16
+      },
+      "6": {
+        "n": 14330,
+        "p50": 11,
+        "p90": 17
+      },
+      "7": {
+        "n": 84753,
+        "p50": 12,
+        "p90": 19
+      }
+    }
+  },
+  "sourceHskLevelAgreement": {
+    "note": "The source rows carry their own hskLevel. It is never trusted, only compared: this is a check on the computed grade, not an input to it.",
+    "compared": 19975,
+    "exact": 1916,
+    "within1": 6426
+  },
+  "idCollisions": 0
+}
