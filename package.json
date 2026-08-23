@@ -23,6 +23,8 @@
     "mcp": "tsx src/mcp/server.ts",
     "plan:audio-migration": "tsx src/audio/plan-migration.ts",
     "eval:contract": "tsx evals/contract.ts",
+    "judge:quality": "tsx src/build/quality-judge.ts",
+    "quality:filter": "tsx src/build/quality.ts",
     "typecheck": "tsc --noEmit",
     "typecheck:worker": "tsc --noEmit -p worker/tsconfig.json",
     "metrics": "tsx src/metrics/collect.ts",
