@@ -28,8 +28,10 @@
     "deterministic": true,
     "seedSource": null
   },
+  "exclusions": [],
   "bandClosure": {
     "scheme": "hsk-3.0-2026",
+    "claim": "spans-bands",
     "claimedMinBand": null,
     "claimedMaxBand": null,
     "observedMinBand": 1,
@@ -37,7 +39,7 @@
     "overBand": 0,
     "underBand": 0,
     "offList": 0,
-    "closed": false
+    "closed": null
   },
   "provenance": {
     "words": "computed",
@@ -59,7 +61,9 @@
   "audioCompleteness": {
     "female": 0,
     "male": 0,
-    "pending": 0,
+    "femaleAvailableUnhosted": 0.9936,
+    "maleAvailableUnhosted": 0,
+    "unknown": 0,
     "status": "pending"
   },
   "coverage": {

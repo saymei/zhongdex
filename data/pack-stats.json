@@ -3,24 +3,123 @@
   "corpusVersion": "2026.09",
   "version": "2026.09.1",
   "canonWords": 11092,
-  "packCount": 22,
-  "totalSlots": 51626,
+  "packCount": 28,
+  "totalSlots": 63972,
   "audio": {
     "overallFemale": 0,
     "overallMale": 0,
-    "note": "Every clip is still pending for this corpus version. The 100% word-audio publish gate is reported but non-blocking until audio ships."
+    "note": "Zero clips are hosted, so every pack's audio status is \"pending\" and these figures are 0. That is not the same as no audio existing: the canon reports female clips as available upstream for most of the corpus, counted per pack under femaleAvailableUnhosted, with no public URL to play them from. No male word audio exists upstream at all. The 100% word-audio publish gate is reported but non-blocking until clips are actually hosted."
   },
   "packs": [
+    {
+      "id": "dex:p:core-1000",
+      "slug": "core-1000",
+      "size": 720,
+      "digest": "sha256:55facdab2f593489a197b9c09b5c046a6b081d74596f6ff62e987e641c35098b",
+      "bandClosure": "spans-bands",
+      "excluded": 0,
+      "audioCompleteness": {
+        "female": 0,
+        "male": 0,
+        "femaleAvailableUnhosted": 1,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
+        "status": "pending"
+      }
+    },
+    {
+      "id": "dex:p:core-2000",
+      "slug": "core-2000",
+      "size": 1418,
+      "digest": "sha256:a33915a7dabc135621a77f214bc7dceb0f61f03e720d9148e8666e929a28a953",
+      "bandClosure": "spans-bands",
+      "excluded": 0,
+      "audioCompleteness": {
+        "female": 0,
+        "male": 0,
+        "femaleAvailableUnhosted": 1,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
+        "status": "pending"
+      }
+    },
+    {
+      "id": "dex:p:core-3000",
+      "slug": "core-3000",
+      "size": 2122,
+      "digest": "sha256:126b73e5232ce93f4992316d53c2725c0d0063e39b9161a71e6863cf69e23b24",
+      "bandClosure": "spans-bands",
+      "excluded": 0,
+      "audioCompleteness": {
+        "female": 0,
+        "male": 0,
+        "femaleAvailableUnhosted": 1,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
+        "status": "pending"
+      }
+    },
+    {
+      "id": "dex:p:core-500",
+      "slug": "core-500",
+      "size": 362,
+      "digest": "sha256:5ecdc7e4517cf639a4578d702cbc9e1ddd2fa1970c430a8c0d7281a75f4df5e2",
+      "bandClosure": "spans-bands",
+      "excluded": 0,
+      "audioCompleteness": {
+        "female": 0,
+        "male": 0,
+        "femaleAvailableUnhosted": 1,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
+        "status": "pending"
+      }
+    },
+    {
+      "id": "dex:p:core-5000",
+      "slug": "core-5000",
+      "size": 3332,
+      "digest": "sha256:cb7a7fe6ce943b584fb99887ead059afc028b8d9d9e17af5e8e222504fd4b8f6",
+      "bandClosure": "spans-bands",
+      "excluded": 0,
+      "audioCompleteness": {
+        "female": 0,
+        "male": 0,
+        "femaleAvailableUnhosted": 1,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
+        "status": "pending"
+      }
+    },
+    {
+      "id": "dex:p:hsk-2-0-t1-t6",
+      "slug": "hsk-2-0-t1-t6",
+      "size": 4442,
+      "digest": "sha256:ac06031dcd266cf9c4738df9c35a604c6fd38c3db3fa55b1fbad1777e0bc575a",
+      "bandClosure": "spans-bands",
+      "excluded": 0,
+      "audioCompleteness": {
+        "female": 0,
+        "male": 0,
+        "femaleAvailableUnhosted": 1,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
+        "status": "pending"
+      }
+    },
     {
       "id": "dex:p:hsk-2021-complete",
       "slug": "hsk-2021-complete",
       "size": 10786,
       "digest": "sha256:072fb6b1f392a8a175ff1c6e7e3eccd5841451a00ea25948491cd620888e4a06",
-      "bandClosed": false,
+      "bandClosure": "spans-bands",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 1,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -29,24 +128,30 @@
       "slug": "hsk-2026-complete",
       "size": 11092,
       "digest": "sha256:de7aac5a48a4938762e2e44f975c4ebcc259305c343c2a7205a91f58c192c0a5",
-      "bandClosed": true,
+      "bandClosure": "band-closed",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9953,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
     {
       "id": "dex:p:hsk-2026-delta",
       "slug": "hsk-2026-delta",
-      "size": 374,
-      "digest": "sha256:45542e9b488fb2fd5513ddb4cd902b048b2e7636d599091f5be2dcb674f83df4",
-      "bandClosed": false,
+      "size": 324,
+      "digest": "sha256:75bc8536f0f3694c764234c1405b2d1682dbec9144adb32a2a26c31188352159",
+      "bandClosure": "spans-bands",
+      "excluded": 50,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9938,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -55,11 +160,14 @@
       "slug": "hsk-2026-t1",
       "size": 500,
       "digest": "sha256:b2ab9da63f460c1808be9eea4d507c64acb5f7101038cc0bb38ed0f00fa0db03",
-      "bandClosed": true,
+      "bandClosure": "band-closed",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.982,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -68,11 +176,14 @@
       "slug": "hsk-2026-t1-t3",
       "size": 2245,
       "digest": "sha256:3a211e6136069529bfeb9c16166c56f02a13eb66295286199845f9e65126e6ac",
-      "bandClosed": true,
+      "bandClosure": "band-closed",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9884,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -81,11 +192,14 @@
       "slug": "hsk-2026-t1-t6",
       "size": 5456,
       "digest": "sha256:fe51657fb562a751b2531a71b8cbf98256539ee37fafc59f60d9fa84fb469329",
-      "bandClosed": true,
+      "bandClosure": "band-closed",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9934,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -94,11 +208,14 @@
       "slug": "hsk-2026-t2",
       "size": 772,
       "digest": "sha256:7b872c550613ff3e21dde32365c00fe7521dab7b210042e8e5a68a4dc996ec67",
-      "bandClosed": true,
+      "bandClosure": "band-closed",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9858,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -107,11 +224,14 @@
       "slug": "hsk-2026-t3",
       "size": 973,
       "digest": "sha256:b4ed4bd63161a206faa23112546480e0bdde6c6598d59caeaa8eb65c8c221464",
-      "bandClosed": true,
+      "bandClosure": "band-closed",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9938,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -120,11 +240,14 @@
       "slug": "hsk-2026-t4",
       "size": 1000,
       "digest": "sha256:0ea4daf400187a0207806f89bca18397043a9a89761b07ff9284849a61b8d96d",
-      "bandClosed": true,
+      "bandClosure": "band-closed",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.999,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -133,11 +256,14 @@
       "slug": "hsk-2026-t5",
       "size": 1071,
       "digest": "sha256:7946a1da084e680d1edb66421e76bada54c8d043581b10ea7e18b801fe990013",
-      "bandClosed": true,
+      "bandClosure": "band-closed",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9963,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -146,11 +272,14 @@
       "slug": "hsk-2026-t6",
       "size": 1140,
       "digest": "sha256:a627d240ee85680c44c25e6564241ae9206abe6b5a8e75a81e6bf4c91471bc41",
-      "bandClosed": true,
+      "bandClosure": "band-closed",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9956,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -159,11 +288,14 @@
       "slug": "hsk-2026-t7-9",
       "size": 5636,
       "digest": "sha256:e9f62e91e48caf6e0665942762b185717cbbc25ccdfd74519a421f0da0fad090",
-      "bandClosed": true,
+      "bandClosure": "band-closed",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9972,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -172,11 +304,14 @@
       "slug": "pos-adjectives",
       "size": 1447,
       "digest": "sha256:70ee5c6f9a4e91b9b9ae6d0a7418801e6a378d8e5aabb182d2303c6b061149ca",
-      "bandClosed": false,
+      "bandClosure": "spans-bands",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9986,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -185,11 +320,14 @@
       "slug": "pos-adverbs",
       "size": 453,
       "digest": "sha256:ed5d947db061a4b94b5f54fe61a96ea1339fd5421bd03786f05c985d9ac8cd4e",
-      "bandClosed": false,
+      "bandClosure": "spans-bands",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9934,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -198,11 +336,14 @@
       "slug": "pos-auxiliaries",
       "size": 24,
       "digest": "sha256:5e5bce417179dd8191cf073e8c963cac38ee08f5d36d5398bd9cf2b0afa8c13b",
-      "bandClosed": false,
+      "bandClosure": "spans-bands",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 1,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -211,11 +352,14 @@
       "slug": "pos-conjunctions",
       "size": 106,
       "digest": "sha256:882a03591d50054833579b354e290f7e71e737ee1896aae4048c42071046bc87",
-      "bandClosed": false,
+      "bandClosure": "spans-bands",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 1,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -224,11 +368,14 @@
       "slug": "pos-measure-words",
       "size": 156,
       "digest": "sha256:5f305755938a72aa2b19826e70c1687f5efafc2f18de114302bdc8a04a6c7510",
-      "bandClosed": false,
+      "bandClosure": "spans-bands",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9936,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -237,11 +384,14 @@
       "slug": "pos-nouns",
       "size": 4600,
       "digest": "sha256:e042fa43826c8ed7b67086903a67058da47aabe2f2f6da4caba9e4b97eccc791",
-      "bandClosed": false,
+      "bandClosure": "spans-bands",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9978,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -250,11 +400,14 @@
       "slug": "pos-numerals",
       "size": 23,
       "digest": "sha256:3d579fa4d5de85c51d928c3c71060d6f2733b709eb6ce62fdc87b3a0664a4fc9",
-      "bandClosed": false,
+      "bandClosure": "spans-bands",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 1,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -263,11 +416,14 @@
       "slug": "pos-prepositions",
       "size": 60,
       "digest": "sha256:af5a688ce0deff13fc2db1d9683c1b245c11e1fdcc9cc0b6e7bb370afe9751ef",
-      "bandClosed": false,
+      "bandClosure": "spans-bands",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 1,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -276,11 +432,14 @@
       "slug": "pos-pronouns",
       "size": 83,
       "digest": "sha256:36d362a3b2023e67048bb4223d81713674d95b57a130cea971e2f6c2b703a46e",
-      "bandClosed": false,
+      "bandClosure": "spans-bands",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.988,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     },
@@ -289,63 +448,17 @@
       "slug": "pos-verbs",
       "size": 3629,
       "digest": "sha256:6a6087618f6cb6c973b9857dc98eaf1c9e583abeda12bfe88d322439394d031d",
-      "bandClosed": false,
+      "bandClosure": "spans-bands",
+      "excluded": 0,
       "audioCompleteness": {
         "female": 0,
         "male": 0,
-        "pending": 0,
+        "femaleAvailableUnhosted": 0.9994,
+        "maleAvailableUnhosted": 0,
+        "unknown": 0,
         "status": "pending"
       }
     }
   ],
-  "deferred": [
-    {
-      "id": "dex:p:core-1000",
-      "slug": "core-1000",
-      "title": "Zhongdex Core 1000",
-      "kind": "frequency",
-      "reason": "query selected 0 words, below the minimum pack size of 20",
-      "missing": []
-    },
-    {
-      "id": "dex:p:core-2000",
-      "slug": "core-2000",
-      "title": "Zhongdex Core 2000",
-      "kind": "frequency",
-      "reason": "query selected 0 words, below the minimum pack size of 20",
-      "missing": []
-    },
-    {
-      "id": "dex:p:core-3000",
-      "slug": "core-3000",
-      "title": "Zhongdex Core 3000",
-      "kind": "frequency",
-      "reason": "query selected 0 words, below the minimum pack size of 20",
-      "missing": []
-    },
-    {
-      "id": "dex:p:core-500",
-      "slug": "core-500",
-      "title": "Zhongdex Core 500",
-      "kind": "frequency",
-      "reason": "query selected 0 words, below the minimum pack size of 20",
-      "missing": []
-    },
-    {
-      "id": "dex:p:core-5000",
-      "slug": "core-5000",
-      "title": "Zhongdex Core 5000",
-      "kind": "frequency",
-      "reason": "query selected 0 words, below the minimum pack size of 20",
-      "missing": []
-    },
-    {
-      "id": "dex:p:hsk-2-0-t1-t6",
-      "slug": "hsk-2-0-t1-t6",
-      "title": "HSK 1–6 (HSK 2.0, legacy)",
-      "kind": "band",
-      "reason": "query selected 0 words, below the minimum pack size of 20",
-      "missing": []
-    }
-  ]
+  "deferred": []
 }

@@ -25,10 +25,12 @@ import type { PackDef } from "./pack-defs.js";
 import { PACK_DEFS } from "./pack-defs.js";
 import type {
   CanonCapability,
+  CanonVoiceAudio,
   CanonWord,
   DeferredPack,
   Pack,
   PackAudioCompleteness,
+  PackExclusion,
   PackBandClosure,
   PackCoverage,
   PackIndex,
@@ -120,6 +122,24 @@ function readNumberOrNull(source: Record<string, unknown>, key: string): number 
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+const UNKNOWN_VOICE: CanonVoiceAudio = { hosted: false, available: null };
+
+/**
+ * Reads one voice slot. The canon publishes `{available, hosted}`; an earlier
+ * shape published a URL string or null. Both are accepted, because getting this
+ * wrong would silently understate or overstate audio coverage.
+ */
+function readVoice(value: unknown): CanonVoiceAudio {
+  if (typeof value === "string") return { hosted: value.length > 0, available: true };
+  if (isRecord(value)) {
+    return {
+      hosted: value["hosted"] === true,
+      available: typeof value["available"] === "boolean" ? value["available"] : null,
+    };
+  }
+  return UNKNOWN_VOICE;
+}
+
 function parseCanon(rows: readonly Record<string, unknown>[]): CanonWord[] {
   const words: CanonWord[] = [];
   const seen = new Set<string>();
@@ -145,11 +165,15 @@ function parseCanon(rows: readonly Record<string, unknown>[]): CanonWord[] {
     const audioRaw = row["audio"];
     const audio = isRecord(audioRaw)
       ? {
-          female: typeof audioRaw["female"] === "string" ? audioRaw["female"] : null,
-          male: typeof audioRaw["male"] === "string" ? audioRaw["male"] : null,
+          female: readVoice(audioRaw["female"]),
+          male: readVoice(audioRaw["male"]),
           status: typeof audioRaw["status"] === "string" ? audioRaw["status"] : "pending",
         }
-      : { female: null, male: null, status: "pending" };
+      : { female: UNKNOWN_VOICE, male: UNKNOWN_VOICE, status: "pending" };
+
+    const enrichedViaRaw = row["enrichedVia"];
+    const enrichedVia: CanonWord["enrichedVia"] =
+      enrichedViaRaw === "reading" || enrichedViaRaw === "form" ? enrichedViaRaw : null;
 
     const bandRange = hskRaw["bandRange"];
 
@@ -163,10 +187,12 @@ function parseCanon(rows: readonly Record<string, unknown>[]): CanonWord[] {
         band2026,
         ...(typeof bandRange === "string" ? { bandRange } : {}),
         band2021: readNumberOrNull(hskRaw, "band2021"),
+        band2_0: readNumberOrNull(hskRaw, "band2_0"),
         listId: typeof hskRaw["listId"] === "string" ? hskRaw["listId"] : "",
       },
       definitions: Array.isArray(row["definitions"]) ? row["definitions"] : [],
       audio,
+      enrichedVia,
       frequencyRank: readNumberOrNull(row, "frequencyRank"),
       zipf: readNumberOrNull(row, "zipf"),
       radical: typeof row["radical"] === "string" ? row["radical"] : null,
@@ -182,32 +208,17 @@ function parseCanon(rows: readonly Record<string, unknown>[]): CanonWord[] {
 /* -------------------------------------------------------------------------- */
 
 /** What the loaded canon can actually answer. Drives deferral. */
-function probeCapabilities(
-  words: readonly CanonWord[],
-  raw: readonly Record<string, unknown>[],
-): Set<CanonCapability> {
+function probeCapabilities(words: readonly CanonWord[]): Set<CanonCapability> {
   const caps = new Set<CanonCapability>();
 
   if (words.every((w) => Number.isFinite(w.hsk.band2026))) caps.add("hsk.band2026");
   if (words.some((w) => w.hsk.band2021 !== null)) caps.add("hsk.band2021");
+  if (words.some((w) => w.hsk.band2_0 !== null)) caps.add("hsk.band2_0");
   if (words.some((w) => w.pos.length > 0)) caps.add("pos");
-  if (words.some((w) => typeof w.frequencyRank === "number")) caps.add("frequencyRank");
-  if (words.some((w) => typeof w.zipf === "number")) caps.add("zipf");
+  if (words.some((w) => w.frequencyRank !== null)) caps.add("frequencyRank");
+  if (words.some((w) => w.zipf !== null)) caps.add("zipf");
   if (words.some((w) => typeof w.radical === "string" && w.radical.length > 0)) caps.add("radical");
-  if (words.some((w) => w.audio.female !== null || w.audio.male !== null)) caps.add("audio");
-
-  // HSK 2.0 has no field in the documented canon shape; probe the raw rows so a
-  // canon that later adds it lights the pack up with no code change here.
-  const has2_0 = raw.some((row) => {
-    const hsk = row["hsk"];
-    if (!isRecord(hsk)) return false;
-    for (const key of ["band2_0", "band20", "hsk2_0", "band_2_0"]) {
-      const v = hsk[key];
-      if (typeof v === "number" && Number.isFinite(v)) return true;
-    }
-    return false;
-  });
-  if (has2_0) caps.add("hsk.band2_0");
+  if (words.some((w) => w.audio.female.hosted || w.audio.male.hosted)) caps.add("audio");
 
   return caps;
 }
@@ -241,8 +252,11 @@ function measureClosure(def: PackDef, words: readonly CanonWord[]): PackBandClos
     }
   }
 
+  const claims = def.closure !== null && def.bandClaim !== null;
   return {
     scheme: BAND_SCHEME,
+    // A pack that never claimed a level is "spans-bands", not a failed closure.
+    claim: claims ? "band-closed" : "spans-bands",
     claimedMinBand: def.closure?.min ?? null,
     claimedMaxBand: def.closure?.max ?? null,
     observedMinBand: observedMin,
@@ -250,25 +264,42 @@ function measureClosure(def: PackDef, words: readonly CanonWord[]): PackBandClos
     overBand: over,
     underBand: under,
     offList,
-    closed: def.closure !== null && over === 0 && under === 0 && offList === 0,
+    closed: claims ? over === 0 && under === 0 && offList === 0 : null,
   };
 }
 
+/**
+ * `female`/`male` count clips a learner can play right now, which means HOSTED.
+ * A clip that exists upstream but has no public URL is counted separately —
+ * conflating the two would let a pack claim complete audio while shipping none.
+ */
 function measureAudio(words: readonly CanonWord[]): PackAudioCompleteness {
   const n = words.length;
   let female = 0;
   let male = 0;
-  let pending = 0;
+  let femaleUnhosted = 0;
+  let maleUnhosted = 0;
+  let unknown = 0;
   for (const w of words) {
-    if (w.audio.female !== null) female += 1;
-    if (w.audio.male !== null) male += 1;
-    if (w.audio.status === "pending") pending += 1;
+    if (w.audio.female.hosted) female += 1;
+    else if (w.audio.female.available === true) femaleUnhosted += 1;
+    if (w.audio.male.hosted) male += 1;
+    else if (w.audio.male.available === true) maleUnhosted += 1;
+    if (w.audio.female.available === null && w.audio.male.available === null) unknown += 1;
   }
-  const f = n === 0 ? 0 : round4(female / n);
-  const m = n === 0 ? 0 : round4(male / n);
+  const frac = (count: number): number => (n === 0 ? 0 : round4(count / n));
+  const f = frac(female);
+  const m = frac(male);
   const status: PackAudioCompleteness["status"] =
     f === 1 && m === 1 ? "complete" : f === 0 && m === 0 ? "pending" : "partial";
-  return { female: f, male: m, pending: n === 0 ? 0 : round4(pending / n), status };
+  return {
+    female: f,
+    male: m,
+    femaleAvailableUnhosted: frac(femaleUnhosted),
+    maleAvailableUnhosted: frac(maleUnhosted),
+    unknown: frac(unknown),
+    status,
+  };
 }
 
 function measureCoverage(words: readonly CanonWord[]): PackCoverage {
@@ -289,7 +320,11 @@ function measureCoverage(words: readonly CanonWord[]): PackCoverage {
 /* Build                                                                       */
 /* -------------------------------------------------------------------------- */
 
-function buildPack(def: PackDef, selected: readonly CanonWord[]): Pack {
+function buildPack(
+  def: PackDef,
+  selected: readonly CanonWord[],
+  exclusions: readonly PackExclusion[],
+): Pack {
   const ids = selected.map((w) => w.id).sort(compareIds);
   return {
     schemaVersion: PACK_SCHEMA_VERSION,
@@ -316,6 +351,7 @@ function buildPack(def: PackDef, selected: readonly CanonWord[]): Pack {
       deterministic: true,
       seedSource: null,
     },
+    exclusions,
     bandClosure: measureClosure(def, selected),
     provenance: {
       words: def.source,
@@ -345,7 +381,7 @@ function writeJson(path: string, value: unknown): void {
 function main(): void {
   const raw = loadCanonRaw();
   const canon = parseCanon(raw);
-  const caps = probeCapabilities(canon, raw);
+  const caps = probeCapabilities(canon);
 
   process.stdout.write(
     `canon: ${String(canon.length)} words · capabilities: ${[...caps].sort().join(", ")}\n`,
@@ -372,7 +408,17 @@ function main(): void {
       continue;
     }
 
-    const selected = canon.filter((w) => def.select(w));
+    const matched = canon.filter((w) => def.select(w));
+
+    // Apply the declared exclusion, if any, and disclose what it removed.
+    const exclusions: PackExclusion[] = [];
+    let selected = matched;
+    if (def.exclude !== undefined) {
+      const dropped = matched.filter((w) => def.exclude?.test(w) === true);
+      selected = matched.filter((w) => def.exclude?.test(w) !== true);
+      exclusions.push({ reason: def.exclude.reason, count: dropped.length });
+    }
+
     if (selected.length < MIN_PACK_SIZE) {
       deferred.push({
         id: `dex:p:${def.slug}`,
@@ -385,7 +431,7 @@ function main(): void {
       continue;
     }
 
-    const pack = buildPack(def, selected);
+    const pack = buildPack(def, selected, exclusions);
     const errors = validatePack(pack);
     if (errors.length > 0) {
       deferred.push({
@@ -461,15 +507,20 @@ function main(): void {
       overallFemale,
       overallMale,
       note:
-        "Every clip is still pending for this corpus version. The 100% word-audio " +
-        "publish gate is reported but non-blocking until audio ships.",
+        "Zero clips are hosted, so every pack's audio status is \"pending\" and these " +
+        "figures are 0. That is not the same as no audio existing: the canon reports female " +
+        "clips as available upstream for most of the corpus, counted per pack under " +
+        "femaleAvailableUnhosted, with no public URL to play them from. No male word audio " +
+        "exists upstream at all. The 100% word-audio publish gate is reported but " +
+        "non-blocking until clips are actually hosted.",
     },
     packs: shipped.map((p) => ({
       id: p.id,
       slug: p.slug,
       size: p.size,
       digest: p.digest,
-      bandClosed: p.bandClosure.closed,
+      bandClosure: p.bandClosure.claim,
+      excluded: p.exclusions.reduce((sum, e) => sum + e.count, 0),
       audioCompleteness: p.audioCompleteness,
     })),
     deferred,
@@ -481,9 +532,10 @@ function main(): void {
       `${String(totalSlots)} word slots\n`,
   );
   for (const pack of shipped) {
+    const excluded = pack.exclusions.reduce((sum, e) => sum + e.count, 0);
     process.stdout.write(
       `  ${pack.slug.padEnd(22)} ${String(pack.size).padStart(6)}  ` +
-        `${pack.bandClosure.closed ? "band-closed" : "no band claim"}\n`,
+        `${pack.bandClosure.claim}${excluded > 0 ? `  (${String(excluded)} excluded)` : ""}\n`,
     );
   }
   for (const d of deferred) {

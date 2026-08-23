@@ -34,9 +34,24 @@ export const MIN_PACK_SIZE = 20;
 /* -------------------------------------------------------------------------- */
 
 /**
+ * Per-voice audio state. `available` means a clip exists upstream; `hosted`
+ * means there is a public URL a learner could actually play. They are not the
+ * same thing and a pack must never conflate them.
+ */
+export interface CanonVoiceAudio {
+  readonly hosted: boolean;
+  /** null = availability could not be determined (the record did not join). */
+  readonly available: boolean | null;
+}
+
+/**
  * One record of `data/hsk_bands.json`, produced by `npm run build:canon`.
  * The optional fields are columns the canon does not carry yet; packs that
  * need them are declared but deferred rather than fabricated.
+ *
+ * `enrichedVia` is load-bearing: on an unjoined record every enrichment column
+ * is null because it is UNKNOWN, not because it is absent. Read it before
+ * treating any null as a fact.
  */
 export interface CanonWord {
   readonly id: string;
@@ -48,18 +63,21 @@ export interface CanonWord {
     readonly band2026: number;
     readonly bandRange?: string;
     readonly band2021: number | null;
+    readonly band2_0: number | null;
     readonly listId: string;
   };
   /** Opaque here: packs never copy definition text, they only count coverage. */
   readonly definitions: readonly unknown[];
   readonly audio: {
-    readonly female: string | null;
-    readonly male: string | null;
+    readonly female: CanonVoiceAudio;
+    readonly male: CanonVoiceAudio;
     readonly status: string;
   };
-  /** Not in the v1 canon. Present here so frequency packs can be declared+deferred. */
-  readonly frequencyRank?: number | null;
-  readonly zipf?: number | null;
+  /** How the record joined the enrichment snapshot. null = it did not join. */
+  readonly enrichedVia: "reading" | "form" | null;
+  readonly frequencyRank: number | null;
+  readonly zipf: number | null;
+  /** Not in the canon yet. Declared so radical packs can be deferred, not faked. */
   readonly radical?: string | null;
 }
 
@@ -103,9 +121,19 @@ export interface PackSelection {
 /**
  * Measured, not asserted. `closed` is the result of an actual scan of the
  * selected words against the claimed band window.
+ *
+ * `claim` distinguishes the two honest states that a bare `closed: false`
+ * would blur together:
+ *  - "band-closed"  the pack claims a level, so closure is a testable promise
+ *                   and `closed` is true or the pack does not ship;
+ *  - "spans-bands"  the pack deliberately makes no level claim (a POS pack, a
+ *                   delta), so `closed` is null — not failed, never attempted.
  */
+export type PackClosureClaim = "band-closed" | "spans-bands";
+
 export interface PackBandClosure {
   readonly scheme: string;
+  readonly claim: PackClosureClaim;
   readonly claimedMinBand: number | null;
   readonly claimedMaxBand: number | null;
   readonly observedMinBand: number | null;
@@ -113,7 +141,8 @@ export interface PackBandClosure {
   readonly overBand: number;
   readonly underBand: number;
   readonly offList: number;
-  readonly closed: boolean;
+  /** true/false only when `claim` is "band-closed"; null when it is not. */
+  readonly closed: boolean | null;
 }
 
 export interface PackProvenance {
@@ -137,10 +166,18 @@ export interface PackLicence {
   readonly attribution: string;
 }
 
+/**
+ * Fractions of the pack, all in [0,1]. `female`/`male` count clips a learner
+ * could actually play today. A clip that exists upstream but has no public URL
+ * is counted separately, because calling it "complete" would be a lie.
+ */
 export interface PackAudioCompleteness {
   readonly female: number;
   readonly male: number;
-  readonly pending: number;
+  readonly femaleAvailableUnhosted: number;
+  readonly maleAvailableUnhosted: number;
+  /** Availability could not be determined (the canon record did not join). */
+  readonly unknown: number;
   readonly status: "pending" | "partial" | "complete";
 }
 
@@ -151,6 +188,15 @@ export interface PackCoverage {
   readonly defined: number;
   readonly frequencyRanked: number;
   readonly senseDisambiguated: number;
+}
+
+/**
+ * Words the query matched but the pack deliberately drops, with the count.
+ * Emitted so a removal is disclosed rather than silent.
+ */
+export interface PackExclusion {
+  readonly reason: string;
+  readonly count: number;
 }
 
 export interface Pack {
@@ -168,6 +214,7 @@ export interface Pack {
   readonly tags: readonly string[];
   readonly source: PackSource;
   readonly selection: PackSelection;
+  readonly exclusions: readonly PackExclusion[];
   readonly bandClosure: PackBandClosure;
   readonly provenance: PackProvenance;
   readonly licence: PackLicence;
@@ -229,7 +276,9 @@ export interface PackStats {
     readonly slug: string;
     readonly size: number;
     readonly digest: string;
-    readonly bandClosed: boolean;
+    /** "band-closed" = level claimed and verified; "spans-bands" = no claim. */
+    readonly bandClosure: PackClosureClaim;
+    readonly excluded: number;
     readonly audioCompleteness: PackAudioCompleteness;
   }[];
   readonly deferred: readonly DeferredPack[];
@@ -311,7 +360,10 @@ export function validatePack(pack: Pack): string[] {
 
   // Band closure: asserted from measurement, never assumed.
   if (pack.level.band !== null) {
-    if (!pack.bandClosure.closed) {
+    if (pack.bandClosure.claim !== "band-closed") {
+      errors.push(`pack claims level band ${pack.level.band} but declares claim "${pack.bandClosure.claim}"`);
+    }
+    if (pack.bandClosure.closed !== true) {
       errors.push(
         `pack claims level band ${pack.level.band} but is not band-closed ` +
           `(overBand=${pack.bandClosure.overBand}, underBand=${pack.bandClosure.underBand}, ` +
@@ -321,6 +373,18 @@ export function validatePack(pack: Pack): string[] {
     if (pack.bandClosure.claimedMaxBand === null) {
       errors.push("pack claims a level but declares no closure window");
     }
+  } else {
+    if (pack.bandClosure.claim !== "spans-bands") {
+      errors.push(`pack makes no level claim but declares claim "${pack.bandClosure.claim}"`);
+    }
+    if (pack.bandClosure.closed !== null) {
+      errors.push("pack makes no level claim, so bandClosure.closed must be null");
+    }
+  }
+
+  for (const exclusion of pack.exclusions) {
+    if (exclusion.count < 0) errors.push("exclusion count is negative");
+    if (exclusion.reason.length === 0) errors.push("exclusion has no reason");
   }
   if (pack.kind === "band" && pack.bandClosure.offList > 0) {
     errors.push(`band pack contains ${pack.bandClosure.offList} off-list words`);

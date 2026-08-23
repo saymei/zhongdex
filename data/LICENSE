@@ -87,7 +87,11 @@ WHAT IS NOT COVERED
     See the README.
   * SayMei trademarks, the SayMei and Zhongdex names, and the logos. Licence
     terms do not grant trademark rights.
-  * The build code in ../src, which is MIT.
+  * The build code in ../src and ../scripts, which is MIT.
+  * ../scripts/cedict.json, which is ALSO CC BY-SA 4.0 but is governed by
+    ../NOTICE §1a rather than by this file, because it is a verbatim
+    redistribution of CC-CEDICT rather than part of the derived corpus. The
+    licence is the same; the "changes were made" statement is not.
 
 --------------------------------------------------------------------------
 DISCLAIMER

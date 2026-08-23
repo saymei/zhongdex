@@ -30,8 +30,10 @@
     "deterministic": true,
     "seedSource": null
   },
+  "exclusions": [],
   "bandClosure": {
     "scheme": "hsk-3.0-2026",
+    "claim": "band-closed",
     "claimedMinBand": 1,
     "claimedMaxBand": 9,
     "observedMinBand": 1,
@@ -61,7 +63,9 @@
   "audioCompleteness": {
     "female": 0,
     "male": 0,
-    "pending": 0,
+    "femaleAvailableUnhosted": 0.9953,
+    "maleAvailableUnhosted": 0,
+    "unknown": 0,
     "status": "pending"
   },
   "coverage": {

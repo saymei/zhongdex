@@ -2,15 +2,159 @@
   "schemaVersion": "pack-v1",
   "corpusVersion": "2026.09",
   "version": "2026.09.1",
-  "count": 22,
+  "count": 28,
   "packs": [
+    {
+      "id": "dex:p:core-1000",
+      "slug": "core-1000",
+      "file": "core-1000.json",
+      "kind": "frequency",
+      "title": "Zhongdex Core 1000 — HSK words inside the top 1000",
+      "description": "Frequency rank here is global: it is measured across 118,765 upstream headwords, most of which are proper nouns, variants and function words that the HSK syllabus does not list. This pack is the intersection — every HSK 3.0 (2026) headword whose global rank is 1000 or better — so it deliberately contains materially fewer than 1000 words. The `size` field is the real card count; the 1000 in the name is the frequency cutoff, not a quantity. Words whose frequency rank is unknown cannot appear in any Core pack at all; the canon's coverage figures record how many that is.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 720,
+      "tags": [
+        "computed",
+        "frequency",
+        "core-1000",
+        "threshold-named",
+        "global-rank"
+      ],
+      "source": "computed",
+      "digest": "sha256:55facdab2f593489a197b9c09b5c046a6b081d74596f6ff62e987e641c35098b"
+    },
+    {
+      "id": "dex:p:core-2000",
+      "slug": "core-2000",
+      "file": "core-2000.json",
+      "kind": "frequency",
+      "title": "Zhongdex Core 2000 — HSK words inside the top 2000",
+      "description": "Frequency rank here is global: it is measured across 118,765 upstream headwords, most of which are proper nouns, variants and function words that the HSK syllabus does not list. This pack is the intersection — every HSK 3.0 (2026) headword whose global rank is 2000 or better — so it deliberately contains materially fewer than 2000 words. The `size` field is the real card count; the 2000 in the name is the frequency cutoff, not a quantity. Words whose frequency rank is unknown cannot appear in any Core pack at all; the canon's coverage figures record how many that is.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 1418,
+      "tags": [
+        "computed",
+        "frequency",
+        "core-2000",
+        "threshold-named",
+        "global-rank"
+      ],
+      "source": "computed",
+      "digest": "sha256:a33915a7dabc135621a77f214bc7dceb0f61f03e720d9148e8666e929a28a953"
+    },
+    {
+      "id": "dex:p:core-3000",
+      "slug": "core-3000",
+      "file": "core-3000.json",
+      "kind": "frequency",
+      "title": "Zhongdex Core 3000 — HSK words inside the top 3000",
+      "description": "Frequency rank here is global: it is measured across 118,765 upstream headwords, most of which are proper nouns, variants and function words that the HSK syllabus does not list. This pack is the intersection — every HSK 3.0 (2026) headword whose global rank is 3000 or better — so it deliberately contains materially fewer than 3000 words. The `size` field is the real card count; the 3000 in the name is the frequency cutoff, not a quantity. Words whose frequency rank is unknown cannot appear in any Core pack at all; the canon's coverage figures record how many that is.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 2122,
+      "tags": [
+        "computed",
+        "frequency",
+        "core-3000",
+        "threshold-named",
+        "global-rank"
+      ],
+      "source": "computed",
+      "digest": "sha256:126b73e5232ce93f4992316d53c2725c0d0063e39b9161a71e6863cf69e23b24"
+    },
+    {
+      "id": "dex:p:core-500",
+      "slug": "core-500",
+      "file": "core-500.json",
+      "kind": "frequency",
+      "title": "Zhongdex Core 500 — HSK words inside the top 500",
+      "description": "Frequency rank here is global: it is measured across 118,765 upstream headwords, most of which are proper nouns, variants and function words that the HSK syllabus does not list. This pack is the intersection — every HSK 3.0 (2026) headword whose global rank is 500 or better — so it deliberately contains materially fewer than 500 words. The `size` field is the real card count; the 500 in the name is the frequency cutoff, not a quantity. Words whose frequency rank is unknown cannot appear in any Core pack at all; the canon's coverage figures record how many that is.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 362,
+      "tags": [
+        "computed",
+        "frequency",
+        "core-500",
+        "threshold-named",
+        "global-rank"
+      ],
+      "source": "computed",
+      "digest": "sha256:5ecdc7e4517cf639a4578d702cbc9e1ddd2fa1970c430a8c0d7281a75f4df5e2"
+    },
+    {
+      "id": "dex:p:core-5000",
+      "slug": "core-5000",
+      "file": "core-5000.json",
+      "kind": "frequency",
+      "title": "Zhongdex Core 5000 — HSK words inside the top 5000",
+      "description": "Frequency rank here is global: it is measured across 118,765 upstream headwords, most of which are proper nouns, variants and function words that the HSK syllabus does not list. This pack is the intersection — every HSK 3.0 (2026) headword whose global rank is 5000 or better — so it deliberately contains materially fewer than 5000 words. The `size` field is the real card count; the 5000 in the name is the frequency cutoff, not a quantity. Words whose frequency rank is unknown cannot appear in any Core pack at all; the canon's coverage figures record how many that is.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": null,
+        "cumulative": false
+      },
+      "size": 3332,
+      "tags": [
+        "computed",
+        "frequency",
+        "core-5000",
+        "threshold-named",
+        "global-rank"
+      ],
+      "source": "computed",
+      "digest": "sha256:cb7a7fe6ce943b584fb99887ead059afc028b8d9d9e17af5e8e222504fd4b8f6"
+    },
+    {
+      "id": "dex:p:hsk-2-0-t1-t6",
+      "slug": "hsk-2-0-t1-t6",
+      "file": "hsk-2-0-t1-t6.json",
+      "kind": "band",
+      "title": "HSK 2.0 1–6 survivors (legacy)",
+      "description": "The intersection of the legacy HSK 2.0 levels 1–6 vocabulary with the HSK 3.0 (2026) syllabus. This corpus contains only 2026 headwords, so an HSK 2.0 word that the rewrite dropped has no record here and is absent from this pack by construction. Read it as 'what survived', not as 'the HSK 2.0 list'. It is also incomplete in the other direction: the HSK 2.0 level is known for roughly 40% of the corpus, so a 2026 word with no HSK 2.0 label is excluded whether or not it was on the old list.",
+      "level": {
+        "scheme": "hsk-3.0-2026",
+        "band": null,
+        "bandRange": "1-6",
+        "cumulative": true
+      },
+      "size": 4442,
+      "tags": [
+        "computed",
+        "hsk",
+        "hsk-2.0",
+        "legacy",
+        "partial-coverage"
+      ],
+      "source": "computed",
+      "digest": "sha256:ac06031dcd266cf9c4738df9c35a604c6fd38c3db3fa55b1fbad1777e0bc575a"
+    },
     {
       "id": "dex:p:hsk-2021-complete",
       "slug": "hsk-2021-complete",
       "file": "hsk-2021-complete.json",
       "kind": "band",
       "title": "HSK 1–9 (2021 revision, legacy)",
-      "description": "Every headword carrying a band label under the 2021 revision. The pack spans the 2021 scheme rather than the 2026 one, so it makes no 2026 closure claim; each word keeps both labels in the canon.",
+      "description": "Every headword in this corpus carrying a band label under the 2021 revision. Like the HSK 2.0 pack this is an intersection, not the whole 2021 list: the corpus is the 2026 syllabus, so a 2021 word that the 2026 rewrite dropped has no record here. The pack spans the 2021 scheme rather than the 2026 one, so it makes no 2026 closure claim; each word keeps both labels in the canon.",
       "level": {
         "scheme": "hsk-3.0-2026",
         "band": null,
@@ -58,14 +202,14 @@
       "file": "hsk-2026-delta.json",
       "kind": "delta",
       "title": "HSK 2026 Delta — what changed",
-      "description": "The symmetric difference between the 2021 revision and the 2026 syllabus: words new to the list, words whose band moved, and words no longer carrying their old label. Computed at build time from the two band columns, so it re-derives whenever either moves. The pack spans all bands and claims no closure.",
+      "description": "The difference between the 2021 revision and the 2026 syllabus: words whose band moved, and words that carry no 2021 band at all and so are new to the list. Computed at build time from the two band columns, so it re-derives whenever either moves. The pack spans all bands and deliberately claims no closure.\n\nOne exclusion, applied on purpose. A handful of records did not join the enrichment snapshot, so their 2021 band is null because it is UNKNOWN, not because the word is new. Presenting those as 'new in 2026' would be a factual claim the data does not support, so they are dropped and the count is disclosed in this pack's `exclusions[]`. The true delta is therefore a floor: it is this pack's size, plus some unknown part of the excluded set.",
       "level": {
         "scheme": "hsk-3.0-2026",
         "band": null,
         "bandRange": null,
         "cumulative": false
       },
-      "size": 374,
+      "size": 324,
       "tags": [
         "computed",
         "hsk",
@@ -75,7 +219,7 @@
         "migration"
       ],
       "source": "computed",
-      "digest": "sha256:45542e9b488fb2fd5513ddb4cd902b048b2e7636d599091f5be2dcb674f83df4"
+      "digest": "sha256:75bc8536f0f3694c764234c1405b2d1682dbec9144adb32a2a26c31188352159"
     },
     {
       "id": "dex:p:hsk-2026-t1",

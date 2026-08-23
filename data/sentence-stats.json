@@ -13,6 +13,7 @@
     "segmenter": "Forward maximum matching over the canon's own simplified forms. Unmatched single characters take the lowest band of any canon word containing them.",
     "beyondHsk": "A character no canon word contains is outside HSK 3.0; it forces the grade to 7 and is counted in beyondHskTokens.",
     "newWordCount": "Per band prefix 1..7, the count of DISTINCT content token forms outside that prefix. A value of 1 is an i+1 sentence. Tokens outside HSK 3.0 count against every prefix, including 7.",
+    "selection": "Up to 3 per headword, spread over the difficulty key (zsg, newWordCount[\"1\"]): lowest, highest, middle. Both parts ship in every record. A headword with one distinct key ships one sentence.",
     "charLengthPercentile": "Mid-rank percentile of the sentence's character count against every GRADED sentence of the same ZSG band — the full pool, not the shipped subset, which is chosen partly on length. Measured on this corpus rather than imported from the dialogue corpus."
   },
   "input": {
@@ -20,7 +21,8 @@
     "canonDistinctForms": 10959,
     "canonFormsFoundInSource": 10938,
     "rawSentenceRows": 138777,
-    "distinctRawTexts": 138391
+    "distinctRawTexts": 138391,
+    "maxRawCharLen": 46
   },
   "drops": {
     "total": 981,
@@ -52,40 +54,42 @@
     }
   },
   "selected": {
-    "totalSentences": 19976,
-    "totalLinks": 20312,
+    "totalSentences": 32725,
+    "totalLinks": 33212,
     "headwordsCovered": 11072,
     "coveragePctOfCanonRows": 99.82,
     "coveragePctOfCanonForms": 99.82,
     "gradeDistribution": {
       "1": 489,
-      "2": 825,
-      "3": 1169,
-      "4": 1806,
-      "5": 2302,
-      "6": 2759,
-      "7": 10626
+      "2": 817,
+      "3": 1352,
+      "4": 2927,
+      "5": 3226,
+      "6": 3366,
+      "7": 20548
     },
     "slotDistribution": {
-      "easy": 452,
-      "atLevel": 11028,
-      "stretch": 8832
+      "easy": 424,
+      "atLevel": 26029,
+      "stretch": 6759
     },
     "triadFullness": {
       "0": 20,
-      "1": 5522,
-      "2": 1860,
-      "3": 3690
+      "1": 0,
+      "2": 4,
+      "3": 11068
     },
-    "withAudio": 16784,
-    "withAudioPct": 84.02,
+    "withAudio": 30157,
+    "withAudioPct": 92.15,
     "audioTier": {
-      "two-speed": 10363,
-      "slow-only": 6421,
-      "none": 3192
+      "two-speed": 23639,
+      "slow-only": 6518,
+      "none": 2568
     },
-    "withPinyinNumbered": 19951,
-    "withSenseIndex": 716,
+    "withPinyinNumbered": 32678,
+    "withSenseIndex": 842,
+    "headwordAttestedAsToken": 32001,
+    "headwordAttestedAsTokenPct": 96.35,
     "charLenPercentileTable": {
       "1": {
         "n": 1605,
@@ -126,9 +130,9 @@
   },
   "sourceHskLevelAgreement": {
     "note": "The source rows carry their own hskLevel. It is never trusted, only compared: this is a check on the computed grade, not an input to it.",
-    "compared": 19975,
-    "exact": 1916,
-    "within1": 6426
+    "compared": 32724,
+    "exact": 1480,
+    "within1": 7853
   },
   "idCollisions": 0
 }

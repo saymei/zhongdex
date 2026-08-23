@@ -44,6 +44,14 @@ export interface PackDef {
   readonly bandRange: string | null;
   readonly cumulative: boolean;
   readonly select: (word: CanonWord) => boolean;
+  /**
+   * Words the query matches but the pack must not present as members.
+   * The count is disclosed in the pack's `exclusions[]`, never dropped silently.
+   */
+  readonly exclude?: {
+    readonly reason: string;
+    readonly test: (word: CanonWord) => boolean;
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -256,25 +264,32 @@ export const PACK_DEFS: readonly PackDef[] = [
   {
     slug: "hsk-2-0-t1-t6",
     kind: "band",
-    title: "HSK 1–6 (HSK 2.0, legacy)",
-    oneLiner: "The pre-2021 HSK 2.0 vocabulary, kept for decks written against it.",
+    title: "HSK 2.0 1–6 survivors (legacy)",
+    oneLiner:
+      "The old HSK 2.0 levels 1–6 words that are STILL on the 2026 list. Not the full " +
+      "HSK 2.0 list — words dropped in the rewrite are not in this corpus and cannot appear.",
     description:
-      "The legacy HSK 2.0 levels 1–6 word list, preserved so a deck built before the " +
-      "syllabus moved can be diffed against the current one.",
+      "The intersection of the legacy HSK 2.0 levels 1–6 vocabulary with the HSK 3.0 (2026) " +
+      "syllabus. This corpus contains only 2026 headwords, so an HSK 2.0 word that the " +
+      "rewrite dropped has no record here and is absent from this pack by construction. " +
+      "Read it as 'what survived', not as 'the HSK 2.0 list'. It is also incomplete in the " +
+      "other direction: the HSK 2.0 level is known for roughly 40% of the corpus, so a 2026 " +
+      "word with no HSK 2.0 label is excluded whether or not it was on the old list.",
     rationale:
-      "Most third-party Chinese decks in circulation are still HSK 2.0. Without this pack " +
-      "there is nothing to diff them against.",
-    tags: ["computed", "hsk", "hsk-2.0", "legacy"],
+      "Most third-party Chinese decks in circulation are still HSK 2.0. This is the " +
+      "overlap that is safe to keep studying, which is the practical question a learner " +
+      "with an old deck is actually asking.",
+    tags: ["computed", "hsk", "hsk-2.0", "legacy", "partial-coverage"],
     source: "computed",
     requires: ["hsk.band2_0"],
     columns: ["hsk.band2_0"],
-    rule: "The headword carries an HSK 2.0 level of 6 or lower.",
-    query: "hsk_2_0 <= 6",
+    rule: "The headword carries a known HSK 2.0 level of 6 or lower.",
+    query: "hsk_2_0 != null && hsk_2_0 <= 6",
     closure: null,
     bandClaim: null,
     bandRange: "1-6",
     cumulative: true,
-    select: () => false,
+    select: (w) => w.hsk.band2_0 !== null && w.hsk.band2_0 <= 6,
   },
   {
     slug: "hsk-2021-complete",
@@ -282,9 +297,11 @@ export const PACK_DEFS: readonly PackDef[] = [
     title: "HSK 1–9 (2021 revision, legacy)",
     oneLiner: "The 2021 HSK 3.0 revision, superseded by the 2026 syllabus.",
     description:
-      "Every headword carrying a band label under the 2021 revision. The pack spans the " +
-      "2021 scheme rather than the 2026 one, so it makes no 2026 closure claim; each word " +
-      "keeps both labels in the canon.",
+      "Every headword in this corpus carrying a band label under the 2021 revision. Like " +
+      "the HSK 2.0 pack this is an intersection, not the whole 2021 list: the corpus is the " +
+      "2026 syllabus, so a 2021 word that the 2026 rewrite dropped has no record here. The " +
+      "pack spans the 2021 scheme rather than the 2026 one, so it makes no 2026 closure " +
+      "claim; each word keeps both labels in the canon.",
     rationale:
       "The list in force until 1 July 2026, and the other half of any migration diff. " +
       "Kept as its own pack so 'what changed' has two endpoints, not one.",
@@ -306,48 +323,81 @@ export const PACK_DEFS: readonly PackDef[] = [
     title: "HSK 2026 Delta — what changed",
     oneLiner: "Every word that entered, left, or moved band between the 2021 and 2026 lists.",
     description:
-      "The symmetric difference between the 2021 revision and the 2026 syllabus: words new " +
-      "to the list, words whose band moved, and words no longer carrying their old label. " +
+      "The difference between the 2021 revision and the 2026 syllabus: words whose band " +
+      "moved, and words that carry no 2021 band at all and so are new to the list. " +
       "Computed at build time from the two band columns, so it re-derives whenever either " +
-      "moves. The pack spans all bands and claims no closure.",
+      "moves. The pack spans all bands and deliberately claims no closure.\n\n" +
+      "One exclusion, applied on purpose. A handful of records did not join the enrichment " +
+      "snapshot, so their 2021 band is null because it is UNKNOWN, not because the word is " +
+      "new. Presenting those as 'new in 2026' would be a factual claim the data does not " +
+      "support, so they are dropped and the count is disclosed in this pack's " +
+      "`exclusions[]`. The true delta is therefore a floor: it is this pack's size, plus " +
+      "some unknown part of the excluded set.",
     rationale:
       "The one list nobody else publishes, and the only thing a learner with a two-year-old " +
-      "deck actually needs. It is also the anchor for the /hsk-2026 page family.",
+      "deck actually needs. It is also the anchor for the /hsk-2026 page family — which is " +
+      "exactly why it must not overstate itself.",
     tags: ["computed", "hsk", "hsk-2026", "hsk-2021", "delta", "migration"],
     source: "computed",
     requires: ["hsk.band2026", "hsk.band2021"],
-    columns: ["hsk.band2026", "hsk.band2021"],
-    rule: "The headword's 2026 band differs from its 2021 band, including words with no 2021 label at all.",
-    query: "hsk_2026 != hsk_2021",
+    columns: ["hsk.band2026", "hsk.band2021", "enrichedVia"],
+    rule:
+      "The headword's 2026 band differs from its 2021 band, including words with no 2021 " +
+      "label at all — but only where the 2021 label is genuinely known to be absent, i.e. " +
+      "the record joined the enrichment snapshot.",
+    query: "hsk_2026 != hsk_2021 && enriched_via != null",
     closure: null,
     bandClaim: null,
     bandRange: null,
     cumulative: false,
     select: (w) => w.hsk.band2021 === null || w.hsk.band2021 !== w.hsk.band2026,
+    exclude: {
+      reason:
+        "2021 band is unknown, not absent: the record did not join the enrichment " +
+        "snapshot (enrichedVia === null), so it cannot be shown to be new in 2026",
+      test: (w) => w.enrichedVia === null,
+    },
   },
 
   // --- Frequency (packs 14-18) ---------------------------------------------
+  // Frequency rank is GLOBAL — measured across 118,765 upstream headwords, of
+  // which this corpus holds only the 11,092 that are on the HSK 3.0 list. So
+  // `core-500` is an intersection and yields well under 500 words. The naming
+  // decision: keep the "Core N" name, because it is the phrase people search
+  // and REVISION1 §12.2 names it, but make N unmistakably a THRESHOLD rather
+  // than a card count in the title, one-liner and description — the three
+  // strings that travel with the pack into the catalogue. `size` is the truth.
   ...[500, 1000, 2000, 3000, 5000].map<PackDef>((n) => ({
     slug: `core-${n}`,
     kind: "frequency",
-    title: `Zhongdex Core ${n}`,
-    oneLiner: `The ${n} highest-frequency HSK 3.0 headwords.`,
+    title: `Zhongdex Core ${n} — HSK words inside the top ${n}`,
+    oneLiner:
+      `The HSK 3.0 (2026) words that rank in the ${n} most frequent Chinese words overall. ` +
+      `This is fewer than ${n} cards, by design — see the description.`,
     description:
-      `The top ${n} headwords by corpus frequency rank, band-labelled but not band-limited.`,
+      `Frequency rank here is global: it is measured across 118,765 upstream headwords, most ` +
+      `of which are proper nouns, variants and function words that the HSK syllabus does not ` +
+      `list. This pack is the intersection — every HSK 3.0 (2026) headword whose global rank ` +
+      `is ${n} or better — so it deliberately contains materially fewer than ${n} words. ` +
+      `The \`size\` field is the real card count; the ${n} in the name is the frequency cutoff, ` +
+      `not a quantity. Words whose frequency rank is unknown cannot appear in any Core pack ` +
+      `at all; the canon's coverage figures record how many that is.`,
     rationale:
-      `'Core ${n}' is a query people type. Ordering by measured frequency rather than by ` +
-      `syllabus band is the only way to answer it honestly.`,
-    tags: ["computed", "frequency", `core-${n}`],
+      `'Core ${n}' is a query people type, so the pack keeps the name. What it must not do is ` +
+      `let the name imply a card count it does not deliver — a learner who expects ${n} cards ` +
+      `and receives fewer has been misled by the title, which is why the arithmetic is stated ` +
+      `three times before anyone opens the file.`,
+    tags: ["computed", "frequency", `core-${n}`, "threshold-named", "global-rank"],
     source: "computed",
     requires: ["frequencyRank"],
     columns: ["frequencyRank"],
-    rule: `The headword's corpus frequency rank is ${n} or better.`,
-    query: `frequency_rank <= ${n}`,
+    rule: `The headword has a known global frequency rank of ${n} or better.`,
+    query: `frequency_rank != null && frequency_rank <= ${n}`,
     closure: null,
     bandClaim: null,
     bandRange: null,
     cumulative: false,
-    select: () => false,
+    select: (w) => w.frequencyRank !== null && w.frequencyRank <= n,
   })),
 
   // --- Part of speech ------------------------------------------------------
