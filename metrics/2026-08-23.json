@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "collectedAt": "2026-08-23T05:10:35.540Z",
+  "collectedAt": "2026-08-23T07:03:15.437Z",
   "metrics": [
     {
       "key": "github.stars",
@@ -29,13 +29,15 @@
     {
       "key": "github.clones_14d",
       "label": "Clones (14d)",
-      "value": 0,
+      "value": null,
+      "unavailable": "rate limited or forbidden (403)",
       "source": "github.com/saymei/zhongdex"
     },
     {
       "key": "github.views_14d",
       "label": "Repo views (14d)",
-      "value": 0,
+      "value": null,
+      "unavailable": "rate limited or forbidden (403)",
       "source": "github.com/saymei/zhongdex"
     },
     {
