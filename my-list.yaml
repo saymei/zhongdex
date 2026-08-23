@@ -1,0 +1,167 @@
+#  ┌───────────────────────────────────────────────────────────────────────┐
+#  │  my-list.yaml — your deck, described in one file.                     │
+#  │                                                                       │
+#  │  1. Fork this repository (or click "Use this template").              │
+#  │  2. Edit this file. Nothing else.                                     │
+#  │  3. Commit. GitHub builds your deck and puts it in the Actions tab.   │
+#  │                                                                       │
+#  │  You do not need to install anything or run anything.                 │
+#  │  Full instructions: docs/FORK.md                                      │
+#  └───────────────────────────────────────────────────────────────────────┘
+#
+#  Lines starting with # are notes to you and are ignored.
+#  Indentation is two spaces and it matters. Keep it as you find it.
+
+
+# ── The basics ───────────────────────────────────────────────────────────────
+
+# What your deck is called. Shows up in Anki.
+name: "My HSK 1 Starter Deck"
+
+# Your name or handle. Goes in the deck description. Change it or leave it.
+author: "@yourhandle"
+
+
+# ── Where the words come from ────────────────────────────────────────────────
+
+# Start from one or more ready-made word packs. The full list of pack names is
+# at the bottom of this file. Delete a line to drop a pack; add a line to add
+# one. `hsk-2026-t1` is the 500 words of HSK level 1 in the 2026 syllabus.
+from:
+  - hsk-2026-t1
+
+# Extra words of your own, on top of the packs. Write them in Chinese
+# characters (simplified or traditional) or in numbered pinyin.
+#
+# Every word here must exist in the Zhongdex corpus, which covers the HSK 3.0
+# (2026) list — 11,092 entries. If one does not, the build STOPS and tells you
+# which word, with the closest matches it found. It never quietly drops a word:
+# a deck that is missing something you asked for, and does not say so, is worse
+# than a build that failed.
+words:
+  - 谢谢
+  - 朋友
+
+# Words to leave out. Two forms:
+#   - 一            a single word
+#   - from: <pack>  everything in a pack (useful for "skip what I know")
+exclude:
+  - from: pos-numerals
+
+
+# ── Narrowing it down ────────────────────────────────────────────────────────
+
+# Applied to everything gathered above. Leave a setting out to not use it.
+filter:
+  # HSK 3.0 (2026) band, 1–7. Band 7 is the merged "7-9" range.
+  min_band: 1
+  max_band: 1
+
+  # Only the most common words. 1 = the single most frequent word in the
+  # corpus; 8000 is roughly "everything a fluent reader meets often". Leave it
+  # out to keep rare words too. Words the corpus has no frequency rank for are
+  # dropped when this is set, and the build tells you how many.
+  # max_freq_rank: 8000
+
+  # Keep only these parts of speech. An empty list means "keep everything".
+  # Valid tags, exactly as the corpus writes them:
+  #   N  V  Adj  Adv  M  Conj  Pron  Prep  Aux  Num  Suffix  Prefix  Intj  Phonetic
+  # (1,359 entries carry no part-of-speech tag at all; naming any tag here
+  # drops all of them.)
+  pos: []
+
+  # Cap on deck size. The build fails above 5,000 words — a bigger deck is a
+  # bigger problem than a smaller vocabulary, and nobody reviews 5,000 new
+  # cards anyway.
+  max_words: 5000
+
+
+# ── The cards ────────────────────────────────────────────────────────────────
+
+cards:
+  # recognition = Chinese on the front, English on the back
+  # recall      = English on the front, Chinese on the back
+  directions: [recognition, recall]
+
+  # simplified | traditional | both
+  script: simplified
+
+
+# ── What you get ─────────────────────────────────────────────────────────────
+
+output:
+  # csv    a plain spreadsheet file — imports into Anki, Pleco, Excel, anything
+  # tsv    the same thing, tab-separated
+  # jsonl  one JSON object per line, for scripts
+  # apkg   a ready-to-open Anki deck  (needs the deck exporter; see below)
+  formats: [csv, tsv, jsonl]
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  REFERENCE — everything below here is documentation, not settings.
+# ═════════════════════════════════════════════════════════════════════════════
+#
+# ── Available packs ──────────────────────────────────────────────────────────
+#
+#   By HSK 3.0 (2026) band:
+#     hsk-2026-t1          500 words   band 1
+#     hsk-2026-t2          772         band 2
+#     hsk-2026-t3          973         band 3
+#     hsk-2026-t4        1,000         band 4
+#     hsk-2026-t5        1,071         band 5
+#     hsk-2026-t6        1,140         band 6
+#     hsk-2026-t7-9      5,636         bands 7–9 (the syllabus does not split them)
+#
+#   Cumulative — everything up to and including that band:
+#     hsk-2026-t1-t3     2,245
+#     hsk-2026-t1-t6     5,456
+#     hsk-2026-complete 11,092         the whole corpus; over the 5,000 cap on its own
+#
+#   By how common the word is — the fastest route to useful Chinese:
+#     core-500             362      core-1000            720
+#     core-2000          1,418      core-3000          2,122
+#     core-5000          3,332
+#     (These are smaller than their names because they are the intersection of
+#      the frequency band with the HSK list.)
+#
+#   Other:
+#     hsk-2026-delta       324      what the 2026 syllabus changed
+#     hsk-2021-complete 10,786      the previous (2021) list, for comparison
+#     hsk-2-0-t1-t6      4,442      the older HSK 2.0 levels 1–6
+#
+#   By part of speech:
+#     pos-nouns          4,600      pos-verbs          3,629
+#     pos-adjectives     1,447      pos-adverbs          453
+#     pos-measure-words    156      pos-conjunctions     106
+#     pos-pronouns          83      pos-prepositions      60
+#     pos-auxiliaries       24      pos-numerals          23
+#
+#   Packs get added over time, so this list can fall behind. The live one, with
+#   sizes and digests, is data/packs/index.json — and if you name a pack that
+#   does not exist, the build prints every pack it does have.
+#
+#
+# ── Not in this release ──────────────────────────────────────────────────────
+#
+# These are in the deck spec but the corpus cannot honour them yet. They are
+# listed here so you know they are coming and so nobody wastes an afternoon
+# guessing why a setting had no effect. If you add one, the build will WARN and
+# ignore it rather than pretend:
+#
+#   filter:
+#     require_audio: true     # NO AUDIO IS PUBLISHED YET. Setting this true
+#                             # would produce an empty deck, so the build stops
+#                             # and says so instead.
+#
+#   cards:
+#     sentences_per_word: 2       # the sentence pool is not published yet
+#     sentence_max_new_words: 1   # the "one new word per sentence" rule
+#     sentence_grade_max: 4       # Zhongdex Sentence Grade, 1–7
+#     voice: both                 # amy | james | both | alternate
+#
+#   output:
+#     formats: [apkg, pleco]  # produced once the deck exporter lands in the
+#                             # repo. Until then the build emits csv/tsv/jsonl
+#                             # and tells you which formats it skipped.
+#     audio: bundled          # bundled | linked
+#     bitrate: 64k

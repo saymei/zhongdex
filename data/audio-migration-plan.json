@@ -7,38 +7,40 @@
   "note": "A PLAN, not an execution. Nothing here has been uploaded, copied, or reserved. No timestamp is emitted so two runs over the same canon are byte-identical.",
   "corpus": {
     "canonPath": "data/hsk_bands.json",
-    "sha256": "54a7331b407b1493fb8bb2f2ce05283aeb358fc88fae70837cac8747a89ebd2b",
-    "bytes": 7427701,
+    "sha256": "f3e5e79d40982b06ad70dbaaaee1dced0d4c48b7e9f00a4931d19896a89f14f4",
+    "bytes": 9384614,
     "rows": 11092
   },
   "canonAudio": {
-    "metadataPresent": false,
+    "metadataPresent": true,
     "rowsWithAudioObject": 11092,
     "fieldsObserved": [
       "female",
       "male",
       "status"
     ],
-    "voiceFieldShape": "null",
+    "voiceFieldShape": "object",
     "statusCounts": {
-      "pending": 11092
+      "available-unhosted": 11040,
+      "unknown": 50,
+      "none": 2
     },
     "availability": {
       "female": {
-        "available": 0,
-        "unavailable": 0,
-        "unknown": 11092
+        "available": 11040,
+        "unavailable": 52,
+        "unknown": 0
       },
       "male": {
         "available": 0,
-        "unavailable": 0,
-        "unknown": 11092
+        "unavailable": 11092,
+        "unknown": 0
       }
     },
     "urlsPresent": 0,
     "byteSizesPresent": 0,
     "totalBytesFromCanon": null,
-    "note": "The canon carries NO per-word audio availability metadata: every voice slot reads as unmeasured. The migration set below is taken from the reuse ledger (ZHONGDEX.md §3.1) and is an ASSUMPTION, not a measurement. Re-run after the enrichment pass lands and the basis switches to \"canon-metadata\"."
+    "note": "The canon carries per-word audio availability. The migration set below is MEASURED from it. It carries no byte sizes, so byte totals remain estimates."
   },
   "scheme": {
     "host": "audio.zhongdex.org",
@@ -716,10 +718,10 @@
         "canonVoice": "female",
         "variant": "slow",
         "action": "migrate",
-        "clips": 10976,
-        "unmeasuredHeadwords": 10976,
-        "estimatedBytes": 736764000,
-        "basis": "ledger",
+        "clips": 10964,
+        "unmeasuredHeadwords": 0,
+        "estimatedBytes": 735958500,
+        "basis": "canon-metadata",
         "source": "ZHONGDEX.md §3.1 — 186,791 Amy word clips, 100% time-stretched to 0.7x"
       },
       {
@@ -728,9 +730,9 @@
         "variant": "natural",
         "action": "gap",
         "clips": 0,
-        "unmeasuredHeadwords": 10976,
+        "unmeasuredHeadwords": 0,
         "estimatedBytes": 0,
-        "basis": "ledger",
+        "basis": "canon-metadata",
         "source": "ZHONGDEX.md §3.3 G2b — no natural-speed word clip exists anywhere; the master was deleted"
       },
       {
@@ -739,9 +741,9 @@
         "variant": "natural",
         "action": "gap",
         "clips": 0,
-        "unmeasuredHeadwords": 10976,
+        "unmeasuredHeadwords": 0,
         "estimatedBytes": 0,
-        "basis": "ledger",
+        "basis": "canon-metadata",
         "source": "ZHONGDEX.md §3.3 G2 — James has zero word clips corpus-wide"
       },
       {
@@ -750,16 +752,16 @@
         "variant": "slow",
         "action": "gap",
         "clips": 0,
-        "unmeasuredHeadwords": 10976,
+        "unmeasuredHeadwords": 0,
         "estimatedBytes": 0,
-        "basis": "ledger",
+        "basis": "canon-metadata",
         "source": "derivative of G2; ffmpeg transcode once G2 renders, no TTS"
       }
     ],
     "migrate": {
-      "clips": 10976,
-      "estimatedBytes": 736764000,
-      "basis": "ledger"
+      "clips": 10964,
+      "estimatedBytes": 735958500,
+      "basis": "canon-metadata"
     },
     "gap": [
       {
@@ -768,9 +770,9 @@
         "variant": "natural",
         "action": "gap",
         "clips": 0,
-        "unmeasuredHeadwords": 10976,
+        "unmeasuredHeadwords": 0,
         "estimatedBytes": 0,
-        "basis": "ledger",
+        "basis": "canon-metadata",
         "source": "ZHONGDEX.md §3.3 G2b — no natural-speed word clip exists anywhere; the master was deleted"
       },
       {
@@ -779,9 +781,9 @@
         "variant": "natural",
         "action": "gap",
         "clips": 0,
-        "unmeasuredHeadwords": 10976,
+        "unmeasuredHeadwords": 0,
         "estimatedBytes": 0,
-        "basis": "ledger",
+        "basis": "canon-metadata",
         "source": "ZHONGDEX.md §3.3 G2 — James has zero word clips corpus-wide"
       },
       {
@@ -790,9 +792,9 @@
         "variant": "slow",
         "action": "gap",
         "clips": 0,
-        "unmeasuredHeadwords": 10976,
+        "unmeasuredHeadwords": 0,
         "estimatedBytes": 0,
-        "basis": "ledger",
+        "basis": "canon-metadata",
         "source": "derivative of G2; ffmpeg transcode once G2 renders, no TTS"
       }
     ]
@@ -824,7 +826,7 @@
           3
         ],
         "firstKey": "v1/w/amy/生.slow.mp3",
-        "lastKey": "v1/w/amy/自从.slow.mp3",
+        "lastKey": "v1/w/amy/自动.slow.mp3",
         "voice": "amy",
         "variant": "slow"
       },
@@ -836,8 +838,8 @@
           3,
           4
         ],
-        "firstKey": "v1/w/amy/自动.slow.mp3",
-        "lastKey": "v1/w/amy/获奖.slow.mp3",
+        "firstKey": "v1/w/amy/自然.slow.mp3",
+        "lastKey": "v1/w/amy/获得.slow.mp3",
         "voice": "amy",
         "variant": "slow"
       },
@@ -849,8 +851,8 @@
           4,
           5
         ],
-        "firstKey": "v1/w/amy/获得.slow.mp3",
-        "lastKey": "v1/w/amy/羽绒服.slow.mp3",
+        "firstKey": "v1/w/amy/营业.slow.mp3",
+        "lastKey": "v1/w/amy/耐心.slow.mp3",
         "voice": "amy",
         "variant": "slow"
       },
@@ -862,8 +864,8 @@
           5,
           6
         ],
-        "firstKey": "v1/w/amy/考核.slow.mp3",
-        "lastKey": "v1/w/amy/球拍.slow.mp3",
+        "firstKey": "v1/w/amy/耳朵.slow.mp3",
+        "lastKey": "v1/w/amy/理.slow.mp3",
         "voice": "amy",
         "variant": "slow"
       },
@@ -875,8 +877,8 @@
           6,
           7
         ],
-        "firstKey": "v1/w/amy/球星.slow.mp3",
-        "lastKey": "v1/w/amy/入境.slow.mp3",
+        "firstKey": "v1/w/amy/理智.slow.mp3",
+        "lastKey": "v1/w/amy/全心全意.slow.mp3",
         "voice": "amy",
         "variant": "slow"
       },
@@ -887,8 +889,8 @@
         "bands": [
           7
         ],
-        "firstKey": "v1/w/amy/入手.slow.mp3",
-        "lastKey": "v1/w/amy/妄想.slow.mp3",
+        "firstKey": "v1/w/amy/全文.slow.mp3",
+        "lastKey": "v1/w/amy/妥善.slow.mp3",
         "voice": "amy",
         "variant": "slow"
       },
@@ -899,8 +901,8 @@
         "bands": [
           7
         ],
-        "firstKey": "v1/w/amy/妒忌.slow.mp3",
-        "lastKey": "v1/w/amy/接轨.slow.mp3",
+        "firstKey": "v1/w/amy/妥当.slow.mp3",
+        "lastKey": "v1/w/amy/推测.slow.mp3",
         "voice": "amy",
         "variant": "slow"
       },
@@ -911,8 +913,8 @@
         "bands": [
           7
         ],
-        "firstKey": "v1/w/amy/接送.slow.mp3",
-        "lastKey": "v1/w/amy/狭窄.slow.mp3",
+        "firstKey": "v1/w/amy/推理.slow.mp3",
+        "lastKey": "v1/w/amy/猖狂.slow.mp3",
         "voice": "amy",
         "variant": "slow"
       },
@@ -923,19 +925,19 @@
         "bands": [
           7
         ],
-        "firstKey": "v1/w/amy/狭隘.slow.mp3",
-        "lastKey": "v1/w/amy/见钱眼开.slow.mp3",
+        "firstKey": "v1/w/amy/猛烈.slow.mp3",
+        "lastKey": "v1/w/amy/视察.slow.mp3",
         "voice": "amy",
         "variant": "slow"
       },
       {
         "index": 11,
-        "clips": 976,
-        "estimatedBytes": 65514000,
+        "clips": 964,
+        "estimatedBytes": 64708500,
         "bands": [
           7
         ],
-        "firstKey": "v1/w/amy/观感.slow.mp3",
+        "firstKey": "v1/w/amy/视线.slow.mp3",
         "lastKey": "v1/w/amy/龟.slow.mp3",
         "voice": "amy",
         "variant": "slow"

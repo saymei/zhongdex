@@ -1,0 +1,549 @@
+#
+# Build deck — compiles my-list.yaml into downloadable flashcard files.
+#
+# This is the workflow that makes a fork worth making. Somebody edits one
+# commented YAML file, commits, and gets a deck out of the Actions tab without
+# installing anything.
+#
+# Two rules govern every change to this file:
+#
+#   1. IT MUST NOT FAIL ON A FRESH FORK. A red X on the first commit is where
+#      a non-programmer stops. The corpus is committed to the repo, the
+#      fallback compiler uses Node builtins only, and no step depends on a
+#      network service other than GitHub itself.
+#   2. IT MUST NEVER SILENTLY DROP A WORD. An unresolved word fails the build
+#      with the near-misses listed. A deck quietly missing what you asked for
+#      is worse than a build that stopped and told you.
+#
+name: Build deck
+
+on:
+  push:
+    paths:
+      - "my-list.yaml"
+      - ".github/workflows/build-deck.yml"
+  workflow_dispatch:
+  # Monthly refresh, so a fork picks up corpus updates on its own.
+  # Uncomment the two lines below to switch it on. It is off by default because
+  # an accumulating population of forks on a cron is a recurring cost nobody
+  # budgeted for — yours is free, ten thousand of them are not.
+  # schedule:
+  #   - cron: "0 6 1 * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-deck-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: compile my-list.yaml
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # ---------------------------------------------------------------------
+      # 1. Read my-list.yaml with a real YAML parser.
+      #
+      # Not a hand-rolled one: this file is edited by people who have never
+      # written YAML, and the failure mode of a partial parser is a deck that
+      # is subtly not what they asked for. PyYAML is present on ubuntu-latest;
+      # the install is a belt-and-braces fallback.
+      # ---------------------------------------------------------------------
+      - name: Read my-list.yaml
+        run: |
+          mkdir -p dist
+          python3 -c "import yaml" 2>/dev/null || python3 -m pip install --quiet --disable-pip-version-check pyyaml
+          python3 - <<'PY'
+          import json, sys, yaml
+          try:
+              with open("my-list.yaml", encoding="utf-8") as handle:
+                  spec = yaml.safe_load(handle)
+          except yaml.YAMLError as err:
+              mark = getattr(err, "problem_mark", None)
+              where = f" at line {mark.line + 1}, column {mark.column + 1}" if mark else ""
+              print(f"::error file=my-list.yaml::my-list.yaml is not valid YAML{where}. {getattr(err, 'problem', err)}")
+              print("Most common cause: the indentation of a line changed. Every nested line is indented")
+              print("by two spaces, and a list item starts with '- '. See docs/FORK.md.")
+              sys.exit(1)
+          if not isinstance(spec, dict):
+              print("::error file=my-list.yaml::my-list.yaml must be a set of settings, one per line. See docs/FORK.md.")
+              sys.exit(1)
+          with open("dist/my-list.json", "w", encoding="utf-8") as out:
+              json.dump(spec, out, ensure_ascii=False)
+          print(f"Parsed my-list.yaml: {', '.join(sorted(spec))}")
+          PY
+
+      # ---------------------------------------------------------------------
+      # 2. Make sure the corpus is on disk.
+      #
+      # data/ is committed, so on a fresh fork this is a no-op. The build is
+      # only attempted if the corpus is somehow absent, and a failure there is
+      # not fatal — the next step reports it in terms the fork owner can act on.
+      # ---------------------------------------------------------------------
+      - name: Ensure the corpus is present
+        run: |
+          if [ -f data/hsk_bands.json ] && [ -f data/packs/index.json ]; then
+            echo "Corpus present: $(wc -c < data/hsk_bands.json) bytes."
+            exit 0
+          fi
+          echo "Corpus not committed in this checkout; attempting a build."
+          npm ci --no-audit --no-fund || true
+          npm run build || echo "::warning::Corpus build did not complete; the next step will report what is missing."
+
+      # ---------------------------------------------------------------------
+      # 3. Is there a deck exporter in this repo yet?
+      #
+      # The richer formats (.apkg with bundled audio, Pleco) come from the
+      # exporter. Until it lands, the fallback compiler in step 4 produces
+      # csv/tsv/jsonl and says which formats it skipped. Nothing here fails
+      # because the exporter is absent.
+      # ---------------------------------------------------------------------
+      - name: Look for the deck exporter
+        id: exporter
+        run: |
+          if node -e "process.exit((require('./package.json').scripts||{})['build:deck']?0:1)" 2>/dev/null; then
+            echo "mode=script" >> "$GITHUB_OUTPUT"
+            echo "Found npm script build:deck."
+          elif [ -f src/export/deck.ts ]; then
+            echo "mode=tsx" >> "$GITHUB_OUTPUT"
+            echo "Found src/export/deck.ts."
+          else
+            echo "mode=none" >> "$GITHUB_OUTPUT"
+            echo "No deck exporter in this repo yet — the fallback compiler will emit csv/tsv/jsonl."
+          fi
+
+      # ---------------------------------------------------------------------
+      # 4. The fallback compiler.
+      #
+      # Always runs. It is both the spec validator and the guaranteed output
+      # path, so a fork produces something useful whether or not the exporter
+      # exists. Node builtins only: no install, no network, no dependency that
+      # can break somebody else's fork six months from now.
+      # ---------------------------------------------------------------------
+      - name: Compile the deck
+        env:
+          SPEC_JSON: dist/my-list.json
+          OUT_DIR: dist/deck
+        run: |
+          mkdir -p dist/deck
+          cat > "$RUNNER_TEMP/compile-deck.mjs" <<'NODE_EOF'
+          import { createHash } from "node:crypto";
+          import { existsSync, readFileSync, writeFileSync } from "node:fs";
+          import { join } from "node:path";
+
+          const OUT = process.env.OUT_DIR ?? "dist/deck";
+          const MAX_WORDS_CEILING = 5000;
+          const ALLOWED_TOP = ["name", "author", "from", "words", "exclude", "filter", "cards", "output"];
+          const NOT_YET = {
+            "cards.sentences_per_word": "the sentence pool is not published yet",
+            "cards.sentence_max_new_words": "the sentence pool is not published yet",
+            "cards.sentence_grade_max": "the sentence pool is not published yet",
+            "cards.voice": "no audio is published yet",
+            "output.audio": "no audio is published yet",
+            "output.bitrate": "no audio is published yet",
+          };
+
+          const warnings = [];
+          const fail = (msg, detail = []) => {
+            console.log(`::error file=my-list.yaml::${msg}`);
+            for (const line of detail) console.log(`  ${line}`);
+            process.exit(1);
+          };
+          const warn = (msg) => { warnings.push(msg); console.log(`::warning file=my-list.yaml::${msg}`); };
+
+          /* ---- load ---------------------------------------------------- */
+
+          if (!existsSync("data/hsk_bands.json") || !existsSync("data/packs/index.json")) {
+            fail("The corpus is missing from this checkout.", [
+              "data/hsk_bands.json and data/packs/index.json are committed to the upstream repo.",
+              "If you deleted them, restore them with:  git checkout origin/main -- data",
+            ]);
+          }
+
+          const spec = JSON.parse(readFileSync(process.env.SPEC_JSON ?? "dist/my-list.json", "utf8"));
+          const canonRaw = JSON.parse(readFileSync("data/hsk_bands.json", "utf8"));
+          const rows = Array.isArray(canonRaw) ? canonRaw : (canonRaw.words ?? []);
+          const packIndex = JSON.parse(readFileSync("data/packs/index.json", "utf8"));
+
+          const compact = (s) => String(s).replace(/\s+/g, "").toLowerCase();
+          const glossesOf = (row) => (row.definitions ?? []).map((d) => (typeof d === "string" ? d : d.text ?? ""));
+
+          const byId = new Map();
+          const bySimp = new Map();
+          const byTrad = new Map();
+          const byNum = new Map();
+          const byToneless = new Map();
+          const byGloss = new Map();
+          const push = (map, key, row) => { const k = map.get(key); if (k) k.push(row); else map.set(key, [row]); };
+          for (const row of rows) {
+            byId.set(row.id, row);
+            push(bySimp, row.simplified, row);
+            if (row.traditional) push(byTrad, row.traditional, row);
+            const numbered = row.pinyin?.numbered ?? "";
+            if (numbered) {
+              push(byNum, compact(numbered), row);
+              // Most learners type pinyin without tone numbers. Indexed as a
+              // last resort, and reported as ambiguous rather than guessed.
+              push(byToneless, compact(numbered).replace(/[0-9]/g, ""), row);
+            }
+            for (const gloss of glossesOf(row)) {
+              for (const part of gloss.split(";")) {
+                const clean = part.trim().toLowerCase();
+                if (clean) push(byGloss, clean, row);
+              }
+            }
+          }
+
+          const packs = new Map();
+          for (const entry of packIndex.packs ?? []) {
+            const file = join("data/packs", entry.file ?? `${entry.slug}.json`);
+            if (!existsSync(file)) continue;
+            packs.set(entry.slug, { ...entry, words: JSON.parse(readFileSync(file, "utf8")).words ?? [] });
+          }
+
+          /* ---- validate the spec --------------------------------------- */
+
+          for (const key of Object.keys(spec)) {
+            if (!ALLOWED_TOP.includes(key)) {
+              fail(`"${key}" is not a setting my-list.yaml understands.`, [
+                `Valid settings: ${ALLOWED_TOP.join(", ")}.`,
+                "See the reference at the bottom of my-list.yaml.",
+              ]);
+            }
+          }
+          for (const [path, reason] of Object.entries(NOT_YET)) {
+            const [group, key] = path.split(".");
+            if (spec[group] && spec[group][key] !== undefined && spec[group][key] !== null) {
+              warn(`"${path}" was ignored: ${reason}. It is listed under "Not in this release" in my-list.yaml.`);
+            }
+          }
+          if (spec.filter?.require_audio === true) {
+            fail("filter.require_audio is true, but no audio is published yet, so this would build an empty deck.", [
+              "Set it to false or delete the line. Audio hosting is not live; see docs/HOSTING.md.",
+            ]);
+          }
+
+          const asList = (value) => (value === undefined || value === null ? [] : Array.isArray(value) ? value : [value]);
+
+          /* ---- resolve ------------------------------------------------- */
+
+          const describe = (row) => `${row.simplified}  ${row.pinyin?.marked ?? ""}  ${glossesOf(row)[0] ?? ""}`;
+          const nearMisses = (needle) => {
+            const found = [];
+            const first = needle.slice(0, 1);
+            for (const row of rows) {
+              if (found.length >= 5) break;
+              if (row.simplified.includes(needle) || (first && row.simplified.startsWith(first))) {
+                found.push(describe(row));
+              }
+            }
+            // ASCII input is pinyin, so match on pinyin rather than characters.
+            if (found.length === 0 && /^[a-z0-9\s:]+$/i.test(needle)) {
+              const base = compact(needle).replace(/[0-9]/g, "");
+              for (const length of [4, 3, 2]) {
+                if (found.length > 0 || base.length < length) continue;
+                const stem = base.slice(0, length);
+                for (const [key, hits] of byToneless) {
+                  if (found.length >= 5) break;
+                  if (key.startsWith(stem) && hits[0]) found.push(describe(hits[0]));
+                }
+              }
+            }
+            if (found.length === 0) {
+              const lower = needle.toLowerCase();
+              for (const row of rows) {
+                if (found.length >= 5) break;
+                if (glossesOf(row).some((g) => g.toLowerCase().includes(lower))) {
+                  found.push(`${row.simplified}  ${row.pinyin?.marked ?? ""}  ${glossesOf(row)[0] ?? ""}`);
+                }
+              }
+            }
+            return found;
+          };
+
+          // Returns { rows, how } or null.
+          const resolveWord = (input) => {
+            const raw = String(input).trim();
+            if (!raw) return null;
+            if (bySimp.has(raw)) return { rows: bySimp.get(raw), how: "simplified" };
+            if (byTrad.has(raw)) return { rows: byTrad.get(raw), how: "traditional" };
+            const num = compact(raw);
+            if (byNum.has(num)) return { rows: byNum.get(num), how: "pinyin" };
+            const toneless = num.replace(/[0-9]/g, "");
+            if (toneless && byToneless.has(toneless)) {
+              const hits = byToneless.get(toneless);
+              const forms = new Set(hits.map((r) => r.simplified));
+              if (forms.size === 1) return { rows: hits, how: "pinyin (no tones)" };
+              return { rows: hits, how: "pinyin (no tones)", ambiguous: true };
+            }
+            const gloss = raw.toLowerCase();
+            if (byGloss.has(gloss)) {
+              const hits = byGloss.get(gloss);
+              if (hits.length > 3) return { rows: hits, how: "gloss", ambiguous: true };
+              return { rows: hits, how: "gloss" };
+            }
+            const partial = rows.filter((row) => glossesOf(row).some((g) => g.toLowerCase().includes(gloss)));
+            if (partial.length === 1) return { rows: partial, how: "gloss (partial)" };
+            if (partial.length > 1) return { rows: partial, how: "gloss (partial)", ambiguous: true };
+            return null;
+          };
+
+          const selected = new Map();  // id -> { row, source }
+          const unresolved = [];
+          const ambiguous = [];
+
+          for (const slug of asList(spec.from)) {
+            const pack = packs.get(String(slug));
+            if (!pack) {
+              const known = [...packs.keys()];
+              const close = known.filter((k) => k.includes(String(slug)) || String(slug).includes(k)).slice(0, 5);
+              fail(`There is no pack called "${slug}".`, [
+                close.length ? `Did you mean: ${close.join(", ")}?` : "",
+                `All packs: ${known.join(", ")}`,
+              ].filter(Boolean));
+            }
+            for (const id of pack.words) {
+              const row = byId.get(id);
+              if (row && !selected.has(id)) selected.set(id, { row, source: pack.slug });
+            }
+          }
+
+          for (const word of asList(spec.words)) {
+            const hit = resolveWord(word);
+            if (!hit) { unresolved.push({ word: String(word), near: nearMisses(String(word)) }); continue; }
+            if (hit.ambiguous) {
+              ambiguous.push({ word: String(word), matches: hit.rows.slice(0, 8).map((r) => `${r.simplified} ${r.pinyin?.marked ?? ""} — ${glossesOf(r)[0] ?? ""}`) });
+              continue;
+            }
+            for (const row of hit.rows) if (!selected.has(row.id)) selected.set(row.id, { row, source: "your list" });
+          }
+
+          if (unresolved.length || ambiguous.length) {
+            console.log("::error file=my-list.yaml::Some words in `words:` could not be resolved. Nothing was dropped silently — fix these and push again.");
+            console.log(`  The corpus is the HSK 3.0 (2026) list: ${rows.length} entries. A word outside it is not available yet.`);
+            for (const item of unresolved) {
+              console.log(`  NOT FOUND  ${item.word}`);
+              for (const near of item.near) console.log(`      closest: ${near}`);
+              if (!item.near.length) console.log("      no close match in the HSK 3.0 (2026) corpus");
+            }
+            for (const item of ambiguous) {
+              console.log(`  AMBIGUOUS  ${item.word} matches several entries — write the Chinese characters instead:`);
+              for (const match of item.matches) console.log(`      ${match}`);
+            }
+            process.exit(1);
+          }
+
+          for (const item of asList(spec.exclude)) {
+            if (item && typeof item === "object" && item.from) {
+              const pack = packs.get(String(item.from));
+              if (!pack) { warn(`exclude: there is no pack called "${item.from}"; nothing was excluded for that line.`); continue; }
+              for (const id of pack.words) selected.delete(id);
+              continue;
+            }
+            const hit = resolveWord(item);
+            if (!hit) { warn(`exclude: "${item}" is not in the corpus, so there was nothing to exclude.`); continue; }
+            for (const row of hit.rows) selected.delete(row.id);
+          }
+
+          /* ---- filter -------------------------------------------------- */
+
+          const filter = spec.filter ?? {};
+          const posWanted = asList(filter.pos).map((p) => String(p).toLowerCase());
+          const rankOf = (row) => row.frequencyRank ?? row.frequency?.rank ?? null;
+
+          // A frequency filter over a corpus with no ranks would empty the deck.
+          // Check first, warn, and ignore the setting rather than produce that.
+          const rankedCount = rows.reduce((n, row) => n + (rankOf(row) == null ? 0 : 1), 0);
+          const wantsRank = filter.max_freq_rank != null || filter.min_freq_rank != null;
+          if (wantsRank && rankedCount === 0) warn("filter.max_freq_rank / min_freq_rank were ignored: this corpus release carries no frequency ranks.");
+          const useRank = wantsRank && rankedCount > 0;
+          let unranked = 0;
+
+          let kept = [...selected.values()].filter(({ row }) => {
+            const band = row.hsk?.band2026;
+            if (filter.min_band != null && !(band >= Number(filter.min_band))) return false;
+            if (filter.max_band != null && !(band <= Number(filter.max_band))) return false;
+            if (posWanted.length && !(row.pos ?? []).some((p) => posWanted.includes(String(p).toLowerCase()))) return false;
+            if (useRank) {
+              const rank = rankOf(row);
+              // No rank means "not known to be common", so a frequency filter
+              // excludes it — counted and reported, never dropped in silence.
+              if (rank == null) { unranked += 1; return false; }
+              if (filter.max_freq_rank != null && !(rank <= Number(filter.max_freq_rank))) return false;
+              if (filter.min_freq_rank != null && !(rank >= Number(filter.min_freq_rank))) return false;
+            }
+            return true;
+          });
+          if (unranked > 0) warn(`${unranked} words were excluded by the frequency filter because the corpus carries no frequency rank for them.`);
+
+          kept.sort((a, b) => (a.row.hsk?.band2026 ?? 0) - (b.row.hsk?.band2026 ?? 0) || (a.row.id < b.row.id ? -1 : a.row.id > b.row.id ? 1 : 0));
+
+          const cap = Math.min(Number(filter.max_words ?? MAX_WORDS_CEILING), MAX_WORDS_CEILING);
+          if (kept.length > cap) {
+            fail(`This deck would have ${kept.length} words; the limit is ${cap}.`, [
+              "Narrow it with filter.max_band, filter.pos, or by removing a pack from `from:`.",
+              `The hard ceiling is ${MAX_WORDS_CEILING} words — nobody reviews more than that, and a bigger build is a bigger problem.`,
+            ]);
+          }
+          if (kept.length === 0) {
+            fail("This deck would be empty.", [
+              "Every word was filtered out. Check filter.min_band / filter.max_band against the bands of the packs in `from:`,",
+              "and check filter.pos — 1,359 corpus entries carry no part-of-speech tag, so naming any tag drops all of them.",
+            ]);
+          }
+
+          /* ---- emit ---------------------------------------------------- */
+
+          const cards = spec.cards ?? {};
+          const script = String(cards.script ?? "simplified").toLowerCase();
+          const directions = asList(cards.directions).map(String);
+          const headword = (row) =>
+            script === "traditional" ? (row.traditional || row.simplified)
+            : script === "both" && row.traditional && row.traditional !== row.simplified ? `${row.simplified} / ${row.traditional}`
+            : row.simplified;
+
+          const requested = asList(spec.output?.formats).map((f) => String(f).toLowerCase());
+          const formats = requested.length ? requested : ["csv"];
+          const producible = ["csv", "tsv", "jsonl"];
+          const skipped = formats.filter((f) => !producible.includes(f));
+          const emit = formats.filter((f) => producible.includes(f));
+          if (!emit.includes("csv")) emit.push("csv");
+          if (skipped.length) warn(`Formats not produced by the fallback compiler: ${skipped.join(", ")}. They need the deck exporter, which is not in this repo yet. csv/tsv/jsonl were produced instead.`);
+
+          const columns = ["Word", "Simplified", "Traditional", "Pinyin", "PinyinNumbered", "English", "HSK2026", "POS", "FreqRank", "ZhongdexId"];
+          const record = (row) => [
+            headword(row), row.simplified, row.traditional ?? "",
+            row.pinyin?.marked ?? "", row.pinyin?.numbered ?? "",
+            glossesOf(row).slice(0, 3).join("; "),
+            String(row.hsk?.band2026 ?? ""), (row.pos ?? []).join("/"),
+            rankOf(row) == null ? "" : String(rankOf(row)), row.id,
+          ];
+          const csvCell = (v) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+
+          if (emit.includes("csv")) {
+            writeFileSync(join(OUT, "deck.csv"),
+              [columns.join(","), ...kept.map(({ row }) => record(row).map(csvCell).join(","))].join("\n") + "\n", "utf8");
+          }
+          if (emit.includes("tsv")) {
+            writeFileSync(join(OUT, "deck.tsv"),
+              [columns.join("\t"), ...kept.map(({ row }) => record(row).map((v) => v.replace(/\t/g, " ")).join("\t"))].join("\n") + "\n", "utf8");
+          }
+          if (emit.includes("jsonl")) {
+            writeFileSync(join(OUT, "deck.jsonl"),
+              kept.map(({ row, source }) => JSON.stringify({ ...row, zhongdexSource: source })).join("\n") + "\n", "utf8");
+          }
+
+          const ids = kept.map(({ row }) => row.id).sort();
+          const digest = createHash("sha256").update(ids.join("\n"), "utf8").digest("hex");
+
+          /* ---- RESOLVED.md — the artifact people screenshot ------------ */
+
+          const md = [];
+          md.push(`# ${spec.name ?? "Untitled deck"}`);
+          md.push("");
+          md.push(`Built by ${spec.author ?? "an anonymous fork"} from \`my-list.yaml\` with [Zhongdex](https://github.com/saymei/zhongdex).`);
+          md.push("");
+          md.push(`- **${kept.length} words**`);
+          md.push(`- Card directions: ${directions.length ? directions.join(", ") : "recognition"}`);
+          md.push(`- Script: ${script}`);
+          md.push(`- Corpus version: \`${packIndex.corpusVersion ?? "unknown"}\` · pack set \`${packIndex.version ?? "unknown"}\``);
+          md.push(`- Selection digest: \`sha256:${digest}\``);
+          md.push("");
+          md.push("The digest is over the sorted word-id list. The same `my-list.yaml` against the same corpus version");
+          md.push("produces the same digest, so anyone can check this deck is what it claims to be.");
+          md.push("");
+          md.push("## Audio");
+          md.push("");
+          md.push("**None.** No audio is published yet, so this deck ships no audio fields and no audio URLs.");
+          md.push("A URL that 404s inside somebody's review session is worse than an honest absence.");
+          md.push("");
+          if (warnings.length) {
+            md.push("## Settings that were not applied");
+            md.push("");
+            for (const line of warnings) md.push(`- ${line}`);
+            md.push("");
+          }
+          md.push("## Every word, and where it came from");
+          md.push("");
+          md.push("| # | Word | Pinyin | English | HSK | POS | From |");
+          md.push("|---:|---|---|---|---:|---|---|");
+          // A pipe inside a cell splits the row. Several HSK headwords carry one
+          // (爸爸|爸), as does CC-CEDICT's classifier notation (CL:個|个[ge4]).
+          const mdCell = (v) => String(v ?? "").replace(/\|/g, "\\|");
+          kept.forEach(({ row, source }, i) => {
+            md.push(`| ${i + 1} | ${mdCell(headword(row))} | ${mdCell(row.pinyin?.marked)} | ${mdCell(glossesOf(row)[0])} | ${row.hsk?.band2026 ?? ""} | ${mdCell((row.pos ?? []).join("/"))} | ${mdCell(source)} |`);
+          });
+          md.push("");
+          md.push("---");
+          md.push("");
+          md.push("Word membership is computed, never hand-written: every pack is a deterministic query over the");
+          md.push("HSK 3.0 (2026) corpus. Definitions are CC-CEDICT, CC BY-SA 4.0. Make your own at");
+          md.push("<https://github.com/saymei/zhongdex> — fork it, edit `my-list.yaml`, push.");
+          writeFileSync(join(OUT, "RESOLVED.md"), md.join("\n") + "\n", "utf8");
+
+          /* ---- summary -------------------------------------------------- */
+
+          const summary = [
+            `## ${spec.name ?? "Untitled deck"}`,
+            "",
+            `**${kept.length} words** · corpus \`${packIndex.corpusVersion ?? "unknown"}\` · digest \`sha256:${digest.slice(0, 16)}…\``,
+            "",
+            `Files: ${emit.map((f) => `\`deck.${f}\``).join(", ")}, \`RESOLVED.md\``,
+            "",
+            skipped.length ? `Skipped formats (need the deck exporter): ${skipped.join(", ")}` : "",
+            "",
+            "Download them from the **Artifacts** section at the bottom of this page.",
+          ].filter((line) => line !== undefined).join("\n");
+          if (process.env.GITHUB_STEP_SUMMARY) writeFileSync(process.env.GITHUB_STEP_SUMMARY, summary + "\n", { flag: "a" });
+
+          console.log(`Compiled ${kept.length} words into ${OUT} (${emit.join(", ")}, RESOLVED.md).`);
+          NODE_EOF
+          node "$RUNNER_TEMP/compile-deck.mjs"
+
+      # ---------------------------------------------------------------------
+      # 5. The richer formats, when the exporter exists.
+      #
+      # Contract for whoever builds it: read the parsed spec from
+      # ZHONGDEX_DECK_SPEC (JSON), write into ZHONGDEX_OUT. Failure here is not
+      # fatal — the fallback output from step 4 is already on disk and is what
+      # gets uploaded.
+      # ---------------------------------------------------------------------
+      - name: Install dependencies for the exporter
+        if: steps.exporter.outputs.mode != 'none'
+        run: npm ci --no-audit --no-fund
+
+      - name: Run the deck exporter
+        if: steps.exporter.outputs.mode != 'none'
+        continue-on-error: true
+        env:
+          ZHONGDEX_DECK_SPEC: dist/my-list.json
+          ZHONGDEX_DECK_YAML: my-list.yaml
+          ZHONGDEX_OUT: dist/deck
+        run: |
+          if [ "${{ steps.exporter.outputs.mode }}" = "script" ]; then
+            npm run build:deck
+          else
+            npx tsx src/export/deck.ts
+          fi
+
+      - name: List what was built
+        run: ls -la dist/deck
+
+      - name: Upload the deck
+        uses: actions/upload-artifact@v4
+        with:
+          name: deck
+          path: dist/deck/**
+          if-no-files-found: error
+          retention-days: 90

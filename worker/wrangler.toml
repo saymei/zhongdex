@@ -1,0 +1,98 @@
+#
+# Zhongdex read API — Cloudflare Worker configuration.
+#
+# NOT DEPLOYED. R2 is not enabled on the account yet: the Cloudflare API
+# answers code 10042, "Please enable R2 through the Cloudflare Dashboard", so
+# `wrangler deploy` cannot succeed today and has never been run. Every value
+# below marked << FILL IN >> is account-specific and must be set by a human
+# with dashboard access. Runbook: docs/HOSTING.md.
+#
+# Deploy from this directory:  npx wrangler deploy
+#
+
+name = "zhongdex-api"
+main = "index.ts"
+
+# Pin the runtime. Bump deliberately, never as a side effect of a deploy.
+compatibility_date = "2026-08-22"
+
+# << FILL IN >> Cloudflare account id. Dashboard -> any zone -> Overview,
+# right-hand column. Safe to commit (it is an identifier, not a secret), but
+# `wrangler` also reads CLOUDFLARE_ACCOUNT_ID from the environment if you would
+# rather not.
+# account_id = "0000000000000000000000000000000"
+
+# No *.workers.dev URL. A second public hostname for the same content is a
+# second thing to protect, is not covered by the zone's WAF rules, and would
+# quietly become a URL somebody hard-codes.
+workers_dev = false
+
+# Errors and invocation counts, no sampling. Free with the Paid plan and the
+# only way to notice a route that started missing cache.
+[observability]
+enabled = true
+
+# ---------------------------------------------------------------------------
+# Routes
+#
+# The Worker is bound to the API hostname ONLY.
+#
+# It must NEVER be bound to `audio.zhongdex.org`, and this is a cost rule, not
+# a style preference: a Worker executes BEFORE the cache lookup, so a bound
+# Worker bills a request on every cache HIT. Audio is ~96% of request volume
+# (~$302/month at 1B requests). Audio is served by the R2 custom domain with no
+# Worker in front of it, which is why the audio key layout is constructible —
+# the object key IS the URL path, so no rewrite and no route map is needed.
+#
+# `custom_domain = true` makes Cloudflare create and manage the DNS record and
+# certificate for the hostname. The zone must already exist in this account.
+# ---------------------------------------------------------------------------
+# [[routes]]
+# pattern = "api.zhongdex.org"
+# custom_domain = true
+
+# ---------------------------------------------------------------------------
+# R2 binding
+#
+# `bucket_name` is the bucket the prebuilt JSON is uploaded to. The Worker only
+# ever calls .get() and .head(); it has no write path. Give the deploy token
+# Object Read-only if your setup allows separate tokens for build and serve —
+# the build uploads over the S3-compatible API, not through this Worker.
+#
+# Create the bucket in a location hint close to nothing in particular: the
+# objects are read through cache, so origin locality barely matters, and a
+# jurisdiction restriction would be a permanent constraint for no gain.
+# ---------------------------------------------------------------------------
+[[r2_buckets]]
+binding = "CORPUS"
+bucket_name = "zhongdex-corpus"
+# << FILL IN >> optional: a separate bucket for `wrangler dev --remote`.
+# preview_bucket_name = "zhongdex-corpus-preview"
+
+# ---------------------------------------------------------------------------
+# Plain vars. Not secrets — everything Zhongdex serves is public by design and
+# there is no key anywhere in this Worker.
+#
+# DATA_VERSION is echoed as `x-zhongdex-version` on every response and inside
+# every body. Bump it in the same commit that uploads a new corpus, so a
+# support report ("the audio 404s") can be pinned to a release without asking.
+# ---------------------------------------------------------------------------
+[vars]
+DATA_VERSION = "2026.09.1"
+AUDIO_HOST = "audio.zhongdex.org"
+
+# ---------------------------------------------------------------------------
+# Deliberately absent, each for a reason:
+#
+#   [[kv_namespaces]]   KV reads are $0.50/million. At 100M calls that is
+#                       $45.00 against $0.00 for R2 behind cache. Never put the
+#                       prebuilt JSON in KV.
+#   [[d1_databases]]    Nothing here reads a database. D1 is only justified for
+#                       the /v1/speak counter, which is a different Worker.
+#   [triggers] crons    The hourly cost killswitch is a SEPARATE Worker with
+#                       its own token and its own blast radius. Its source and
+#                       config are in docs/HOSTING.md. Do not add a cron to
+#                       this Worker: a bug in the killswitch would then be able
+#                       to take the read API down with it.
+#   [[durable_objects]] There is no state. That is the product.
+# ---------------------------------------------------------------------------

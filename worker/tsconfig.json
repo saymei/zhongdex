@@ -1,0 +1,15 @@
+{
+  "//": "Standalone typecheck for the Worker. The root tsconfig covers src/ and evals/ only; the Worker runs on a different global (fetch/Request/Response, no node: builtins) and pulling it into the root project would either force @cloudflare/workers-types as a dependency or leak DOM globals into the build scripts. Run: npm run typecheck:worker",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": [],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["**/*.ts"]
+}
