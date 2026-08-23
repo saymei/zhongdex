@@ -26,3 +26,8 @@ This MIT licence covers the CODE in this repository only.
 
 The DATA — everything under `data/`, and every artifact built from it — is
 licensed CC BY-SA 4.0. See `data/LICENSE` and `NOTICE`.
+
+One file under `scripts/` is also NOT covered by this licence:
+`scripts/cedict.json` is a verbatim, unmodified CC-CEDICT dump, redistributed
+under CC BY-SA 4.0. Its location beside the build scripts does not make it
+MIT. See `NOTICE` §1a.

@@ -10,7 +10,7 @@
  *
  *   C1  every canon record has a stable, well-formed, non-colliding id
  *   C2  the band counts match the pinned source split, exactly
- *   C3  no record emits an audio URL while its status is "pending"
+ *   C3  no record anywhere emits an audio URL, and nothing claims to be hosted
  *   C4  the pack set loads and is structurally sound
  *   C5  no pack references a word id that is absent from the canon
  *   C6  every pack digest recomputes from its own word list
@@ -167,7 +167,8 @@ function requireBuild(): void {
   if (missing.length > 0) {
     abort(
       `${missing.join(" and ")} ${missing.length === 1 ? "is" : "are"} missing.\n` +
-        `  data/ is a build output, not a committed source. Run:\n\n` +
+        `  data/ is produced by the build. Both build inputs are vendored, so\n` +
+        `  this needs no network and no configuration. Run:\n\n` +
         `      npm run build`,
     );
   }
@@ -235,8 +236,8 @@ const AUDIO_EXTENSION = /\.(?:mp3|m4a|mp4|ogg|opus|wav|aac|flac|webm)(?:[?#].*)?
 
 /**
  * A string that would send a consumer to fetch a clip. Any absolute URL with a
- * media extension counts, as does anything on an audio host — a pending record
- * has no business emitting either.
+ * media extension counts, as does anything on an audio host. No record in this
+ * release has any business emitting either, whatever its status.
  */
 function looksLikeAudioUrl(value: string): boolean {
   if (!/^https?:\/\//i.test(value)) return false;
@@ -408,64 +409,112 @@ function checkBandCounts(canon: readonly Record<string, unknown>[]): void {
 }
 
 /* -------------------------------------------------------------------------- */
-/* C3 — no audio URL while pending                                             */
+/* C3 — no audio URLs anywhere in this release                                 */
 /* -------------------------------------------------------------------------- */
 
-function checkPendingAudio(
+/**
+ * Audio statuses the canon is allowed to carry. This list is not decoration:
+ * an earlier version of C3 short-circuited on `status !== "pending"`, and when
+ * the canon was enriched and the statuses were renamed, the check silently
+ * inspected nothing and still reported PASS. Losing a check without losing the
+ * green tick is worse than a failure. So the status vocabulary is now pinned —
+ * rename one and this check goes red, forcing a conscious update here.
+ */
+const KNOWN_AUDIO_STATUSES: ReadonlySet<string> = new Set([
+  "available-unhosted",
+  "none",
+  "unknown",
+  "pending",
+]);
+
+/**
+ * The invariant is unconditional and does not consult any status: NOTHING in
+ * this release may hand a consumer an audio URL, and nothing may claim to be
+ * hosted. A URL for a clip that is not served is a 404 inside somebody else's
+ * flashcard review.
+ */
+function checkNoAudioUrls(
   canon: readonly Record<string, unknown>[],
   packs: readonly LoadedPack[],
 ): void {
-  const check = "C3 pending audio";
-  const violations: string[] = [];
-  const missingStatus: string[] = [];
-  let pendingRecords = 0;
+  const check = "C3 no audio URLs";
+  const urlViolations: string[] = [];
+  const hostedViolations: string[] = [];
+  const statusProblems: string[] = [];
+  const statusCounts = new Map<string, number>();
 
   for (const [index, row] of canon.entries()) {
     const id = getString(row, "id") ?? `row ${String(index)}`;
+
+    /* Unconditional: the whole record, every field, no status gate. */
+    findAudioUrls(row, id, urlViolations);
+
     const audio = getRecord(row, "audio");
     if (audio === null) {
-      missingStatus.push(`${id}: no "audio" object`);
+      statusProblems.push(`${id}: no "audio" object`);
       continue;
     }
     const status = getString(audio, "status");
     if (status === null || status.length === 0) {
-      missingStatus.push(`${id}: audio.status is missing`);
-      continue;
-    }
-    if (status !== "pending") continue;
-    pendingRecords += 1;
-
-    for (const voice of ["female", "male"] as const) {
-      const value = audio[voice];
-      if (value !== null && value !== undefined) {
-        violations.push(`${id}: audio.${voice} is ${JSON.stringify(value)} while status "pending"`);
+      statusProblems.push(`${id}: audio.status is missing`);
+    } else {
+      statusCounts.set(status, (statusCounts.get(status) ?? 0) + 1);
+      if (!KNOWN_AUDIO_STATUSES.has(status)) {
+        statusProblems.push(
+          `${id}: unrecognised audio.status "${status}" — add it to KNOWN_AUDIO_STATUSES ` +
+            `in evals/contract.ts and confirm C3 still means what it says`,
+        );
       }
     }
-    const found: string[] = [];
-    findAudioUrls(row, id, found);
-    for (const hit of found) {
-      violations.push(`${hit} — emitted while audio.status is "pending"`);
+
+    /* No clip is served in this release, so nothing may claim to be hosted. */
+    for (const voice of ["female", "male"] as const) {
+      const entry = audio[voice];
+      if (isRecord(entry)) {
+        if (entry["hosted"] === true) {
+          hostedViolations.push(`${id}: audio.${voice}.hosted is true, but no audio is hosted yet`);
+        }
+      } else if (typeof entry === "string" && entry.length > 0) {
+        hostedViolations.push(
+          `${id}: audio.${voice} is the bare string ${JSON.stringify(entry)}; ` +
+            `an availability object is expected, never a location`,
+        );
+      }
     }
   }
 
   for (const pack of packs) {
+    findAudioUrls(pack.body, pack.file, urlViolations);
+
     const completeness = getRecord(pack.body, "audioCompleteness");
-    const status = completeness === null ? null : getString(completeness, "status");
-    if (status !== "pending") continue;
-    const found: string[] = [];
-    findAudioUrls(pack.body, pack.file, found);
-    for (const hit of found) {
-      violations.push(`${hit} — emitted while the pack's audio status is "pending"`);
+    if (completeness === null) {
+      statusProblems.push(`${pack.file}: no "audioCompleteness" object`);
+      continue;
+    }
+    const status = getString(completeness, "status");
+    if (status === null || status.length === 0) {
+      statusProblems.push(`${pack.file}: audioCompleteness.status is missing`);
+    } else if (status !== "pending") {
+      statusProblems.push(
+        `${pack.file}: audioCompleteness.status is "${status}"; no audio is hosted in this ` +
+          `release, so every pack must still report "pending"`,
+      );
     }
   }
 
-  failMany(check, "audio URLs emitted by records whose status is \"pending\"", violations);
-  failMany(check, "records with no readable audio status", missingStatus);
+  failMany(check, "audio URLs emitted by the dataset", urlViolations);
+  failMany(check, "records claiming hosted audio", hostedViolations);
+  failMany(check, "audio status problems", statusProblems);
 
-  if (violations.length === 0 && missingStatus.length === 0) {
+  if (urlViolations.length === 0 && hostedViolations.length === 0 && statusProblems.length === 0) {
+    const summary = [...statusCounts]
+      .sort((a, b) => b[1] - a[1])
+      .map(([status, count]) => `${status} ${String(count)}`)
+      .join(", ");
     pass(
       check,
-      `${String(pendingRecords)} of ${String(canon.length)} records pending, none emits a URL`,
+      `0 URLs and 0 hosted claims across ${String(canon.length)} records ` +
+        `and ${String(packs.length)} packs (statuses: ${summary})`,
     );
   }
 }
@@ -577,7 +626,19 @@ function checkPacks(packs: readonly LoadedPack[], bandOf: ReadonlyMap<string, nu
       if (bandClosure === null) {
         closureProblems.push(`${slug}: claims level band ${String(claimedBand)} but has no bandClosure`);
       } else {
-        if (bandClosure["closed"] !== true) {
+        /*
+         * The schema grew a `claim` discriminator ("band-closed" | "spans-bands"),
+         * under which `closed` is null for a pack that does not claim closure.
+         * A pack that names a level is claiming closure at it either way, so the
+         * requirement is unchanged: say "band-closed", and be closed.
+         */
+        const claim = getString(bandClosure, "claim");
+        if (claim !== null && claim !== "band-closed") {
+          closureProblems.push(
+            `${slug}: level.band is ${String(claimedBand)}, so bandClosure.claim must be ` +
+              `"band-closed"; it is "${claim}". A pack that names a level may not span bands.`,
+          );
+        } else if (bandClosure["closed"] !== true) {
           closureProblems.push(
             `${slug}: claims level band ${String(claimedBand)} but bandClosure.closed is ` +
               `${JSON.stringify(bandClosure["closed"])}`,
@@ -731,7 +792,7 @@ function main(): void {
   const bandOf = checkCanonIds(canon);
   checkIdNamespace(canon, packs);
   checkBandCounts(canon);
-  checkPendingAudio(canon, packs);
+  checkNoAudioUrls(canon, packs);
   const facts = checkPacks(packs, bandOf);
   checkCatalogue(facts);
 

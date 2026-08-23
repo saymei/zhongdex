@@ -2,40 +2,99 @@ Zhongdex
 Copyright (c) 2026 SayMei
 
 This product includes code licensed under the MIT License (see LICENSE) and
-data licensed under CC BY-SA 4.0 (see data/LICENSE).
+data licensed under CC BY-SA 4.0 (see data/LICENSE). One further file falls
+under neither document: scripts/cedict.json is a verbatim CC BY-SA 4.0
+dictionary dump that happens to sit beside the code. Its terms are stated in
+§1a below.
 
 The data is a derivative work. The upstream sources below are the reason it is
 CC BY-SA 4.0, and this file is the attribution their licences require. If you
 redistribute Zhongdex data in any form — a file, a fork, a deck, a dictionary
 pack, an API response — you must carry these credits with it.
 
+Sections are marked IN THIS BUILD or NOT IN THIS BUILD. A source is credited as
+used only when the build actually reads it. Crediting a source that contributed
+nothing would misstate where the data came from, which is the same failure as
+omitting one that did.
+
+v0.1 reads exactly two inputs, both vendored in this repository: the pinned
+HSK 3.0 (2026) word list (scripts/hsk30.csv) and a CC-CEDICT dump
+(scripts/cedict.json, redistributed verbatim — see §1a). Per-record
+`sourceIds` and per-gloss `source` / `license` fields name the origin of every
+string, so provenance is checkable in the data itself and not only here.
+
 ================================================================================
-1. CC-CEDICT
+1. CC-CEDICT  —  IN THIS BUILD
 ================================================================================
 
   Source        CC-CEDICT, the Chinese-English dictionary maintained at MDBG
   Home          https://www.mdbg.net/chinese/dictionary?page=cc-cedict
   Licence       Creative Commons Attribution-ShareAlike 4.0 International
                 https://creativecommons.org/licenses/by-sa/4.0/
+
+  CC-CEDICT appears in this repository in TWO distinct ways. CC BY-SA 4.0 is
+  satisfied for both, but they are different acts of redistribution and the
+  licence's "indicate if changes were made" clause resolves differently for
+  each, so they are stated separately.
+
+  ------------------------------------------------------------------------
+  1a. VERBATIM REDISTRIBUTION  —  scripts/cedict.json
+  ------------------------------------------------------------------------
+
+  scripts/cedict.json is an UNMODIFIED, byte-identical copy of a CC-CEDICT
+  dump, vendored so the build is reproducible without a network fetch. No
+  entry is added, removed, reordered or rewritten. Its SHA-256 is recorded on
+  every build in data/canon-stats.json and can be compared against upstream.
+
+  Because it is unmodified, the attribution for THIS file states no changes:
+
+    This file is CC-CEDICT, made available by MDBG under the Creative Commons
+    Attribution-ShareAlike 4.0 International licence
+    (https://creativecommons.org/licenses/by-sa/4.0/).
+    Redistributed verbatim; no changes were made.
+
+  Note on scope: data/LICENSE governs the contents of data/. The vendored dump
+  lives under scripts/, outside that directory, and is covered by this section
+  instead. It is CC BY-SA 4.0 either way — the distinction is which document
+  states its terms, not whether it has any. It is NOT covered by the MIT
+  licence in ../LICENSE, which applies to the code in scripts/ and src/ but
+  not to a dictionary that merely happens to sit in the same folder.
+
+  ------------------------------------------------------------------------
+  1b. DERIVED USE  —  the word canon in data/
+  ------------------------------------------------------------------------
+
   Used for      Headwords, simplified/traditional pairing, numbered pinyin,
                 English glosses, part-of-speech and register tags, and the
                 measure-word (CL:) annotations.
 
-  Required attribution, reproduce verbatim:
+  This IS modified, so the attribution for the canon must say so:
 
     This work uses data from CC-CEDICT, made available by MDBG under the
     Creative Commons Attribution-ShareAlike 4.0 International licence
     (https://creativecommons.org/licenses/by-sa/4.0/).
-    Changes were made: entries were merged with other sources, re-keyed to
-    Zhongdex ids, re-banded against HSK 3.0 (2026), and reformatted.
+    Changes were made: entries were selected against the HSK 3.0 (2026) word
+    list, merged with the band and frequency columns, re-keyed to Zhongdex
+    ids, and reformatted.
+
+  Each gloss in the canon additionally carries its own `source`, `sourceKey`
+  and `license` fields, so the provenance of an individual string survives any
+  transformation you apply downstream.
+
+  ------------------------------------------------------------------------
 
   CC-CEDICT's own terms additionally ask that you state the licence and link
   back to the CC-CEDICT home page above. Both are satisfied by reproducing
-  this section.
+  this section, in either case.
 
 ================================================================================
-2. Wiktionary
+2. Wiktionary  —  NOT IN THIS BUILD
 ================================================================================
+
+  Status        NOT bundled in v0.1. No gloss in the current canon comes from
+                Wiktionary; every one is tagged `source: "cc-cedict"`. This
+                section is written and ready, and goes live in the same commit
+                that adds the first Wiktionary-sourced sense.
 
   Source        English Wiktionary (Wikimedia Foundation) sense data
   Home          https://en.wiktionary.org/
@@ -43,10 +102,10 @@ pack, an API response — you must carry these credits with it.
                 (Wiktionary text is dual-licensed CC BY-SA 4.0 / GFDL;
                 Zhongdex relies on the CC BY-SA 4.0 grant only)
                 https://creativecommons.org/licenses/by-sa/4.0/
-  Used for      Supplementary senses, part-of-speech refinement, and usage
-                notes where CC-CEDICT is thin.
+  Will be used for   Supplementary senses, part-of-speech refinement, and
+                     usage notes where CC-CEDICT is thin.
 
-  Required attribution, reproduce verbatim:
+  Required attribution once it ships, reproduce verbatim:
 
     This work includes material from English Wiktionary
     (https://en.wiktionary.org/), by Wiktionary contributors, licensed
@@ -59,17 +118,21 @@ pack, an API response — you must carry these credits with it.
   satisfied by the link to the source page history.
 
 ================================================================================
-3. Tatoeba
+3. Tatoeba  —  NOT IN THIS BUILD
 ================================================================================
+
+  Status        NOT bundled in v0.1. The canon is words only; there are no
+                sentence records yet, so no Tatoeba row ships. This section
+                goes live in the same commit that adds the first one.
 
   Source        Tatoeba Project sentence corpus
   Home          https://tatoeba.org/
   Licence       Creative Commons Attribution 2.0 France (CC BY 2.0 FR)
                 https://creativecommons.org/licenses/by/2.0/fr/
-  Used for      A subset of the example sentences, where a sentence record
-                carries source.corpus == "tatoeba".
+  Will be used for   A subset of the example sentences, where a sentence
+                     record carries source.corpus == "tatoeba".
 
-  Required attribution, reproduce verbatim:
+  Required attribution once it ships, reproduce verbatim:
 
     Example sentences marked source.corpus "tatoeba" are from the Tatoeba
     Project (https://tatoeba.org/), by Tatoeba contributors, licensed
@@ -83,18 +146,34 @@ pack, an API response — you must carry these credits with it.
   BY-SA, so keep it labelled.
 
 ================================================================================
-4. complete-hsk-vocabulary
+4. HSK 3.0 (2026) word list  —  IN THIS BUILD
 ================================================================================
 
-  Source        drkameleon/complete-hsk-vocabulary
-  Home          https://github.com/drkameleon/complete-hsk-vocabulary
-  Licence       MIT
-  Used for      The HSK 3.0 (2026) band assignment, levels 1-7, pinned to a
-                specific upstream commit. Vendored at scripts/hsk30.csv.
+  Source        Vendored at scripts/hsk30.csv.
+  Licence       UNRESOLVED — see the open item below.
+  Used for      The HSK 3.0 (2026) band assignment, and the traditional forms,
+                pinyin and part-of-speech tags that come with it. Every canon
+                record carries the upstream row id (hsk.listId, e.g. L1-0427)
+                and a `hsk30:<row id>` entry in sourceIds, so any band
+                assignment traces back to its exact upstream line.
+  Integrity     data/canon-stats.json records the SHA-256 of the vendored file
+                on every build, so a change to it is visible in the diff.
 
-  MIT requires that its copyright notice and permission notice travel with
-  substantial portions of the work. The vendored file retains its upstream
-  header; the pinned commit is recorded in the build metadata.
+  OPEN ITEM, and this file will not claim otherwise. The vendored CSV carries
+  no upstream header, no licence text and no commit reference, so this
+  repository cannot currently name its provenance with confidence. The program
+  plan's intent is to pin `drkameleon/complete-hsk-vocabulary`
+  (https://github.com/drkameleon/complete-hsk-vocabulary, MIT) at a specific
+  commit; that pinning has not been done, and the vendored file's header does
+  not match that project's published format.
+
+  Until it is pinned:
+    * do not assert an upstream or a licence for this file that has not been
+      verified, here or anywhere else;
+    * if it is MIT, MIT's copyright and permission notice must travel with it,
+      and that notice must be added to this section and to the file itself;
+    * whoever pins it records the source URL and commit SHA in this section in
+      the same commit.
 
   Note on counts: this repository's pinned snapshot contains 11,092 rows split
   500 / 772 / 973 / 1,000 / 1,071 / 1,140 / 5,636 across levels 1-6 and the
@@ -103,7 +182,7 @@ pack, an API response — you must carry these credits with it.
   a silent upstream change fails CI rather than shipping.
 
 ================================================================================
-5. Unicode / Unihan
+5. Unicode / Unihan  —  NOT IN THIS BUILD
 ================================================================================
 
   Status        NOT bundled in v0.1.
@@ -123,7 +202,7 @@ pack, an API response — you must carry these credits with it.
   notice here in the same commit.
 
 ================================================================================
-6. Audio
+6. Audio  —  NOT PUBLISHED
 ================================================================================
 
   Status        NOT published in v0.1. Every audio field in every record
