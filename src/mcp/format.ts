@@ -136,6 +136,7 @@ export function renderWord(
     facts.push(bandLine(word));
     if (word.freq !== null) facts.push(`freq ${word.freq}`);
     if (options.rung < 2) {
+        if (word.measureWords.length > 0) facts.push(`CL ${word.measureWords.join('/')}`);
         if (word.zipf !== null) facts.push(`zipf ${word.zipf}`);
         if (options.script === 'simplified' && word.traditional !== word.simplified) {
             facts.push(`trad ${word.traditional}`);
@@ -221,13 +222,15 @@ export function fitToBudget(
         const body = render(rung, count);
         if (estimateTokens(body) <= budget) return body;
     }
-    // Still over at the leanest rung: drop records and say so.
+    // Still over at the leanest rung: drop records and say so. The truncation
+    // notice is never itself dropped, so reserve room for it before searching.
+    const reserve = estimateTokens(onTruncate(count, count));
     let lo = 1;
     let hi = count;
     let best = 1;
     while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
-        if (estimateTokens(render(4, mid)) <= budget) {
+        if (estimateTokens(render(4, mid)) + reserve <= budget) {
             best = mid;
             lo = mid + 1;
         } else {

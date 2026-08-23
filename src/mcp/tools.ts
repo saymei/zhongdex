@@ -51,12 +51,13 @@ import {
     e7BadEnum,
     e8UnknownParameter,
     e9Empty,
+    matchCount,
     nearest,
+    rankRelaxations,
     ToolError,
     type Relaxation,
 } from './errors.js';
 import {
-    audioStatus,
     decodeCursor,
     encodeCursor,
     envelopeFooter,
@@ -459,6 +460,16 @@ const HAN = /\p{Script=Han}/u;
 const ALL_HAN = /^\p{Script=Han}+$/u;
 const PINYIN_ISH = /^[a-zü:'\s0-9]+$/i;
 
+/** The numbered pinyin of some headword, ignoring tones. Distinguishes E5 from E1. */
+function tonelessMatch(corpus: Corpus, term: string): string | null {
+    const stripped = numberedKey(term).replace(/[1-5]/g, '');
+    if (stripped.length === 0) return null;
+    for (const [key, bucket] of corpus.byNumbered) {
+        if (key.replace(/[1-5]/g, '') === stripped) return bucket[0]?.pinyinNumbered ?? null;
+    }
+    return null;
+}
+
 interface LookupHit {
     word: WordRecord;
     note: string | null;
@@ -507,6 +518,7 @@ function resolveTerm(
         // E2: real hanzi, not a headword. Segment greedily against the index.
         const segments: { hanzi: string; id: string }[] = [];
         const unknown: string[] = [];
+        let run = '';
         let i = 0;
         const chars = [...term];
         while (i < chars.length) {
@@ -515,38 +527,31 @@ function resolveTerm(
                 const candidate = chars.slice(i, i + len).join('');
                 const found = corpus.bySimplified.get(candidate)?.[0];
                 if (found !== undefined) {
-                    segments.push({ hanzi: candidate, id: found.id });
+                    if (run !== '') {
+                        unknown.push(run);
+                        run = '';
+                    }
+                    if (!segments.some((seg) => seg.hanzi === candidate)) {
+                        segments.push({ hanzi: candidate, id: found.id });
+                    }
                     i += len;
                     matched = true;
                     break;
                 }
             }
             if (!matched) {
-                const last = unknown[unknown.length - 1];
-                const prevWasUnknown =
-                    last !== undefined && segments.length > 0 === false ? false : false;
-                void prevWasUnknown;
-                unknown.push(chars[i] ?? '');
+                run += chars[i] ?? '';
                 i += 1;
             }
         }
+        if (run !== '') unknown.push(run);
         throw new ToolError(e2NotAHeadword(term, segments, unknown));
     }
 
+    // Pinyin, but only if it carries a tone digit or spells a real headword's
+    // syllables. Without that test "zzzz" reads as broken pinyin instead of as
+    // the English word it probably is, and E1 never fires.
     if (PINYIN_ISH.test(term) && /[a-z]/i.test(term)) {
-        const syllables = term.toLowerCase().match(/[a-zü:]+[1-5]?/g) ?? [];
-        const toneless = syllables.find((s) => !/[1-5]$/.test(s));
-        if (toneless !== undefined) {
-            const stripped = numberedKey(term).replace(/[1-5]/g, '');
-            let suggestion: string | null = null;
-            for (const [key, bucket] of corpus.byNumbered) {
-                if (key.replace(/[1-5]/g, '') === stripped) {
-                    suggestion = bucket[0]?.pinyinNumbered ?? null;
-                    break;
-                }
-            }
-            throw new ToolError(e5BadPinyin(term, toneless, suggestion));
-        }
         const hits = corpus.byNumbered.get(numberedKey(term));
         if (hits !== undefined && hits.length > 0) {
             const note =
@@ -554,6 +559,14 @@ function resolveTerm(
                     ? `${term} matches ${hits.length} headwords; all are returned below.`
                     : null;
             return { hits, note };
+        }
+        const syllables = term.toLowerCase().match(/[a-zü:]+[1-5]?/g) ?? [];
+        const toneless = syllables.find((s) => !/[1-5]$/.test(s));
+        if (toneless !== undefined) {
+            const suggestion = tonelessMatch(corpus, term);
+            if (/[1-5]/.test(term) || suggestion !== null) {
+                throw new ToolError(e5BadPinyin(term, toneless, suggestion));
+            }
         }
     }
 
@@ -616,6 +629,7 @@ function runLookup(corpus: Corpus, tool: ToolDefinition, args: Args): ToolResult
             pinyin_numbered: word.pinyinNumbered,
             pos: word.pos,
             gloss: word.gloss,
+            measure_words: word.measureWords,
             hsk: { hsk2026: word.hsk2026, hsk2021: word.hsk2021, hsk2_0: word.hsk2 },
             freq: word.freq,
             packs: word.packs,
@@ -679,17 +693,40 @@ interface WordFilter {
     describe: string;
 }
 
+const alnum = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/** Is `needle` a subsequence of `hay`? `hsk7` matches `hsk-2026-t7`, which plain edit distance does not. */
+function isSubsequence(needle: string, hay: string): boolean {
+    let i = 0;
+    for (const ch of hay) {
+        if (ch === needle[i]) i++;
+        if (i === needle.length) return true;
+    }
+    return needle.length === 0;
+}
+
 function packOrThrow(corpus: Corpus, slug: string, param: 'pack' | 'topic'): PackRecord {
     const pack = corpus.packsBySlug.get(slug);
     if (pack !== undefined) return pack;
-    const candidates = corpus.packs
-        .filter((p) => (param === 'topic' ? p.kind === 'theme' : true))
-        .map((p) => p.slug);
-    const near = nearest(slug, candidates, 4);
-    const shown = corpus.packs
-        .filter((p) => p.slug === near)
-        .map((p) => ({ slug: p.slug, size: p.size }));
-    throw new ToolError(e17UnknownPack(slug, shown, candidates.length));
+    const pool = corpus.packs.filter((p) => (param === 'topic' ? p.kind === 'theme' : true));
+    if (pool.length === 0 && param === 'topic') {
+        throw new ToolError(
+            `No topic "${slug}": release ${corpus.version} ships no topic packs yet. ` +
+                'Next: call mandarin_packs() and pass one of its ids as pack, e.g. mandarin_find_words({pack:"hsk-2026-t1"}).'
+        );
+    }
+    const needle = alnum(slug);
+    const scored = pool
+        .map((p) => ({
+            pack: p,
+            sub: isSubsequence(needle, alnum(p.slug)),
+            near: nearest(slug, [p.slug], 4) !== null,
+        }))
+        .filter((c) => c.sub || c.near)
+        .sort((a, b) => (a.sub ? 0 : 1) - (b.sub ? 0 : 1) || a.pack.slug.length - b.pack.slug.length)
+        .slice(0, 2)
+        .map((c) => ({ slug: c.pack.slug, size: c.pack.size }));
+    throw new ToolError(e17UnknownPack(slug, scored, pool.length));
 }
 
 function buildWordFilters(corpus: Corpus, args: Args): { filters: WordFilter[]; base: Args } {
@@ -825,21 +862,23 @@ function relaxationsFor(
     filters: readonly WordFilter[],
     base: Args
 ): Relaxation[] {
-    const out: Relaxation[] = [];
+    const out: (Relaxation & { count: number; widened: boolean })[] = [];
     for (let i = 0; i < filters.length; i++) {
         const dropped = filters[i];
         if (dropped === undefined) continue;
         const kept = filters.filter((_, j) => j !== i);
+        const widened = Object.keys(dropped.relaxed).length > 0;
         const relaxedArgs: Args = { ...base, ...dropped.relaxed };
-        if (Object.keys(dropped.relaxed).length === 0) delete relaxedArgs[dropped.key];
+        if (!widened) delete relaxedArgs[dropped.key];
         const count = applyFilters(words, kept).length;
         out.push({
-            describe: `${dropped.describe} gives ${count.toLocaleString('en-US')} matches`,
+            describe: `${dropped.describe} ${matchCount(count)}`,
             nextCall: count > 0 ? renderCall(tool, relaxedArgs) : null,
+            count,
+            widened,
         });
     }
-    out.sort((a, b) => (a.nextCall === null ? 1 : 0) - (b.nextCall === null ? 1 : 0));
-    return out;
+    return rankRelaxations(out);
 }
 
 function runFindWords(corpus: Corpus, tool: ToolDefinition, args: Args): ToolResult {
@@ -1052,13 +1091,17 @@ function runFindSentences(corpus: Corpus, tool: ToolDefinition, args: Args): Too
 
     const matched = test(filters);
     if (matched.length === 0) {
-        const relaxations: Relaxation[] = [];
+        const relaxations: (Relaxation & { count: number; widened: boolean })[] = [];
         for (let i = 0; i < filters.length; i++) {
             const dropped = filters[i];
             if (dropped === undefined) continue;
-            const kept = filters.filter((_, j) => j !== i);
+            // max_new_words is only defined relative to hsk, so dropping hsk drops both.
+            const kept = filters.filter(
+                (f, j) => j !== i && !(dropped.key === 'hsk' && f.key === 'max_new_words')
+            );
             let n: number;
             const relaxedArgs: Args = { ...base, ...dropped.relaxed };
+            if (dropped.key === 'hsk') delete relaxedArgs['max_new_words'];
             if (Object.keys(dropped.relaxed).length === 0) {
                 delete relaxedArgs[dropped.key];
                 n = test(kept).length;
@@ -1073,12 +1116,15 @@ function runFindSentences(corpus: Corpus, tool: ToolDefinition, args: Args): Too
                 n = test(kept).length;
             }
             relaxations.push({
-                describe: `${dropped.describe} gives ${n.toLocaleString('en-US')} matches`,
+                describe: `${dropped.describe} ${matchCount(n)}`,
                 nextCall: n > 0 ? renderCall('mandarin_find_sentences', relaxedArgs) : null,
+                count: n,
+                widened: Object.keys(dropped.relaxed).length > 0,
             });
         }
-        relaxations.sort((a, b) => (a.nextCall === null ? 1 : 0) - (b.nextCall === null ? 1 : 0));
-        throw new ToolError(e9Empty('sentences', filters.map((f) => f.label), relaxations));
+        throw new ToolError(
+            e9Empty('sentences', filters.map((f) => f.label), rankRelaxations(relaxations))
+        );
     }
 
     let start = 0;
@@ -1143,12 +1189,12 @@ function runAudio(corpus: Corpus, tool: ToolDefinition, args: Args): ToolResult 
         // the answer is "no clip is served by this release", for every string.
         const lines = items.map((t) => `${t} · pending`);
         const head =
-            `No audio is hosted in release ${corpus.version}: the clip release has not shipped, so every string below is "pending", ` +
-            'not "missing" and not a URL. Nothing was synthesised and nothing was billed. ' +
+            `No audio is hosted in release ${corpus.version}: the clip release has not shipped, so every string below is "pending" ` +
+            `for voice "${voice}" — not "missing", and not a URL. Nothing was synthesised and nothing was billed. ` +
             (checkOnly
                 ? 'Treat check_only as "unknown" for now and keep your own TTS path.'
                 : 'Use your own TTS for now; mandarin_lookup and mandarin_build_deck omit audio fields rather than emit a dead link.');
-        return text([head, lines.join('\n'), `voice ${voice}`, envelopeFooter(corpus)].join('\n\n'));
+        return text([head, lines.join('\n'), envelopeFooter(corpus)].join('\n\n'));
     }
 
     throw new ToolError('Audio index present but unreadable; report this as a build bug.');
@@ -1301,7 +1347,7 @@ function runBuildDeck(corpus: Corpus, tool: ToolDefinition, args: Args): ToolRes
                     row[label] = word.pos.join('/');
                     break;
                 case 'measure_words':
-                    row[label] = '';
+                    row[label] = word.measureWords.join(', ');
                     break;
                 case 'hsk':
                     row[label] = word.hsk2026 === null ? '' : `t${word.hsk2026}`;
@@ -1431,21 +1477,21 @@ function runPacks(corpus: Corpus, tool: ToolDefinition, args: Args): ToolResult 
         if (kind !== null) {
             const n = corpus.packs.filter((p) => (level === null || p.level === level) && (q === null || p.slug.includes(q))).length;
             relaxations.push({
-                describe: `dropping kind ${kind} gives ${n} packs`,
+                describe: `dropping kind ${kind} gives ${n} pack${n === 1 ? '' : 's'}`,
                 nextCall: n > 0 ? renderCall('mandarin_packs', { level, q, limit }) : null,
             });
         }
         if (level !== null) {
             const n = corpus.packs.filter((p) => (kind === null || p.kind === kind)).length;
             relaxations.push({
-                describe: `dropping level ${level} gives ${n} packs`,
+                describe: `dropping level ${level} gives ${n} pack${n === 1 ? '' : 's'}`,
                 nextCall: n > 0 ? renderCall('mandarin_packs', { kind, q, limit }) : null,
             });
         }
         if (q !== null) {
             const n = corpus.packs.filter((p) => kind === null || p.kind === kind).length;
             relaxations.push({
-                describe: `dropping q "${q}" gives ${n} packs`,
+                describe: `dropping q "${q}" gives ${n} pack${n === 1 ? '' : 's'}`,
                 nextCall: n > 0 ? renderCall('mandarin_packs', { kind, level, limit }) : null,
             });
         }
@@ -1535,5 +1581,3 @@ export function completionValues(corpus: Corpus, name: string, prefix: string): 
                       : [];
     return pool.filter((v) => v.toLowerCase().startsWith(lower));
 }
-
-export { audioStatus };

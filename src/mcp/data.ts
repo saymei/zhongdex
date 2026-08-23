@@ -8,24 +8,33 @@
  *
  *   data/hsk_bands.json            required. `{version, words: WordRow[]}` or a bare WordRow[].
  *   data/packs/<slug>.pack.json    required (>=1). pack-v1, §12.1 of the revision.
+ *   data/sentences.jsonl           optional. One SentenceRow per line.
  *   data/sentences.json            optional. `{version, sentences: SentenceRow[]}` or a bare array.
  *   data/grammar_patterns.json     optional. `{id, hanzi?, gloss?, hsk?}[]` or a bare id[].
  *
- * WordRow field names are read through a small alias list because the build
- * scripts are written by a sibling agent and the exact spelling is not frozen:
+ * The canon rows `src/build/canon.ts` emits look like this, and that is the
+ * shape read first; the alias lists behind each field exist because the two
+ * builders and this server are written separately and the spelling has already
+ * moved once:
  *
+ *   {id, simplified, traditional, pinyin:{marked,numbered}, pos:[],
+ *    hsk:{band2026,band2021,bandRange,listId}, definitions:[{text,source}],
+ *    audio:{female,male,status}}
+ *
+ *   id                id                                 (constructed if absent)
  *   simplified        simplified | Simplified | hanzi | word
  *   traditional       traditional | Traditional | trad
- *   pinyin (marked)   pinyin | Pinyin | pinyin_marked | pinyin.marked
- *   pinyin (numbered) pinyin_numbered | pinyinNumbered | numbered | pinyin.numbered
+ *   pinyin (marked)   pinyin.marked | pinyin_marked | pinyin | Pinyin
+ *   pinyin (numbered) pinyin.numbered | pinyin_numbered | pinyinNumbered | numbered
  *   pos               pos | POS            (string or string[])
- *   band 2026         band2026 | hsk_2026 | hsk2026 | hsk.band2026
- *   band 2021         band2021 | hsk_2021 | hsk2021 | hsk.band2021
- *   HSK 2.0 level     hsk2Level | hsk_2_0 | hsk2 | hsk.hsk2
- *   gloss             gloss | english | en | glosses   (string or string[])
+ *   band 2026         hsk.band2026 | band2026 | hsk_2026 | hsk2026
+ *   band 2021         hsk.band2021 | band2021 | hsk_2021 | hsk2021
+ *   HSK 2.0 level     hsk.band2_0 | hsk2Level | hsk_2_0 | hsk2
+ *   gloss             definitions[].text | gloss | english | en | glosses
  *   frequency rank    freq | frequency_rank | frequencyRank
  *   zipf              zipf | zipfScore
  *   sentence ids      sentences | sentence_ids
+ *   audio             audio.female / audio.male URLs, else status "pending"
  *
  * ── Audio ──────────────────────────────────────────────────────────────────
  * There is no audio hosting in 0.1 and no audio index in the data. Nothing in
@@ -54,6 +63,8 @@ export interface WordRecord {
     pinyinNumbered: string | null;
     pos: string[];
     gloss: string[];
+    /** Classifiers, lifted out of the CC-CEDICT `CL:` annotation in the definitions. */
+    measureWords: string[];
     hsk2026: number | null;
     hsk2021: number | null;
     hsk2: number | null;
@@ -89,6 +100,7 @@ export interface PackRecord {
     /** Word ids, or bare hanzi when the pack file gives no ids. */
     wordRefs: string[];
     query: string | null;
+    corpusVersion: string | null;
 }
 
 export interface GrammarPattern {
@@ -153,8 +165,39 @@ function asNumber(v: unknown): number | null {
     return null;
 }
 
+/**
+ * CC-CEDICT carries classifiers inside the gloss as `CL:個|个[ge4]`. Split them
+ * out so `measure_words` is a real deck field and the gloss reads as English.
+ */
+function splitClassifiers(glosses: readonly string[]): { gloss: string[]; measureWords: string[] } {
+    const gloss: string[] = [];
+    const measureWords: string[] = [];
+    for (const raw of glosses) {
+        const entry = raw.trim();
+        if (entry.startsWith('CL:')) {
+            for (const cl of entry.slice(3).split(',')) {
+                const form = cl.split('[')[0]?.trim();
+                if (form !== undefined && form.length > 0 && !measureWords.includes(form)) {
+                    measureWords.push(form);
+                }
+            }
+            continue;
+        }
+        gloss.push(entry);
+    }
+    return { gloss, measureWords };
+}
+
 function asStringArray(v: unknown): string[] {
-    if (Array.isArray(v)) return v.map(asString).filter((s): s is string => s !== null);
+    if (Array.isArray(v)) {
+        return v
+            .map((entry) =>
+                entry && typeof entry === 'object' && !Array.isArray(entry)
+                    ? asString(pick(entry as Row, 'text', 'gloss', 'en'))
+                    : asString(entry)
+            )
+            .filter((s): s is string => s !== null);
+    }
     const s = asString(v);
     if (s === null) return [];
     return s.includes('/') ? s.split('/').filter(Boolean) : [s];
@@ -196,7 +239,7 @@ function rowsOf(doc: unknown, ...keys: string[]): Row[] {
 
 /* ── loading ─────────────────────────────────────────────────────────────── */
 
-function loadWords(dir: string): { version: string; words: WordRecord[] } {
+function loadWords(dir: string): { version: string | null; words: WordRecord[]; audioHosting: boolean } {
     const path = join(dir, 'hsk_bands.json');
     if (!existsSync(path)) {
         throw new DataMissingError(`${path} is missing.`);
@@ -204,31 +247,42 @@ function loadWords(dir: string): { version: string; words: WordRecord[] } {
     const doc = readJson(path);
     const version =
         (!Array.isArray(doc) && doc && typeof doc === 'object'
-            ? asString(pick(doc as Row, 'version', 'corpus_version'))
-            : null) ?? '0.0.0-dev';
+            ? asString(pick(doc as Row, 'version', 'corpus_version', 'corpusVersion'))
+            : null) ?? null;
 
     const words: WordRecord[] = [];
+    let audioHosting = false;
     for (const row of rowsOf(doc, 'words', 'entries', 'rows')) {
         const simplified = asString(pick(row, 'simplified', 'Simplified', 'hanzi', 'word'));
         if (simplified === null) continue;
         const pinyinNumbered = asString(
-            pick(row, 'pinyin_numbered', 'pinyinNumbered', 'numbered', 'pinyin.numbered')
+            pick(row, 'pinyin.numbered', 'pinyin_numbered', 'pinyinNumbered', 'numbered')
         );
+        const audio = pick(row, 'audio');
+        if (audio && typeof audio === 'object') {
+            if (asString(pick(audio as Row, 'female')) !== null || asString(pick(audio as Row, 'male')) !== null) {
+                audioHosting = true;
+            }
+        }
         words.push({
-            id: `dex:w:${simplified}:${pinyinNumbered === null ? '-' : numberedKey(pinyinNumbered)}`,
+            id:
+                asString(pick(row, 'id')) ??
+                `dex:w:${simplified}:${pinyinNumbered === null ? '-' : numberedKey(pinyinNumbered)}`,
             simplified,
             traditional:
                 asString(pick(row, 'traditional', 'Traditional', 'trad')) ?? simplified,
             pinyin:
-                asString(pick(row, 'pinyin', 'Pinyin', 'pinyin_marked', 'pinyin.marked')) ??
+                asString(pick(row, 'pinyin.marked', 'pinyin_marked', 'pinyin', 'Pinyin')) ??
                 pinyinNumbered ??
                 '',
             pinyinNumbered,
             pos: asStringArray(pick(row, 'pos', 'POS')),
-            gloss: asStringArray(pick(row, 'gloss', 'english', 'en', 'glosses')),
-            hsk2026: asNumber(pick(row, 'band2026', 'hsk_2026', 'hsk2026', 'hsk.band2026')),
-            hsk2021: asNumber(pick(row, 'band2021', 'hsk_2021', 'hsk2021', 'hsk.band2021')),
-            hsk2: asNumber(pick(row, 'hsk2Level', 'hsk_2_0', 'hsk2', 'hsk.hsk2')),
+            ...splitClassifiers(
+                asStringArray(pick(row, 'definitions', 'gloss', 'english', 'en', 'glosses'))
+            ),
+            hsk2026: asNumber(pick(row, 'hsk.band2026', 'band2026', 'hsk_2026', 'hsk2026')),
+            hsk2021: asNumber(pick(row, 'hsk.band2021', 'band2021', 'hsk_2021', 'hsk2021')),
+            hsk2: asNumber(pick(row, 'hsk.band2_0', 'hsk2Level', 'hsk_2_0', 'hsk2')),
             freq: asNumber(pick(row, 'freq', 'frequency_rank', 'frequencyRank')),
             zipf: asNumber(pick(row, 'zipf', 'zipfScore')),
             sentenceIds: asStringArray(pick(row, 'sentences', 'sentence_ids')),
@@ -238,14 +292,34 @@ function loadWords(dir: string): { version: string; words: WordRecord[] } {
     if (words.length === 0) {
         throw new DataMissingError(`${path} contains no word rows.`);
     }
-    return { version, words };
+    return { version, words, audioHosting };
+}
+
+/** `sentences.jsonl` (one row per line) is read first; `sentences.json` is the fallback. */
+function sentenceRows(dir: string): Row[] {
+    const jsonl = join(dir, 'sentences.jsonl');
+    if (existsSync(jsonl)) {
+        const rows: Row[] = [];
+        for (const line of readFileSync(jsonl, 'utf8').split('\n')) {
+            const trimmed = line.trim();
+            if (trimmed.length === 0) continue;
+            let parsed: unknown;
+            try {
+                parsed = JSON.parse(trimmed);
+            } catch {
+                continue;
+            }
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) rows.push(parsed as Row);
+        }
+        return rows;
+    }
+    const path = join(dir, 'sentences.json');
+    return existsSync(path) ? rowsOf(readJson(path), 'sentences', 'rows') : [];
 }
 
 function loadSentences(dir: string): SentenceRecord[] {
-    const path = join(dir, 'sentences.json');
-    if (!existsSync(path)) return [];
     const out: SentenceRecord[] = [];
-    for (const row of rowsOf(readJson(path), 'sentences', 'rows')) {
+    for (const row of sentenceRows(dir)) {
         const hanzi = asString(pick(row, 'hanzi', 'chinese', 'text', 'simplified'));
         if (hanzi === null) continue;
         const id = asString(pick(row, 'id', 'sentence_id')) ?? `dex:s:${out.length}`;
@@ -263,12 +337,36 @@ function loadSentences(dir: string): SentenceRecord[] {
     return out;
 }
 
+/**
+ * `mandarin_packs({kind})` is an enum of six, so anything the builder invents
+ * has to land inside it. `pos` packs (adjectives, measure words, …) are
+ * form-based; everything unrecognised is a theme.
+ */
+const KINDS = ['band', 'frequency', 'theme', 'form', 'grammar', 'media'] as const;
+const KIND_ALIASES: Record<string, (typeof KINDS)[number]> = {
+    pos: 'form',
+    radical: 'form',
+    freq: 'frequency',
+    topic: 'theme',
+    song: 'media',
+    sentence: 'media',
+};
+
+function normaliseKind(raw: string | null): string {
+    if (raw === null) return 'theme';
+    if ((KINDS as readonly string[]).includes(raw)) return raw;
+    return KIND_ALIASES[raw] ?? 'theme';
+}
+
 function loadPacks(dir: string): PackRecord[] {
     const packDir = join(dir, 'packs');
     if (!existsSync(packDir)) {
         throw new DataMissingError(`${packDir} is missing.`);
     }
-    const files = readdirSync(packDir).filter((f) => f.endsWith('.json')).sort();
+    // index.json is the catalogue manifest, not a pack.
+    const files = readdirSync(packDir)
+        .filter((f) => f.endsWith('.json') && f !== 'index.json')
+        .sort();
     if (files.length === 0) {
         throw new DataMissingError(`${packDir} contains no pack files.`);
     }
@@ -279,7 +377,7 @@ function loadPacks(dir: string): PackRecord[] {
         const row = doc as Row;
         const slug = asString(pick(row, 'slug', 'id')) ?? file.replace(/\.(pack\.)?json$/, '');
         const level = pick(row, 'level');
-        const closure = pick(row, 'band_closure');
+        const closure = pick(row, 'bandClosure', 'band_closure');
         const selection = pick(row, 'selection');
         const wordRefs: string[] = [];
         const wordRows = pick(row, 'words', 'items');
@@ -292,20 +390,24 @@ function loadPacks(dir: string): PackRecord[] {
                 }
             }
         }
+        if (wordRefs.length === 0) continue;
         packs.push({
             id: asString(pick(row, 'id')) ?? `dex:p:${slug}`,
             slug,
-            kind: asString(pick(row, 'kind')) ?? 'theme',
+            kind: normaliseKind(asString(pick(row, 'kind'))),
             title: asString(pick(row, 'title')) ?? slug,
             oneLiner: asString(pick(row, 'one_liner', 'oneLiner', 'description')) ?? '',
             size: asNumber(pick(row, 'size')) ?? wordRefs.length,
             level:
                 level && typeof level === 'object' ? asNumber(pick(level as Row, 'band')) : asNumber(level),
             closedAt:
-                closure && typeof closure === 'object' ? asNumber(pick(closure as Row, 'closed_at')) : null,
+                closure && typeof closure === 'object'
+                    ? asNumber(pick(closure as Row, 'closed_at', 'claimedMaxBand', 'observedMaxBand'))
+                    : null,
             wordRefs,
             query:
                 selection && typeof selection === 'object' ? asString(pick(selection as Row, 'query')) : null,
+            corpusVersion: asString(pick(row, 'corpusVersion', 'corpus_version')),
         });
     }
     if (packs.length === 0) {
@@ -371,7 +473,7 @@ export function loadCorpus(dir: string): Corpus {
     if (!existsSync(dir)) {
         throw new DataMissingError(`${dir} does not exist.`);
     }
-    const { version, words } = loadWords(dir);
+    const { version, words, audioHosting } = loadWords(dir);
     words.sort(canonicalOrder);
 
     const byId = new Map<string, WordRecord>();
@@ -380,8 +482,12 @@ export function loadCorpus(dir: string): Corpus {
     const byNumbered = new Map<string, WordRecord[]>();
     for (const w of words) {
         if (!byId.has(w.id)) byId.set(w.id, w);
-        push(bySimplified, w.simplified, w);
-        if (w.traditional !== w.simplified) push(byTraditional, w.traditional, w);
+        // The HSK list writes variant forms as `爸爸|爸`. Index every alternative
+        // so a lookup of 爸爸 resolves instead of falling through to segmentation.
+        for (const form of w.simplified.split('|')) push(bySimplified, form, w);
+        if (w.traditional !== w.simplified) {
+            for (const form of w.traditional.split('|')) push(byTraditional, form, w);
+        }
         if (w.pinyinNumbered !== null) push(byNumbered, numberedKey(w.pinyinNumbered), w);
     }
 
@@ -408,7 +514,9 @@ export function loadCorpus(dir: string): Corpus {
     }
 
     return {
-        version,
+        // The canon is a bare array in the current build, so the release stamp
+        // comes from the packs, which all carry it.
+        version: version ?? packVersion(dir, packs) ?? '0.0.0-dev',
         words,
         byId,
         bySimplified,
@@ -420,8 +528,21 @@ export function loadCorpus(dir: string): Corpus {
         packs,
         packsBySlug,
         topics: packs.filter((p) => p.kind === 'theme').map((p) => p.slug).sort(),
-        audioHosting: false,
+        audioHosting,
     };
+}
+
+/** Release stamp: `packs/index.json`, else any pack's `corpusVersion`. */
+function packVersion(dir: string, packs: readonly PackRecord[]): string | null {
+    const indexPath = join(dir, 'packs', 'index.json');
+    if (existsSync(indexPath)) {
+        const doc = readJson(indexPath);
+        if (doc && typeof doc === 'object' && !Array.isArray(doc)) {
+            const v = asString(pick(doc as Row, 'corpusVersion', 'corpus_version', 'version'));
+            if (v !== null) return v;
+        }
+    }
+    return packs.length > 0 ? packs[0]?.corpusVersion ?? null : null;
 }
 
 /** Resolve a pack's members to word records, in canonical order. */

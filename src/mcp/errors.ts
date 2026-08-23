@@ -36,7 +36,7 @@ export function e1NotChinese(
 ): string {
     const others =
         total > missed
-            ? ` — ${missed} of ${total} words missed; the other ${total - missed} are in the results above.`
+            ? ` — ${missed} of ${total} words missed; the other ${total - missed} ${total - missed === 1 ? 'is' : 'are'} in the results above.`
             : ` — ${missed} of ${total} words missed.`;
     const near =
         nearest.length === 0
@@ -60,7 +60,11 @@ export function e2NotAHeadword(
             `Next: mandarin_find_words({query:"${term}", query_type:"hanzi"}).`
         );
     }
-    const known = segments.map((s) => `${s.hanzi} (${s.id})`).join(' and ');
+    const shown = segments.map((s) => `${s.hanzi} (${s.id})`);
+    const known =
+        shown.length <= 2
+            ? shown.join(' and ')
+            : `${shown.slice(0, -1).join(', ')} and ${shown[shown.length - 1]}`;
     const bad =
         unknown.length === 0
             ? ''
@@ -148,10 +152,32 @@ export function e8UnknownParameter(tool: string, passed: string, accepted: reado
 
 /** One relaxation the agent could make, and what it would yield. */
 export interface Relaxation {
-    /** Prose fragment: `Relaxing max_new_words to 1 gives 214 matches`. */
+    /** Prose fragment: `relaxing max_new_words to 1 gives 214 matches`. */
     describe: string;
     /** The literal call that applies it. Null when the relaxation yields nothing either. */
     nextCall: string | null;
+}
+
+/** `gives 214 matches` / `gives 1 match`. */
+export function matchCount(n: number): string {
+    return `gives ${n.toLocaleString('en-US')} match${n === 1 ? '' : 'es'}`;
+}
+
+/**
+ * Rank relaxations so the agent is handed the tightest one first: a widened
+ * filter beats a dropped filter, and a smaller result set beats a larger one.
+ */
+export function rankRelaxations(
+    candidates: readonly (Relaxation & { count: number; widened: boolean })[]
+): Relaxation[] {
+    return [...candidates]
+        .sort(
+            (a, b) =>
+                (a.nextCall === null ? 1 : 0) - (b.nextCall === null ? 1 : 0) ||
+                (a.widened ? 0 : 1) - (b.widened ? 0 : 1) ||
+                a.count - b.count
+        )
+        .map(({ describe, nextCall }) => ({ describe, nextCall }));
 }
 
 /**
@@ -173,7 +199,7 @@ export function e9Empty(
             : `${head} ${dead}. Every single-filter relaxation is still empty — drop two filters, or widen the level.`;
     }
     const counts = useful.map((r) => r.describe).join('; ');
-    return `${head} ${counts}. Next: ${useful[0]?.nextCall ?? ''}`;
+    return `${head} ${counts}. Next: ${useful[0]?.nextCall ?? ''}.`;
 }
 
 /** E10 — a required combination was not met. */
