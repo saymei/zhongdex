@@ -22,10 +22,10 @@ Zhongdex's whole positioning is that it does not fake numbers. So:
 | | |
 |---|---|
 | **The word canon** | Built from a pinned HSK 3.0 (2026) source list — **11,092 headwords**, split 500 / 772 / 973 / 1,000 / 1,071 / 1,140 / 5,636 across bands 1–6 and the combined 7–9 band. Simplified, traditional, tone-marked and numbered pinyin, part of speech, band assignments, and glosses. |
-| **The packs** | Computed card packs over that canon. Every pack's membership is a deterministic query, every pack carries a `digest` you can recompute, and every pack claiming a level is verified band-closed at that level. No pack's word list was written by a human or a model. |
+| **The packs** | **20 computed card packs** over that canon — 10 HSK band and cumulative packs, 10 part-of-speech packs — plus **8 declared and deferred** because the canon does not carry the column their query needs. Every pack's membership is a deterministic query, every pack carries a `digest` you can recompute, and every pack claiming a level is verified band-closed at that level. No pack's word list was written by a human or a model. |
 | **The build** | `npm run build`. Reproducible: no clock, no randomness, no network. Two builds of the same source are byte-identical. |
 | **The MCP server** | Runs locally over stdio. Six read-only tools. |
-| **The contract eval** | `npm run eval:contract`. No LLM, no network, runs in about a second, and fails the build on any of the guarantees above. |
+| **The contract eval** | `npm run eval:contract`. Nine checks, no LLM, no network, ~100 ms, and it fails the build on any of the guarantees above. |
 
 ### Not shipped. Do not plan around these.
 
@@ -80,13 +80,14 @@ Read them with anything. They are plain JSON, UTF-8, LF, and stable across
 builds.
 
 ```bash
-# every band-1 word
-jq '[.words[] | select(.hsk.band2026 == 1)]' data/hsk_bands.json
+# the canon is a JSON array of word records
+jq 'length' data/hsk_bands.json                      # 11092
+jq '[.[] | select(.hsk.band2026 == 1)] | length' data/hsk_bands.json   # 500
 
 # what packs exist
 jq -r '.packs[] | "\(.slug)\t\(.size)\t\(.title)"' data/packs/index.json
 
-# what was deferred, and what was missing
+# what was deferred, and what column was missing
 jq -r '.deferred[] | "\(.slug): \(.reason)"' data/pack-stats.json
 ```
 
@@ -165,10 +166,11 @@ Those three plus `npm ci` are exactly what CI runs, on Node 22. Nothing else.
 | `pinyin.numbered` | `string` | Numbered, space-separated, 5 = neutral: `ni3 hao3`. |
 | `pos` | `string[]` | Part-of-speech tags from the HSK source list (`N`, `V`, `Adj`, …). Slash-joined upstream tags such as `V/N` mean the word is both. |
 | `hsk.band2026` | `number` | HSK 3.0 (2026) band, 1–7. The differentiator. |
-| `hsk.bandRange` | `string?` | Present where the source list bands a range rather than a level — band 7 carries `"7-9"`. |
-| `hsk.band2021` | `number \| null` | HSK 3.0 (2021 revision) band, where known. `null` means not established, not "zero". |
-| `hsk.listId` | `string` | The row id in the pinned source list, so any assignment traces back to its upstream line. |
-| `definitions` | `string[]` | English glosses. Terse, because CC-CEDICT is terse. |
+| `hsk.bandRange` | `string` | The source list's own label for the band. `"1"`…`"6"`, and `"7-9"` for the combined band. |
+| `hsk.band2021` | `number \| null` | HSK 3.0 (2021 revision) band. **`null` throughout v0.1** — the column is not populated yet, and `null` means "not established", never "zero". |
+| `hsk.listId` | `string` | The row id in the pinned source list (`L1-0427`), so any band assignment traces back to its upstream line. |
+| `definitions` | `object[]` | Glosses, each `{text, source, sourceKey, license}`. The per-gloss `source` and `license` travel with the gloss so attribution cannot be separated from the text it covers. Terse, because CC-CEDICT is terse. |
+| `sourceIds` | `string[]` | Every upstream row this record was built from, namespaced: `hsk30:L1-0427`, `cc-cedict:一|一[yi1]`. |
 | `audio.female` | `string \| null` | **`null` in v0.1.** |
 | `audio.male` | `string \| null` | **`null` in v0.1.** |
 | `audio.status` | `string` | **`"pending"` in v0.1** for every record. A record may not carry a URL while its status is `pending`; the contract eval enforces it. |
@@ -194,7 +196,7 @@ would need them are deferred rather than approximated.
 | `bandClosure` | `{scheme, claimedMin/MaxBand, observedMin/MaxBand, overBand, underBand, offList, closed}` | **Measured, not asserted.** The result of scanning the selected words against the claimed window. A pack claiming a level must have `closed: true`. |
 | `provenance` | `{words, columns, rule, curationSource, corpus, bands, definitions, audio, copy}` | `words` is `computed` or `computed+curated`; `copy` records who or what wrote the prose. |
 | `audioCompleteness` | `{female, male, pending, status}` | **`status: "pending"` throughout v0.1.** Reported honestly rather than omitted. |
-| `coverage` | `{bandLabelled, band2021Labelled, posLabelled, frequencyRanked, senseDisambiguated}` | Fractions, measured. `frequencyRanked` is `0` in v0.1 because the canon has no frequency column yet. |
+| `coverage` | `{bandLabelled, band2021Labelled, posLabelled, defined, frequencyRanked, senseDisambiguated}` | Fractions, measured, not asserted. `band2021Labelled`, `frequencyRanked` and `senseDisambiguated` are `0` in v0.1 because the canon has no such columns yet — reported as zero rather than omitted. |
 | `version` / `corpusVersion` | `string` | CalVer. `version` bumps **only** when `words[]` changes. |
 | `licence` | `{data, attribution}` | CC BY-SA 4.0 and the attribution line to reproduce. Travels inside every pack file so it cannot be separated from the data. |
 
@@ -266,8 +268,9 @@ the shape of the project, not so you can depend on it. No dates.
       template.
 - [ ] **Hosted API and remote MCP endpoint** — static, keyless, no origin.
 - [ ] **Pleco export.**
-- [ ] **Frequency and radical columns** in the canon, which unblock the packs
-      currently deferred in `pack-stats.json`.
+- [ ] **The missing canon columns** — frequency rank, HSK 2021, HSK 2.0, radical
+      — which between them unblock the eight packs currently deferred in
+      `pack-stats.json`, including the HSK 2026-vs-2021 delta pack.
 - [ ] **A published eval table** — pass rate, tokens per task, recovery rate —
       regenerated on every release.
 

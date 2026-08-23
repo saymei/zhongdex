@@ -17,7 +17,7 @@
 import { writeFile, mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const REPO_OWNER = process.env.ZHONGDEX_REPO_OWNER ?? "lelandchar";
+const REPO_OWNER = process.env.ZHONGDEX_REPO_OWNER ?? "saymei";
 const REPO_NAME = process.env.ZHONGDEX_REPO_NAME ?? "zhongdex";
 const NPM_PACKAGE = "zhongdex";
 const HF_DATASET = process.env.ZHONGDEX_HF_DATASET ?? "saymei/zhongdex";

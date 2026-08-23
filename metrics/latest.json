@@ -1,55 +1,48 @@
 {
   "schemaVersion": 1,
-  "collectedAt": "2026-08-23T05:05:51.973Z",
+  "collectedAt": "2026-08-23T05:10:35.540Z",
   "metrics": [
     {
       "key": "github.stars",
       "label": "GitHub stars",
-      "value": null,
-      "unavailable": "not published yet (404)",
-      "source": "github.com/lelandchar/zhongdex"
+      "value": 0,
+      "source": "github.com/saymei/zhongdex"
     },
     {
       "key": "github.forks",
       "label": "GitHub forks",
-      "value": null,
-      "unavailable": "not published yet (404)",
-      "source": "github.com/lelandchar/zhongdex"
+      "value": 0,
+      "source": "github.com/saymei/zhongdex"
     },
     {
       "key": "github.watchers",
       "label": "GitHub watchers",
-      "value": null,
-      "unavailable": "not published yet (404)",
-      "source": "github.com/lelandchar/zhongdex"
+      "value": 0,
+      "source": "github.com/saymei/zhongdex"
     },
     {
       "key": "github.open_issues",
       "label": "Open issues + PRs",
-      "value": null,
-      "unavailable": "not published yet (404)",
-      "source": "github.com/lelandchar/zhongdex"
+      "value": 0,
+      "source": "github.com/saymei/zhongdex"
     },
     {
       "key": "github.clones_14d",
       "label": "Clones (14d)",
-      "value": null,
-      "unavailable": "HTTP 401",
-      "source": "github.com/lelandchar/zhongdex"
+      "value": 0,
+      "source": "github.com/saymei/zhongdex"
     },
     {
       "key": "github.views_14d",
       "label": "Repo views (14d)",
-      "value": null,
-      "unavailable": "HTTP 401",
-      "source": "github.com/lelandchar/zhongdex"
+      "value": 0,
+      "source": "github.com/saymei/zhongdex"
     },
     {
       "key": "github.release_downloads",
       "label": "Release asset downloads",
-      "value": null,
-      "unavailable": "not published yet (404)",
-      "source": "github.com/lelandchar/zhongdex"
+      "value": 0,
+      "source": "github.com/saymei/zhongdex"
     },
     {
       "key": "npm.downloads_7d",

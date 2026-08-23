@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lelandchar/zhongdex.git"
+    "url": "git+https://github.com/saymei/zhongdex.git"
   },
   "scripts": {
     "build:canon": "tsx src/build/canon.ts",
@@ -31,6 +31,6 @@
     "typescript": "^5.7.0"
   },
   "bugs": {
-    "url": "https://github.com/lelandchar/zhongdex/issues"
+    "url": "https://github.com/saymei/zhongdex/issues"
   }
 }
