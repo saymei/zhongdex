@@ -130,6 +130,16 @@ function annotations(title: string): ToolDefinition['annotations'] {
 const AUDIO_PENDING =
     '\n\n0.1 status: audio hosting is not live. No tool returns an audio URL; every audio field reports status "pending" instead.';
 
+/**
+ * Measured, not asserted, and stated where an agent will see it before it
+ * builds study material. A blind read of 42 sentences found roughly 75% clearly
+ * natural, 15% awkward but parseable and 8-10% clearly broken, concentrated on
+ * band 7 and single-character headwords. This is source-data quality; no
+ * computable gate catches it, so the only honest option is to say so.
+ */
+const SENTENCE_QUALITY =
+    '\n\nQuality caveat, measured on a 42-sentence sample: about 75% read as clearly natural, 15% as awkward but parseable, and 8-10% as clearly broken - concentrated on band 7 and on single-character headwords (e.g. a character used as a surname that is not one). Review band-7 results before putting them in front of a learner.';
+
 const DESCRIPTIONS = {
     lookup:
         'Look up Chinese (Mandarin) words you already know the spelling of, and get everything needed to make a flashcard in one call: simplified and traditional hanzi, tone-marked and numbered pinyin, English gloss, part of speech, measure words, the HSK band in all three standards, frequency rank, and direct MP3 URLs in a female (Amy) and a male (James) native voice — plus up to 3 example sentences per word, each graded by difficulty and each with its own audio in both voices. Batch up to 20 words per call. Use this when you already have the words. To FIND words by level, topic or frequency, call mandarin_find_words first and pass its ids here. Accepts simplified hanzi ("你好"), traditional, or numbered pinyin ("ni3 hao3"). For a character with more than one reading, append the reading to pin it: "行:hang2"; without one, every reading is returned. Read-only, free, no API key, no rate limit, no quota. Identical arguments always return an identical response within a release.',
@@ -235,7 +245,7 @@ export const TOOLS: readonly ToolDefinition[] = [
     {
         name: 'mandarin_find_sentences',
         title: 'Find Chinese example sentences',
-        description: DESCRIPTIONS.findSentences + AUDIO_PENDING,
+        description: DESCRIPTIONS.findSentences + AUDIO_PENDING + SENTENCE_QUALITY,
         annotations: annotations('Find Chinese example sentences'),
         inputSchema: {
             type: 'object',
@@ -945,7 +955,16 @@ interface SentenceFilter {
     describe: string;
 }
 
+/**
+ * Words in the sentence outside band prefix 1..hsk. The build precomputes this
+ * per band against HSK 3.0, so use its number where it exists — it segments the
+ * sentence properly, which a join over surface forms does not.
+ */
 function newWordCount(corpus: Corpus, sentence: SentenceRecord, hsk: number, standard: Standard): number {
+    if (standard === 'hsk2026' && sentence.newWordCount !== null) {
+        const precomputed = sentence.newWordCount[String(hsk)];
+        if (precomputed !== undefined) return precomputed;
+    }
     let count = 0;
     for (const form of sentence.words) {
         const word = corpus.bySimplified.get(form)?.[0];

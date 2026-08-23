@@ -42,7 +42,7 @@ export function estimateTokens(text: string): number {
 
 /** Footer for a single-shot (non-paginated) envelope. */
 export function envelopeFooter(corpus: Corpus): string {
-    return `— zhongdex ${corpus.version} · ${LICENCE} · ${NO_QUOTA}`;
+    return `— ${audioStatus(corpus)} · zhongdex ${corpus.version} · ${LICENCE} · ${NO_QUOTA}`;
 }
 
 /**
@@ -59,7 +59,13 @@ export function listFooter(
 ): string {
     const parts = [`${shown} of ${total.toLocaleString('en-US')} ${unit}`];
     if (nextCursor !== null) parts.push(`next_cursor "${nextCursor}"`);
-    parts.push(`limit max ${maxLimit}`, `zhongdex ${corpus.version}`, LICENCE, 'no key, no quota');
+    parts.push(
+        `limit max ${maxLimit}`,
+        audioStatus(corpus),
+        `zhongdex ${corpus.version}`,
+        LICENCE,
+        'no key, no quota'
+    );
     return `— ${parts.join(' · ')}`;
 }
 
@@ -144,7 +150,8 @@ export function renderWord(
     }
     lines.push(facts.join(' · '));
 
-    const tail = [`id ${word.id}`, audioStatus(corpus)];
+    const tail = [`id ${word.id}`];
+    if (corpus.audioHosting) tail.push(audioStatus(corpus));
     if (options.detailed && word.packs.length > 0) tail.push(`packs ${word.packs.join(', ')}`);
     lines.push(tail.join(' · '));
 
@@ -180,7 +187,8 @@ export function renderSentence(corpus: Corpus, sentence: SentenceRecord): string
     const pinyin = [sentence.pinyin, sentence.pinyinNumbered]
         .filter((s): s is string => !!s)
         .join(' / ');
-    return `${head}\n${sentence.hanzi}\n${pinyin}\n${sentence.english}\n${audioStatus(corpus)}`;
+    const audio = corpus.audioHosting ? `\n${audioStatus(corpus)}` : '';
+    return `${head}\n${sentence.hanzi}\n${pinyin}\n${sentence.english}${audio}`;
 }
 
 /** ~38 tokens: the `mandarin_packs` row. */
@@ -199,7 +207,7 @@ export function renderPack(corpus: Corpus, pack: PackRecord): string {
  * broken card as a working one.
  */
 export function audioStatus(corpus: Corpus): string {
-    return corpus.audioHosting ? 'audio: see urls above' : 'audio: pending (not hosted in this release)';
+    return corpus.audioHosting ? 'audio urls inline' : 'audio pending: no clips hosted in this release';
 }
 
 function audioCoverage(corpus: Corpus): string {

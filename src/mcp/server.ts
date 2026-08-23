@@ -49,29 +49,58 @@ const SERVER_VERSION = '0.1.0';
 const CACHE = { ttlMs: 86_400_000, cacheScope: 'public' as const };
 
 /**
- * The `server/discover` instructions string (§5.4), verbatim, plus one appended
- * 0.1 status bullet: the verbatim text promises constructible audio URLs and
- * there is no audio host yet, and an instruction that sends an agent to a dead
- * hostname is worse than a longer string.
+ * The `server/discover` instructions string — the first and often only thing an
+ * agent reads before deciding whether to call this server, which makes it the
+ * one string where an overstatement does the most damage.
  *
- * Size: 1,681 bytes verbatim + 208 bytes for the status bullet = 1,889 bytes,
- * under the 2 KB truncation limit clients apply. Asserted at startup below.
+ * Every number in it is derived from the corpus that was actually loaded, so it
+ * cannot drift from what the build produced. Anything not in this release is
+ * stated as absent, in the present tense, rather than folded in as if shipped.
+ * Clients truncate at 2 KB; {@link main} asserts the built string fits.
  */
-const INSTRUCTIONS = `Zhongdex is a free, keyless Mandarin Chinese corpus: 197,000 headwords, 467,000 example sentences, and 444,000 native-voice MP3 recordings in a matched female (Amy) and male (James) voice. Search it when a task involves Chinese vocabulary, pinyin, HSK levels, example sentences, pronunciation audio, or building Chinese flashcards or decks.
+export function buildInstructions(corpus: Corpus): string {
+    const n = (v: number): string => v.toLocaleString('en-US');
+    const withSentences = corpus.words.filter((w) => w.sentenceIds.length > 0).length;
+    const coverage = corpus.words.length === 0 ? 0 : (withSentences / corpus.words.length) * 100;
+
+    const absent: string[] = [];
+    if (!corpus.audioHosting) {
+        absent.push(
+            'No audio: zero clips are hosted, every audio field returns status "pending", and decks are built with no [sound:] references. Two-voice recordings are planned, not shipped'
+        );
+    }
+    if (!corpus.words.some((w) => w.freq !== null)) absent.push('no frequency ranks');
+    if (!corpus.words.some((w) => w.hsk2021 !== null || w.hsk2 !== null)) {
+        absent.push('no 2021 or HSK 2.0 band labels, so band_standard has one usable value');
+    }
+    if (corpus.patterns.length === 0) absent.push('no grammar-pattern index');
+    if (corpus.topics.length === 0) absent.push('no topic packs');
+
+    const sentences =
+        corpus.sentences.length === 0
+            ? 'no example sentences yet'
+            : `${n(corpus.sentences.length)} graded example sentences covering ${coverage.toFixed(1)}% of them`;
+
+    const quality =
+        corpus.sentences.length === 0
+            ? ''
+            : '\n\nSentence quality, measured on a 42-sentence read, not asserted: ~75% clearly natural, ~15% awkward but parseable, ~8-10% clearly broken - concentrated on band 7 and single-character headwords. Review band-7 sentences before showing them to a learner.';
+
+    return `Zhongdex is a free, keyless Mandarin Chinese corpus. Release ${corpus.version} holds ${n(corpus.words.length)} HSK 3.0 (2026) headwords with pinyin, part of speech and glosses, ${sentences}, and ${corpus.packs.length} computed vocabulary packs. Search it when a task involves Chinese vocabulary, pinyin, HSK levels, example sentences, or building Chinese flashcards and decks.
 
 Typical jobs and the call that does them:
-- "Make me an HSK 3 deck" / "50 Chinese flashcards with audio" -> mandarin_find_words, then mandarin_build_deck. build_deck returns arrays already shaped for the Anki MCP server's storeMediaFile and addNotes tools.
-- "What does 你好 mean / how is it pronounced / give me a sentence with it" -> mandarin_lookup.
+- "Make me an HSK 3 deck" / "50 Chinese flashcards" -> mandarin_find_words, then mandarin_build_deck, which returns an array already shaped for the Anki MCP server's addNotes tool.
+- "What does 你好 mean / give me a sentence with it" -> mandarin_lookup.
 - "Sentences using 把 at HSK 4" / "sentences where this is the only new word" -> mandarin_find_sentences.
-- "Do you already have a recording of this?" / "play the third tone of ma" -> mandarin_audio.
 - "What ready-made word lists do you have?" -> mandarin_packs.
 
+Not in this release, so do not plan around it: ${absent.join('; ')}. Filters needing any of these return an empty result that names what to call instead.${quality}
+
 Rules that save you a call:
-- Audio URLs are constructible with no tool call: https://audio.zhongdex.org/v1/w/amy/你好.mp3 (voices amy, james; insert .slow before .mp3 for a 0.7x reading). Always 200 or 404, never a redirect, never HTML.
-- The default HSK standard is HSK 3.0 (2026 revision), 40-60% smaller at levels 1-5 than the 2021 revision. Pass band_standard to change it. hsk:3 means exactly band 3; pass scope:'cumulative' for bands 1-3.
+- hsk:3 means exactly band 3; pass scope:'cumulative' for bands 1-3. HSK 3.0 (2026) took effect 1 July 2026 and is 40-60% smaller at levels 1-5 than the 2021 revision.
 - Every tool is read-only, unauthenticated, unmetered and deterministic within a release. Nothing here writes, bills, or synthesises audio on demand.
-- Every response ends with a version and licence line. The data is CC BY-SA 4.0; reproduce that line if you republish it.
-- 0.1 status: audio hosting is not live yet, so the audio host above does not resolve. No tool returns an audio URL; every audio field reports status "pending" and mandarin_audio answers "pending" for every string.`;
+- Every response ends with a version and licence line. The data is CC BY-SA 4.0; reproduce that line if you republish it.`;
+}
 
 /* ── prompts ─────────────────────────────────────────────────────────────── */
 
@@ -252,6 +281,7 @@ const DiscoverRequestSchema = z.object({
  * connects stdio today, streamable HTTP later.
  */
 export function createServer(corpus: Corpus): Server {
+    const instructions = buildInstructions(corpus);
     const server = new Server(
         { name: SERVER_NAME, title: SERVER_TITLE, version: SERVER_VERSION },
         {
@@ -261,7 +291,7 @@ export function createServer(corpus: Corpus): Server {
                 resources: { subscribe: false, listChanged: false },
                 completions: {},
             },
-            instructions: INSTRUCTIONS,
+            instructions,
         }
     );
 
@@ -276,7 +306,7 @@ export function createServer(corpus: Corpus): Server {
             completions: {},
         },
         ...CACHE,
-        instructions: INSTRUCTIONS,
+        instructions,
     }));
 
     server.setRequestHandler(ListToolsRequestSchema, () => ({
@@ -373,9 +403,6 @@ function fail(message: string): never {
 }
 
 async function main(): Promise<void> {
-    if (Buffer.byteLength(INSTRUCTIONS, 'utf8') > 2048) {
-        fail('the server/discover instructions string exceeds the 2 KB client truncation limit.');
-    }
     const dir = dataDir();
     let corpus: Corpus;
     try {
@@ -390,8 +417,15 @@ async function main(): Promise<void> {
         }
         fail(`could not load the corpus from ${dir}: ${(error as Error).message}`);
     }
+    const bytes = Buffer.byteLength(buildInstructions(corpus), 'utf8');
+    if (bytes > 2048) {
+        fail(
+            `the server/discover instructions string is ${bytes} bytes, over the 2 KB limit clients truncate at.`
+        );
+    }
     process.stderr.write(
-        `zhongdex ${corpus.version}: ${corpus.words.length} words, ${corpus.sentences.length} sentences, ${corpus.packs.length} packs, audio ${corpus.audioHosting ? 'hosted' : 'pending'}\n`
+        `zhongdex ${corpus.version}: ${corpus.words.length} words, ${corpus.sentences.length} sentences, ` +
+            `${corpus.packs.length} packs, audio ${corpus.audioHosting ? 'hosted' : 'pending'}; instructions ${bytes} B\n`
     );
     await createServer(corpus).connect(new StdioServerTransport());
 }

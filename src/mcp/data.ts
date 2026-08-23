@@ -8,7 +8,10 @@
  *
  *   data/hsk_bands.json            required. `{version, words: WordRow[]}` or a bare WordRow[].
  *   data/packs/<slug>.pack.json    required (>=1). pack-v1, §12.1 of the revision.
- *   data/sentences.jsonl           optional. One SentenceRow per line.
+ *   data/sentences.jsonl           optional. One SentenceRow per line:
+ *                                  {id, hanzi, pinyin, pinyinNumbered, english, zsg,
+ *                                   newWordCount:{"1".."7"}, words[],
+ *                                   headwords:[{wordId, slot}]}
  *   data/sentences.json            optional. `{version, sentences: SentenceRow[]}` or a bare array.
  *   data/grammar_patterns.json     optional. `{id, hanzi?, gloss?, hsk?}[]` or a bare id[].
  *
@@ -83,9 +86,16 @@ export interface SentenceRecord {
     english: string;
     /** ZSG grade 1-7: the highest HSK 3.0 band of any word in the sentence. */
     difficulty: number | null;
-    /** Simplified word forms attested in the sentence. */
+    /** Simplified content-token forms attested in the sentence. */
     words: string[];
     pattern: string | null;
+    /**
+     * Distinct token forms outside each HSK 3.0 band prefix, precomputed by the
+     * build. `newWordCount["4"] === 1` is an i+1 sentence at HSK 4.
+     */
+    newWordCount: Record<string, number> | null;
+    /** Headword links: which canon word this sentence was selected for, and how hard it is for it. */
+    headwords: { wordId: string; slot: string }[];
 }
 
 export interface PackRecord {
@@ -323,6 +333,17 @@ function loadSentences(dir: string): SentenceRecord[] {
         const hanzi = asString(pick(row, 'hanzi', 'chinese', 'text', 'simplified'));
         if (hanzi === null) continue;
         const id = asString(pick(row, 'id', 'sentence_id')) ?? `dex:s:${out.length}`;
+        const counts = pick(row, 'newWordCount', 'new_word_count');
+        const links: { wordId: string; slot: string }[] = [];
+        const headwords = pick(row, 'headwords');
+        if (Array.isArray(headwords)) {
+            for (const h of headwords) {
+                if (!h || typeof h !== 'object') continue;
+                const wordId = asString(pick(h as Row, 'wordId', 'word_id', 'id'));
+                if (wordId === null) continue;
+                links.push({ wordId, slot: asString(pick(h as Row, 'slot')) ?? 'atLevel' });
+            }
+        }
         out.push({
             id,
             hanzi,
@@ -332,6 +353,15 @@ function loadSentences(dir: string): SentenceRecord[] {
             difficulty: asNumber(pick(row, 'difficulty', 'grade', 'zsg')),
             words: asStringArray(pick(row, 'words', 'word_forms', 'tokens')),
             pattern: asString(pick(row, 'pattern', 'grammar_pattern')),
+            newWordCount:
+                counts && typeof counts === 'object' && !Array.isArray(counts)
+                    ? Object.fromEntries(
+                          Object.entries(counts as Row)
+                              .map(([k, v]) => [k, asNumber(v)])
+                              .filter((e): e is [string, number] => e[1] !== null)
+                      )
+                    : null,
+            headwords: links,
         });
     }
     return out;
@@ -493,6 +523,23 @@ export function loadCorpus(dir: string): Corpus {
 
     const sentences = loadSentences(dir);
     const sentencesById = new Map(sentences.map((s) => [s.id, s]));
+
+    // The canon carries no sentence ids; the link lives on the sentence side as
+    // `headwords[].wordId`. Invert it once here so lookup is a map read.
+    const SLOT_RANK: Record<string, number> = { atLevel: 0, easy: 1, stretch: 2 };
+    const linked = new Map<string, { id: string; rank: number }[]>();
+    for (const sentence of sentences) {
+        for (const link of sentence.headwords) {
+            push(linked, link.wordId, { id: sentence.id, rank: SLOT_RANK[link.slot] ?? 1 });
+        }
+    }
+    for (const [wordId, entries] of linked) {
+        entries.sort((a, b) => a.rank - b.rank || (a.id < b.id ? -1 : 1));
+        const word = byId.get(wordId);
+        if (word !== undefined && word.sentenceIds.length === 0) {
+            word.sentenceIds = entries.map((e) => e.id);
+        }
+    }
     // Fill in the ZSG grade where the build did not: the highest 2026 band in the sentence.
     for (const s of sentences) {
         if (s.difficulty !== null) continue;
