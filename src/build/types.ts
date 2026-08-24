@@ -129,6 +129,9 @@ export interface WordAudio {
 export type EnrichmentJoin = "reading" | "form" | null;
 
 export interface WordRecord {
+  /** Kangxi radical of the first character, from Unihan kRSUnicode. Null when unmapped. */
+  radical?: string | null;
+
   /** `dex:w:<numbered pinyin>:<simplified>:<primary POS>`. Stable, unique, readable. */
   id: string;
   simplified: string;

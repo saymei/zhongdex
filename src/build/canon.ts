@@ -62,6 +62,16 @@ const CEDICT_JSON =
  */
 const ENRICHMENT_JSON = `${DATA_DIR}enrichment.json`;
 
+// Kangxi radicals, keyed by character, produced by `npm run build:radicals` from Unihan.
+// Optional: a checkout without it still builds, with radical left null.
+const RADICALS: Record<string, { n: string; r: string }> = (() => {
+  try {
+    return JSON.parse(readFileSync(`${DATA_DIR}radicals.json`, "utf8")).chars as Record<string, { n: string; r: string }>;
+  } catch {
+    return {};
+  }
+})();
+
 const BAND_RANGES: readonly BandRange[] = ["1", "2", "3", "4", "5", "6", "7-9"];
 
 /* -------------------------------------------------------------------------- */
@@ -425,6 +435,7 @@ function build(
     else coverage.audioNone += 1;
 
     records.push({
+      radical: RADICALS[[...simplified][0] ?? ""]?.r ?? null,
       id: `dex:w:${idSlug(numbered)}:${simplified}:${posSlug(pos[0])}`,
       simplified,
       traditional,
