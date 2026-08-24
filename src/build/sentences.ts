@@ -82,8 +82,27 @@ const REPO_ROOT = new URL("../../", import.meta.url);
 const DATA_DIR = fileURLToPath(new URL("data/", REPO_ROOT));
 const GENERATOR = "src/build/sentences.ts";
 
-/** Where the SayMei checkout lives. Same knob `db.ts` uses. */
-const SAYMEI_ROOT = process.env["ZHONGDEX_SAYMEI_ROOT"] ?? "/Users/lelandchar/Desktop/SayMei-Web";
+/**
+ * Where the SayMei checkout lives, read from `ZHONGDEX_SAYMEI_ROOT` — the same
+ * knob `db.ts` uses, and with the same rule: no default, resolved lazily.
+ * `build:sentences` is a maintainer refresh of `data/sentences.jsonl`; the
+ * committed corpus is what everyone else reads, so `npm run build` needs no
+ * configuration and never calls this.
+ */
+function saymeiRoot(): string {
+  const root = process.env["ZHONGDEX_SAYMEI_ROOT"];
+  if (root === undefined || root.trim() === "") {
+    throw new Error(
+      "ZHONGDEX_SAYMEI_ROOT is not set.\n" +
+        "  build:sentences re-reads SayMei's production dictionary, so it needs the\n" +
+        "  path to a SayMei checkout:\n" +
+        "    ZHONGDEX_SAYMEI_ROOT=/path/to/SayMei-Web npm run build:sentences\n" +
+        "  Building does not need it: data/sentences.jsonl is committed, and\n" +
+        "  `npm run build` never opens a connection.",
+    );
+  }
+  return root.trim();
+}
 
 /* -------------------------------------------------------------------------- */
 /* Production read                                                             */
@@ -104,7 +123,7 @@ interface PgModule {
 }
 
 function readDatabaseUrl(): string {
-  const envPath = join(SAYMEI_ROOT, ".env");
+  const envPath = join(saymeiRoot(), ".env");
   let text: string;
   try {
     text = readFileSync(envPath, "utf8");
@@ -125,7 +144,7 @@ function readDatabaseUrl(): string {
 }
 
 async function connect(): Promise<PgClient> {
-  const entry = join(SAYMEI_ROOT, "node_modules", "pg", "lib", "index.js");
+  const entry = join(saymeiRoot(), "node_modules", "pg", "lib", "index.js");
   // Non-literal specifier on purpose: `pg` is not a dependency of this repo and
   // must not become one, so that `npm ci` in CI cannot reach a database.
   const loaded = (await import(entry)) as { default?: PgModule } & Partial<PgModule>;

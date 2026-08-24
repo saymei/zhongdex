@@ -22,8 +22,30 @@ import { join } from "node:path";
 
 import type { SnapshotRow } from "./types.js";
 
-/** Where the SayMei checkout lives. Override for a different machine. */
-const SAYMEI_ROOT = process.env["ZHONGDEX_SAYMEI_ROOT"] ?? "/Users/lelandchar/Desktop/SayMei-Web";
+/**
+ * Where the SayMei checkout lives, read from `ZHONGDEX_SAYMEI_ROOT`.
+ *
+ * There is deliberately no default. A hard-coded path is a guess about somebody
+ * else's filesystem, and the only useful answer for a reader who has no SayMei
+ * checkout is an error that says so. Resolved lazily, never at import time:
+ * `canon.ts` imports this module for `normalizeReading` alone, and `npm run
+ * build` reads the committed snapshot at `data/enrichment.json`, so the normal
+ * build needs no configuration and never reaches this function.
+ */
+function saymeiRoot(): string {
+  const root = process.env["ZHONGDEX_SAYMEI_ROOT"];
+  if (root === undefined || root.trim() === "") {
+    throw new Error(
+      "ZHONGDEX_SAYMEI_ROOT is not set.\n" +
+        "  enrich:fetch refreshes data/enrichment.json from SayMei's production\n" +
+        "  dictionary, so it needs the path to a SayMei checkout:\n" +
+        "    ZHONGDEX_SAYMEI_ROOT=/path/to/SayMei-Web npm run enrich:fetch\n" +
+        "  Building does not need it: `npm run build` reads the committed snapshot\n" +
+        "  and never opens a connection.",
+    );
+  }
+  return root.trim();
+}
 
 /** Columns read from `global_dictionary`, with what each is used for. */
 export const COLUMNS_READ = [
@@ -86,7 +108,7 @@ export interface FetchResult {
  * tooling, and makes the failure mode ("SayMei is not checked out here") legible.
  */
 function readDatabaseUrl(): string {
-  const envPath = join(SAYMEI_ROOT, ".env");
+  const envPath = join(saymeiRoot(), ".env");
   let text: string;
   try {
     text = readFileSync(envPath, "utf8");
@@ -125,7 +147,7 @@ interface PgModule {
 }
 
 async function connect(): Promise<PgClient> {
-  const entry = join(SAYMEI_ROOT, "node_modules", "pg", "lib", "index.js");
+  const entry = join(saymeiRoot(), "node_modules", "pg", "lib", "index.js");
   // Non-literal specifier on purpose: `pg` is not a dependency of this repo and
   // must not become one. See the module header.
   const loaded = (await import(entry)) as { default?: PgModule } & Partial<PgModule>;
