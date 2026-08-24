@@ -13,7 +13,7 @@
     "segmenter": "Forward maximum matching over the canon's own simplified forms. Unmatched single characters take the lowest band of any canon word containing them.",
     "beyondHsk": "A character no canon word contains is outside HSK 3.0; it forces the grade to 7 and is counted in beyondHskTokens.",
     "newWordCount": "Per band prefix 1..7, the count of DISTINCT content token forms outside that prefix. A value of 1 is an i+1 sentence. Tokens outside HSK 3.0 count against every prefix, including 7.",
-    "selection": "Up to 3 per headword, spread over the difficulty key (zsg, newWordCount[\"1\"]): lowest, highest, middle. Both parts ship in every record. A headword with one distinct key ships one sentence.",
+    "selection": "Candidates are filtered by the quality gate (see `quality` below), then up to 3 per headword are spread over the difficulty key (zsg, newWordCount[\"1\"]): lowest, highest, middle. Both parts ship in every record. A headword with one distinct key ships one sentence; a single-character headword ships one sentence by rule; a headword whose every candidate is flagged ships its least-flagged one.",
     "charLengthPercentile": "Mid-rank percentile of the sentence's character count against every GRADED sentence of the same ZSG band — the full pool, not the shipped subset, which is chosen partly on length. Measured on this corpus rather than imported from the dialogue corpus."
   },
   "input": {
@@ -54,42 +54,42 @@
     }
   },
   "selected": {
-    "totalSentences": 32725,
-    "totalLinks": 33212,
+    "totalSentences": 29619,
+    "totalLinks": 29712,
     "headwordsCovered": 11072,
     "coveragePctOfCanonRows": 99.82,
     "coveragePctOfCanonForms": 99.82,
     "gradeDistribution": {
-      "1": 489,
-      "2": 817,
-      "3": 1352,
-      "4": 2927,
-      "5": 3226,
-      "6": 3366,
-      "7": 20548
+      "1": 299,
+      "2": 679,
+      "3": 1207,
+      "4": 2366,
+      "5": 2716,
+      "6": 2948,
+      "7": 19404
     },
     "slotDistribution": {
-      "easy": 424,
-      "atLevel": 26029,
-      "stretch": 6759
+      "easy": 4,
+      "atLevel": 23504,
+      "stretch": 6204
     },
     "triadFullness": {
       "0": 20,
-      "1": 0,
-      "2": 4,
-      "3": 11068
+      "1": 1691,
+      "2": 122,
+      "3": 9259
     },
-    "withAudio": 30157,
-    "withAudioPct": 92.15,
+    "withAudio": 23744,
+    "withAudioPct": 80.16,
     "audioTier": {
-      "two-speed": 23639,
-      "slow-only": 6518,
-      "none": 2568
+      "two-speed": 18207,
+      "slow-only": 5537,
+      "none": 5875
     },
-    "withPinyinNumbered": 32678,
-    "withSenseIndex": 842,
-    "headwordAttestedAsToken": 32001,
-    "headwordAttestedAsTokenPct": 96.35,
+    "withPinyinNumbered": 29561,
+    "withSenseIndex": 460,
+    "headwordAttestedAsToken": 29599,
+    "headwordAttestedAsTokenPct": 99.62,
     "charLenPercentileTable": {
       "1": {
         "n": 1605,
@@ -128,11 +128,250 @@
       }
     }
   },
+  "quality": {
+    "note": "Applied during selection, not afterwards: every rule below decides which of a headword's candidate sentences ship, and data/sentences.jsonl is already the filtered corpus. The rules and their evidence live in src/build/quality.ts; the judged measurement they were derived from is data/quality-report.json.",
+    "generator": "src/build/quality.ts",
+    "candidateLinks": 140786,
+    "rules": [
+      {
+        "id": "headword-used-as-name",
+        "tier": "hard",
+        "rule": "The headword is immediately followed by a personal title, or preceded by 姓 or 叫 — it has been pressed into service as a surname.",
+        "evidence": "18 of 18 flagged sample links are broken (100%), against a 12.85% corpus base rate.",
+        "candidateLinksFlagged": 1400,
+        "selectedLinksFlagged": 95
+      },
+      {
+        "id": "slot-easy",
+        "tier": "hard",
+        "rule": "The sentence grades below the headword's own band, so the headword is the hardest thing in it and everything around it is filler.",
+        "evidence": "13 of 16 flagged sample links are broken (81%).",
+        "candidateLinksFlagged": 1882,
+        "selectedLinksFlagged": 4
+      },
+      {
+        "id": "headword-not-discrete-token",
+        "tier": "hard",
+        "rule": "The headword does not survive canon segmentation as its own token: it is buried inside a longer HSK word, and the sentence teaches that word instead.",
+        "evidence": "30 of 48 flagged sample links are broken (63%).",
+        "candidateLinksFlagged": 5361,
+        "selectedLinksFlagged": 20
+      },
+      {
+        "id": "headword-buried-in-compound",
+        "tier": "hard",
+        "rule": "Same test against CC-CEDICT's 120,400 headwords rather than the 11,092 HSK ones: 训 inside 校训, 焊 inside 焊接, 知识 inside 知识分子 — compounds the canon is too small to see.",
+        "evidence": "39 of 81 flagged sample links are broken (48%); it flags 33 links the canon test misses, 9 of them broken (27%).",
+        "candidateLinksFlagged": 13763,
+        "selectedLinksFlagged": 94
+      },
+      {
+        "id": "headword-reading-mismatch",
+        "tier": "hard",
+        "rule": "The sentence's own pinyin reads the headword as a different word — 担 as dàn not dān, 地 as dì not de, 正 as zhēng not zhèng.",
+        "evidence": "11 of 21 flagged sample links are broken (52%); 10 of 16 among single-character headwords (63%).",
+        "candidateLinksFlagged": 3350,
+        "selectedLinksFlagged": 53
+      },
+      {
+        "id": "sentence-short-for-band",
+        "tier": "soft",
+        "rule": "The sentence is in the bottom decile of length for its own grade band — a frame with the headword dropped into it rather than a sentence about anything. 这是自助。 是 five characters.",
+        "evidence": "8 of 27 flagged sample links are broken (30%) among multi-character headwords, against 5.6% for the rest.",
+        "candidateLinksFlagged": 16545,
+        "selectedLinksFlagged": 47
+      },
+      {
+        "id": "frame-shared-with-other-headwords",
+        "tier": "soft",
+        "rule": "Blank the headword out and the same sentence is filed under another headword too: it is a template the source stamped across the word list, not a sentence written for this word.",
+        "evidence": "Among single-character headwords that clear every hard rule, 10 of 16 links on a shared frame are broken (63%) against 11 of 67 on a unique one (16%).",
+        "candidateLinksFlagged": 24354,
+        "selectedLinksFlagged": 382
+      }
+    ],
+    "selection": {
+      "note": "Pools are tried in order — clean, then hard-clean, then everything — and the last pool ships exactly one sentence, so no rule can take a headword's last link. A selected link carrying a flag is a headword whose whole pool carried it.",
+      "headwordsByPool": {
+        "clean": 10548,
+        "softFallback": 287,
+        "lastLinkFallback": 237,
+        "none": 20
+      },
+      "singleCharHeadwordsCappedToOne": 1506
+    }
+  },
   "sourceHskLevelAgreement": {
     "note": "The source rows carry their own hskLevel. It is never trusted, only compared: this is a check on the computed grade, not an input to it.",
-    "compared": 32724,
-    "exact": 1480,
-    "within1": 7853
+    "compared": 29618,
+    "exact": 1425,
+    "within1": 8736
   },
-  "idCollisions": 0
+  "idCollisions": 0,
+  "measuredQuality": {
+    "note": "A judged defect rate for exactly this corpus. Same prompt, model, temperature, stratification and estimator as data/quality-report.json; a new seed, because the filter this corpus was built with was chosen partly by looking at the old sample. Re-run with `npx tsx src/build/quality.ts --remeasure`.",
+    "generator": "src/build/quality.ts --remeasure",
+    "corpusSha256": "32e7ace25a6b66aade35391233d0f5ba5838d02662892e02e995031a0e42f776",
+    "judge": {
+      "provider": "google-generative-language",
+      "model": "gemini-3.7-flash",
+      "temperature": 0,
+      "promptSha256": "5594c3ff003626c0e802a9a85a20fbde9dde9f938d3cc1589820f22b84d8d3ed",
+      "totalTokens": null,
+      "failures": 0
+    },
+    "sampling": {
+      "unit": "headword link (one sentence paired with one canon headword it was selected for)",
+      "design": "Stratified random sample. Strata are HSK band group of the headword (1-3 / 4-6 / 7) crossed with headword character length (1 / 2 / 3+). Allocation is a floor per stratum plus the remainder proportional to stratum population; corpus-wide rates are population-weighted with a finite-population correction.",
+      "seed": "zhongdex-quality-v2",
+      "seedInt": 2191241288,
+      "requested": 600,
+      "judged": 600,
+      "frame": {
+        "sentences": 29619,
+        "links": 29712,
+        "headwords": 11072
+      },
+      "strata": [
+        {
+          "stratum": "b1-3-len1",
+          "population": 566,
+          "weight": 0.019049542272482498,
+          "n": 45
+        },
+        {
+          "stratum": "b1-3-len2",
+          "population": 4571,
+          "weight": 0.1538435648896069,
+          "n": 77
+        },
+        {
+          "stratum": "b1-3-len3+",
+          "population": 399,
+          "weight": 0.01342891760904685,
+          "n": 43
+        },
+        {
+          "stratum": "b4-6-len1",
+          "population": 556,
+          "weight": 0.018712977921378566,
+          "n": 44
+        },
+        {
+          "stratum": "b4-6-len2",
+          "population": 7378,
+          "weight": 0.24831717824448035,
+          "n": 100
+        },
+        {
+          "stratum": "b4-6-len3+",
+          "population": 509,
+          "weight": 0.01713112547119009,
+          "n": 44
+        },
+        {
+          "stratum": "b7-len1",
+          "population": 501,
+          "weight": 0.016861873990306947,
+          "n": 44
+        },
+        {
+          "stratum": "b7-len2",
+          "population": 12920,
+          "weight": 0.43484114162627896,
+          "n": 144
+        },
+        {
+          "stratum": "b7-len3+",
+          "population": 2312,
+          "weight": 0.07781367797522887,
+          "n": 59
+        }
+      ]
+    },
+    "results": {
+      "definition": "broken = the judge says the sentence is ungrammatical, incoherent, or misuses the headword. awkward = parseable but stilted. good = natural Mandarin. notClean = broken + awkward.",
+      "corpusWide": {
+        "brokenRate": 0.08303248175593762,
+        "brokenCi95": {
+          "low": 0.05588963493760557,
+          "high": 0.11017532857426968
+        },
+        "notCleanRate": 0.1720370736411221,
+        "notCleanCi95": {
+          "low": 0.13549103318305994,
+          "high": 0.20858311409918429
+        }
+      },
+      "byHeadwordLength": [
+        {
+          "lenGroup": "1",
+          "population": 1623,
+          "n": 133,
+          "broken": 40,
+          "brokenRate": 0.29941030763581594
+        },
+        {
+          "lenGroup": "2",
+          "population": 24869,
+          "n": 321,
+          "broken": 22,
+          "brokenRate": 0.07186295379708867
+        },
+        {
+          "lenGroup": "3+",
+          "population": 3220,
+          "n": 146,
+          "broken": 10,
+          "brokenRate": 0.06023551883841339
+        }
+      ],
+      "byBandGroup": [
+        {
+          "bandGroup": "1-3",
+          "population": 5536,
+          "n": 165,
+          "broken": 18,
+          "brokenRate": 0.0650578323224176
+        },
+        {
+          "bandGroup": "4-6",
+          "population": 8443,
+          "n": 188,
+          "broken": 23,
+          "brokenRate": 0.07724236322720274
+        },
+        {
+          "bandGroup": "7",
+          "population": 15733,
+          "n": 247,
+          "broken": 31,
+          "brokenRate": 0.09246448010349213
+        }
+      ],
+      "byFlag": {
+        "grammatical": {
+          "failed": 38,
+          "n": 600,
+          "rate": 0.06333333333333334
+        },
+        "semanticallySensible": {
+          "failed": 26,
+          "n": 600,
+          "rate": 0.043333333333333335
+        },
+        "headwordNatural": {
+          "failed": 94,
+          "n": 600,
+          "rate": 0.15666666666666668
+        },
+        "nativeWouldWrite": {
+          "failed": 113,
+          "n": 600,
+          "rate": 0.18833333333333332
+        }
+      }
+    },
+    "comparison": "The same instrument on the corpus that shipped before the quality gate measured 12.85% broken (95% CI 10.08%-15.63%, n=600, seed \"zhongdex-quality-v1\"), with 12.11% further awkward. This measurement is a fresh draw on a new seed against the filtered corpus, so it is like-for-like on everything but the corpus and the seed."
+  }
 }

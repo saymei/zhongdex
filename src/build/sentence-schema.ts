@@ -141,6 +141,91 @@ export const DROP_REASONS: readonly DropReason[] = [
 /* Stats                                                                       */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * The build-time quality gate's record — which rules ran, what each of them
+ * flagged, and which pool every headword's sentences ended up being drawn from.
+ *
+ * The gate lives in `src/build/quality.ts` and is applied during selection, so
+ * the shipped corpus is the filtered corpus and there is no second artifact to
+ * apply. This record exists so the filtering is auditable from the data alone:
+ * a reader can see every rule, its measured evidence, and its cost.
+ */
+export interface SentenceQualityRecord {
+  note: string;
+  generator: string;
+  /** Every (sentence, headword) pair the selector considered, before any rule. */
+  candidateLinks: number;
+  rules: {
+    id: string;
+    tier: "hard" | "soft";
+    rule: string;
+    evidence: string;
+    /** Candidate links this rule flags, across the whole pool. */
+    candidateLinksFlagged: number;
+    /** Links this rule flags that were still selected — a fallback, never a miss. */
+    selectedLinksFlagged: number;
+  }[];
+  selection: {
+    note: string;
+    headwordsByPool: {
+      /** Served from candidates that clear every rule. */
+      clean: number;
+      /** No candidate cleared the soft rules; served from the hard-clean ones. */
+      softFallback: number;
+      /** No candidate cleared the hard rules either; kept the least-flagged one. */
+      lastLinkFallback: number;
+      /** No candidate sentence at all. Unchanged by the gate. */
+      none: number;
+    };
+    singleCharHeadwordsCappedToOne: number;
+  };
+}
+
+/**
+ * A measured defect rate for the corpus in this file, written by
+ * `npx tsx src/build/quality.ts --remeasure`. Present only when the
+ * measurement was taken against exactly this corpus: `corpusSha256` is the
+ * digest of `data/sentences.jsonl`, and a rebuild that changes the corpus drops
+ * the block rather than letting a stale number describe new data.
+ */
+export interface SentenceQualityMeasurement {
+  note: string;
+  generator: string;
+  corpusSha256: string;
+  judge: {
+    provider: string;
+    model: string;
+    temperature: number;
+    promptSha256: string;
+    /** Null when the summary was re-aggregated from labels that did not record it. */
+    totalTokens: number | null;
+    failures: number;
+  };
+  sampling: {
+    unit: string;
+    design: string;
+    seed: string;
+    seedInt: number;
+    requested: number;
+    judged: number;
+    frame: { sentences: number; links: number; headwords: number };
+    strata: { stratum: string; population: number; weight: number; n: number }[];
+  };
+  results: {
+    definition: string;
+    corpusWide: {
+      brokenRate: number;
+      brokenCi95: { low: number; high: number };
+      notCleanRate: number;
+      notCleanCi95: { low: number; high: number };
+    };
+    byHeadwordLength: { lenGroup: string; population: number; n: number; broken: number; brokenRate: number }[];
+    byBandGroup: { bandGroup: string; population: number; n: number; broken: number; brokenRate: number }[];
+    byFlag: Record<string, { failed: number; n: number; rate: number }>;
+  };
+  comparison: string;
+}
+
 export interface SentenceStats {
   schema: "zhongdex/sentence-stats/v1";
   generator: string;
@@ -203,6 +288,10 @@ export interface SentenceStats {
     headwordAttestedAsTokenPct: number;
     charLenPercentileTable: Record<string, { n: number; p50: number; p90: number }>;
   };
+  /** What the build-time quality gate excluded, and why. */
+  quality: SentenceQualityRecord;
+  /** A judged defect rate for exactly this corpus, when one has been taken. */
+  measuredQuality?: SentenceQualityMeasurement;
   /** Bands the canon assigns vs. the grade this build computed, for audit. */
   sourceHskLevelAgreement: {
     note: string;

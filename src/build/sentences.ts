@@ -72,15 +72,29 @@ import {
   type AudioTier,
   type DropReason,
   type HeadwordLink,
+  type SentenceQualityMeasurement,
+  type SentenceQualityRecord,
   type SentenceRecord,
   type SentenceStats,
   type TriadSlot,
 } from "./sentence-schema.js";
+import {
+  EXCLUSION_RULES,
+  excludedBy,
+  maskedFrame,
+  maximalTokens,
+  readCedictForms,
+  riskWeightOf,
+  type CandidateLink,
+  type CedictForms,
+} from "./quality.js";
 import type { Band } from "./types.js";
 
 const REPO_ROOT = new URL("../../", import.meta.url);
 const DATA_DIR = fileURLToPath(new URL("data/", REPO_ROOT));
 const GENERATOR = "src/build/sentences.ts";
+/** The vendored CC-CEDICT dump `build:canon` already reads. Never edited here. */
+const CEDICT_JSON = process.env["ZHONGDEX_CEDICT"] ?? fileURLToPath(new URL("scripts/cedict.json", REPO_ROOT));
 
 /**
  * Where the SayMei checkout lives, read from `ZHONGDEX_SAYMEI_ROOT` — the same
@@ -240,6 +254,8 @@ async function fetchSentences(forms: readonly string[]): Promise<RawSentence[]> 
 interface CanonEntry extends CanonRow {
   /** Every bare form this row licenses; the DB is queried on these. */
   forms: string[];
+  /** The canon's own numbered pinyin, for the reading check in `quality.ts`. */
+  pinyinNumbered: string;
 }
 
 function readCanon(): CanonEntry[] {
@@ -263,7 +279,12 @@ function readCanon(): CanonEntry[] {
         ? asIntOrNull((hsk as Record<string, unknown>)["band2026"])
         : null;
     if (id === "" || simplified === "" || band === null || band < 1 || band > 7) continue;
-    out.push({ id, simplified, band: band as Band, forms: lookupForms(simplified) });
+    const pinyin = r["pinyin"];
+    const pinyinNumbered =
+      typeof pinyin === "object" && pinyin !== null
+        ? asString((pinyin as Record<string, unknown>)["numbered"])
+        : "";
+    out.push({ id, simplified, band: band as Band, forms: lookupForms(simplified), pinyinNumbered });
   }
   if (out.length === 0) throw new Error(`${path} yielded no usable canon rows.`);
   return out;
@@ -289,6 +310,11 @@ interface Graded {
   tier: AudioTier;
   provenance: string | null;
   sourceLevel: number | null;
+  /**
+   * The same sentence segmented against CC-CEDICT rather than the canon. Held
+   * per sentence, not per link, because it does not depend on the headword.
+   */
+  cedictTokens: Set<string>;
 }
 
 /** A graded sentence offered to one headword. */
@@ -348,9 +374,9 @@ function difficultyKey(offer: Offer): number {
  * audible range first keeps it near 80% while still reporting each sentence's
  * true grade, so nothing is misstated, only preferred.
  */
-function chooseKeys(byKey: ReadonlyMap<number, Offer[]>): number[] {
+function chooseKeys(byKey: ReadonlyMap<number, Candidate[]>): number[] {
   const all = [...byKey.keys()].sort((a, b) => a - b);
-  const audible = all.filter((k) => (byKey.get(k) ?? []).some((o) => o.graded.hasAudio));
+  const audible = all.filter((k) => (byKey.get(k) ?? []).some((c) => c.offer.graded.hasAudio));
   const chosen: number[] = [];
   const take = (key: number | undefined): void => {
     if (key !== undefined && !chosen.includes(key)) chosen.push(key);
@@ -367,23 +393,147 @@ function chooseKeys(byKey: ReadonlyMap<number, Offer[]>): number[] {
 
 /**
  * Best sentence at one difficulty key for one headword. Every tiebreak is a
- * quality signal rather than an accident of row order: a clip the learner can
- * hear, then the most typical length for the grade — nearest the corpus median,
- * so a slot does not fill with four-character fragments — then the text itself,
- * which makes the choice independent of iteration order.
+ * quality signal rather than an accident of row order: least quality risk
+ * first, then a clip the learner can hear, then the most typical length
+ * for the grade — nearest the corpus median, so a slot does not fill with
+ * four-character fragments — then the text itself, which makes the choice
+ * independent of iteration order.
+ *
+ * The risk weight leads because the pools below are already filtered on the
+ * rules; it decides only inside a fallback pool, where every candidate is
+ * flagged and the job is to keep the least-bad one.
  */
-function pick(offers: readonly Offer[], table: CharLengthTable): Offer | null {
-  if (offers.length === 0) return null;
-  const typicality = (offer: Offer): number =>
-    Math.abs(offer.graded.charLen - table.median(offer.graded.zsg));
-  const sorted = [...offers].sort((a, b) => {
-    if (a.graded.hasAudio !== b.graded.hasAudio) return a.graded.hasAudio ? -1 : 1;
+function pick(candidates: readonly Candidate[], table: CharLengthTable): Candidate | null {
+  if (candidates.length === 0) return null;
+  const typicality = (c: Candidate): number =>
+    Math.abs(c.offer.graded.charLen - table.median(c.offer.graded.zsg));
+  const sorted = [...candidates].sort((a, b) => {
+    if (a.risk !== b.risk) return a.risk - b.risk;
+    if (a.hits.length !== b.hits.length) return a.hits.length - b.hits.length;
+    if (a.offer.graded.hasAudio !== b.offer.graded.hasAudio) return a.offer.graded.hasAudio ? -1 : 1;
     const at = typicality(a);
     const bt = typicality(b);
     if (at !== bt) return at - bt;
-    return a.graded.hanzi < b.graded.hanzi ? -1 : a.graded.hanzi > b.graded.hanzi ? 1 : 0;
+    const x = a.offer.graded.hanzi;
+    const y = b.offer.graded.hanzi;
+    return x < y ? -1 : x > y ? 1 : 0;
   });
   return sorted[0] ?? null;
+}
+
+/* -------------------------------------------------------------------------- */
+/* The quality gate                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * ── Why the filter runs here and not afterwards ────────────────────────────
+ *
+ * A judged sample of 600 headword links put the shipped corpus at 12.85% broken
+ * (95% CI 10.08-15.63%), and the failure is not the sentences: `grammatical`
+ * fails on 6.5% of them. It is the *link* — a well-formed sentence in which the
+ * headword is buried inside a compound, invented as a surname, or read as a
+ * different word. See `src/build/quality.ts` for every rule and its evidence,
+ * and `data/quality-report.json` for the measurement they were derived from.
+ *
+ * Filtering a shipped corpus can only delete. Filtering during selection can
+ * *choose*, and the difference is the whole point: the build grades 137,541
+ * distinct sentences and ships around 30,000 of them, so for most headwords a
+ * flagged sentence has a clean sibling sitting in the pool unused. Three tiers,
+ * tried in order, and coverage cannot move because the last one accepts
+ * anything:
+ *
+ *   1. candidates that break no rule at all;
+ *   2. if none, candidates that break no hard rule;
+ *   3. if none, every candidate — and then only the single least-flagged one,
+ *      because a headword's last sentence is worth more than the rule.
+ *
+ * Single-character headwords are capped at one sentence in tiers 1 and 2. They
+ * are 42.78% broken in the measurement against a 12.85% base rate, at every
+ * band, and they are the reason the recommended policy in the quality report
+ * drops them down to a single link. This build keeps that decision and improves
+ * on it: the one link kept is the best of the pool rather than whichever
+ * survived.
+ */
+const HARD_RULE_IDS = new Set(EXCLUSION_RULES.filter((r) => r.tier === "hard").map((r) => r.id));
+
+/** One (sentence, headword) pair, scored against the gate. */
+interface Candidate {
+  offer: Offer;
+  slot: TriadSlot;
+  key: number;
+  /** Rule ids this candidate breaks, in `EXCLUSION_RULES` order. */
+  hits: string[];
+  hardHits: number;
+  softHits: number;
+  /** Weighted severity of `hits`. Only breaks ties inside a fallback pool. */
+  risk: number;
+}
+
+/** The first form of this headword that actually occurs in the sentence. */
+function matchedForm(word: CanonEntry, hanzi: string): string | null {
+  return word.forms.find((form) => hanzi.includes(form)) ?? null;
+}
+
+/**
+ * Which canon headwords share each masked sentence frame. Counted over every
+ * candidate link in the pool, not over the shipped subset, so a template is
+ * recognised by how the source used it rather than by what this build kept.
+ */
+function frameIndex(
+  canon: readonly CanonEntry[],
+  byForm: ReadonlyMap<string, Offer[]>,
+): Map<string, Set<string>> {
+  const frames = new Map<string, Set<string>>();
+  for (const word of canon) {
+    const seen = new Set<string>();
+    for (const form of word.forms) {
+      for (const offer of byForm.get(form) ?? []) {
+        if (seen.has(offer.graded.id)) continue;
+        seen.add(offer.graded.id);
+        const matched = matchedForm(word, offer.graded.hanzi);
+        if (matched === null) continue;
+        const frame = maskedFrame(offer.graded.hanzi, matched);
+        const holders = frames.get(frame);
+        if (holders === undefined) frames.set(frame, new Set([word.id]));
+        else holders.add(word.id);
+      }
+    }
+  }
+  return frames;
+}
+
+function candidateFor(
+  word: CanonEntry,
+  offer: Offer,
+  table: CharLengthTable,
+  frames: ReadonlyMap<string, Set<string>>,
+): Candidate | null {
+  const matched = matchedForm(word, offer.graded.hanzi);
+  if (matched === null) return null;
+  const slot = slotFor(offer.graded.zsg, word.band);
+  const link: CandidateLink = {
+    hanzi: offer.graded.hanzi,
+    pinyinNumbered: offer.graded.pinyinNumbered,
+    headword: matched,
+    headwordPinyinNumbered: word.pinyinNumbered,
+    words: offer.graded.words,
+    cedictTokens: offer.graded.cedictTokens,
+    slot,
+    charLengthPercentilePct: table.percentile(offer.graded.zsg, offer.graded.charLen),
+    frameHeadwordCount: frames.get(maskedFrame(offer.graded.hanzi, matched))?.size ?? 1,
+  };
+  const hits = excludedBy(link);
+  let hardHits = 0;
+  for (const id of hits) if (HARD_RULE_IDS.has(id)) hardHits += 1;
+  return {
+    offer,
+    slot,
+    key: difficultyKey(offer),
+    hits,
+    hardHits,
+    softHits: hits.length - hardHits,
+    risk: riskWeightOf(hits),
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -395,7 +545,11 @@ interface BuildResult {
   stats: SentenceStats;
 }
 
-function build(canon: readonly CanonEntry[], raw: readonly RawSentence[]): BuildResult {
+function build(
+  canon: readonly CanonEntry[],
+  raw: readonly RawSentence[],
+  cedict: CedictForms,
+): BuildResult {
   const index: CanonIndex = buildCanonIndex(canon);
 
   const drops: Record<DropReason, number> = Object.fromEntries(
@@ -454,6 +608,7 @@ function build(canon: readonly CanonEntry[], raw: readonly RawSentence[]): Build
         tier: row.hasAudio ? (row.hasMaster ? "two-speed" : "slow-only") : "none",
         provenance: row.audioSource,
         sourceLevel: row.sourceLevel,
+        cedictTokens: maximalTokens(row.hanzi, cedict.forms, cedict.maxFormLength),
       };
       gradedById.set(id, graded);
     } else if (row.hasAudio && !graded.hasAudio) {
@@ -477,46 +632,123 @@ function build(canon: readonly CanonEntry[], raw: readonly RawSentence[]): Build
   );
 
   // ── selection ────────────────────────────────────────────────────────────
+  const frames = frameIndex(canon, byForm);
   const links = new Map<string, HeadwordLink[]>();
   const slotDistribution: Record<TriadSlot, number> = { easy: 0, atLevel: 0, stretch: 0 };
   const triadFullness: Record<string, number> = { "0": 0, "1": 0, "2": 0, "3": 0 };
   const selectedIds = new Set<string>();
 
+  const flaggedCandidates: Record<string, number> = {};
+  const flaggedSelected: Record<string, number> = {};
+  for (const rule of EXCLUSION_RULES) {
+    flaggedCandidates[rule.id] = 0;
+    flaggedSelected[rule.id] = 0;
+  }
+  const pools = { clean: 0, softFallback: 0, lastLinkFallback: 0, none: 0 };
+  let candidateLinks = 0;
+  let singleCharCapped = 0;
+
   for (const word of [...canon].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) {
-    const byKey = new Map<number, Offer[]>();
+    const candidates: Candidate[] = [];
     const seen = new Set<string>();
     for (const form of word.forms) {
       for (const offer of byForm.get(form) ?? []) {
         if (seen.has(offer.graded.id)) continue;
         seen.add(offer.graded.id);
-        const key = difficultyKey(offer);
-        const bucket = byKey.get(key);
-        if (bucket === undefined) byKey.set(key, [offer]);
-        else bucket.push(offer);
+        const candidate = candidateFor(word, offer, table, frames);
+        if (candidate === null) continue;
+        candidates.push(candidate);
+        candidateLinks += 1;
+        for (const id of candidate.hits) flaggedCandidates[id] = (flaggedCandidates[id] ?? 0) + 1;
       }
     }
 
-    let filled = 0;
-    for (const key of chooseKeys(byKey)) {
-      const chosen = pick(byKey.get(key) ?? [], table);
-      if (chosen === null) continue;
-      const slot = slotFor(chosen.graded.zsg, word.band);
-      filled += 1;
-      slotDistribution[slot] += 1;
-      selectedIds.add(chosen.graded.id);
+    // Three pools, in order. The last one accepts every candidate, so a
+    // headword with any sentence at all keeps one and coverage cannot move.
+    const hardClean = candidates.filter((c) => c.hardHits === 0);
+    const clean = hardClean.filter((c) => c.softHits === 0);
+    const singleChar = [...word.simplified].length === 1;
+    let pool: Candidate[];
+    let limit: number;
+    if (clean.length > 0) {
+      pool = clean;
+      limit = singleChar ? 1 : 3;
+      pools.clean += 1;
+    } else if (hardClean.length > 0) {
+      pool = hardClean;
+      limit = singleChar ? 1 : 3;
+      pools.softFallback += 1;
+    } else if (candidates.length > 0) {
+      pool = candidates;
+      limit = 1;
+      pools.lastLinkFallback += 1;
+    } else {
+      pool = [];
+      limit = 0;
+      pools.none += 1;
+    }
+    if (singleChar && limit === 1 && pool.length > 1) singleCharCapped += 1;
+
+    const chosen: Candidate[] = [];
+    if (limit === 1) {
+      const best = pick(pool, table);
+      if (best !== null) chosen.push(best);
+    } else {
+      const byKey = new Map<number, Candidate[]>();
+      for (const candidate of pool) {
+        const bucket = byKey.get(candidate.key);
+        if (bucket === undefined) byKey.set(candidate.key, [candidate]);
+        else bucket.push(candidate);
+      }
+      for (const key of chooseKeys(byKey)) {
+        const best = pick(byKey.get(key) ?? [], table);
+        if (best !== null) chosen.push(best);
+      }
+    }
+
+    for (const candidate of chosen) {
+      slotDistribution[candidate.slot] += 1;
+      selectedIds.add(candidate.offer.graded.id);
+      for (const id of candidate.hits) flaggedSelected[id] = (flaggedSelected[id] ?? 0) + 1;
       const link: HeadwordLink = {
         wordId: word.id,
         simplified: word.simplified,
         band: word.band,
-        slot,
-        senseIndex: chosen.senseIndex,
+        slot: candidate.slot,
+        senseIndex: candidate.offer.senseIndex,
       };
-      const list = links.get(chosen.graded.id);
-      if (list === undefined) links.set(chosen.graded.id, [link]);
+      const list = links.get(candidate.offer.graded.id);
+      if (list === undefined) links.set(candidate.offer.graded.id, [link]);
       else list.push(link);
     }
-    triadFullness[String(filled)] = (triadFullness[String(filled)] ?? 0) + 1;
+    triadFullness[String(chosen.length)] = (triadFullness[String(chosen.length)] ?? 0) + 1;
   }
+
+  const quality: SentenceQualityRecord = {
+    note:
+      "Applied during selection, not afterwards: every rule below decides which of a " +
+      "headword's candidate sentences ship, and data/sentences.jsonl is already the " +
+      "filtered corpus. The rules and their evidence live in src/build/quality.ts; the " +
+      "judged measurement they were derived from is data/quality-report.json.",
+    generator: "src/build/quality.ts",
+    candidateLinks,
+    rules: EXCLUSION_RULES.map((rule) => ({
+      id: rule.id,
+      tier: rule.tier,
+      rule: rule.rule,
+      evidence: rule.evidence,
+      candidateLinksFlagged: flaggedCandidates[rule.id] ?? 0,
+      selectedLinksFlagged: flaggedSelected[rule.id] ?? 0,
+    })),
+    selection: {
+      note:
+        "Pools are tried in order — clean, then hard-clean, then everything — and the " +
+        "last pool ships exactly one sentence, so no rule can take a headword's last " +
+        "link. A selected link carrying a flag is a headword whose whole pool carried it.",
+      headwordsByPool: pools,
+      singleCharHeadwordsCappedToOne: singleCharCapped,
+    },
+  };
 
   const selected = [...selectedIds]
     .map((id) => gradedById.get(id))
@@ -634,9 +866,11 @@ function build(canon: readonly CanonEntry[], raw: readonly RawSentence[]): Build
         "A value of 1 is an i+1 sentence. Tokens outside HSK 3.0 count against every prefix, " +
         "including 7.",
       selection:
-        "Up to 3 per headword, spread over the difficulty key (zsg, " +
-        "newWordCount[\"1\"]): lowest, highest, middle. Both parts ship in every " +
-        "record. A headword with one distinct key ships one sentence.",
+        "Candidates are filtered by the quality gate (see `quality` below), then up to 3 " +
+        "per headword are spread over the difficulty key (zsg, newWordCount[\"1\"]): " +
+        "lowest, highest, middle. Both parts ship in every record. A headword with one " +
+        "distinct key ships one sentence; a single-character headword ships one sentence " +
+        "by rule; a headword whose every candidate is flagged ships its least-flagged one.",
       charLengthPercentile:
         "Mid-rank percentile of the sentence's character count against every GRADED sentence " +
         "of the same ZSG band — the full pool, not the shipped subset, which is chosen partly " +
@@ -677,6 +911,7 @@ function build(canon: readonly CanonEntry[], raw: readonly RawSentence[]): Build
       headwordAttestedAsTokenPct: pct(attested, totalLinks),
       charLenPercentileTable: table.summary(),
     },
+    quality,
     sourceHskLevelAgreement: {
       note:
         "The source rows carry their own hskLevel. It is never trusted, only compared: this " +
@@ -699,11 +934,35 @@ function toJsonl(records: readonly SentenceRecord[]): string {
   return records.map((r) => JSON.stringify(r)).join("\n") + (records.length > 0 ? "\n" : "");
 }
 
+/**
+ * A measurement of the corpus this build is about to replace, kept only if the
+ * corpus it describes is byte-identical to the one being written. A judged
+ * defect rate belongs to one exact corpus; carrying it across a rebuild that
+ * changed the data would be a number describing sentences that are no longer
+ * there. Written by `npx tsx src/build/quality.ts --remeasure`.
+ */
+function carriedMeasurement(jsonl: string): SentenceQualityMeasurement | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(readFileSync(`${DATA_DIR}sentence-stats.json`, "utf8"));
+  } catch {
+    return undefined;
+  }
+  if (typeof parsed !== "object" || parsed === null) return undefined;
+  const measured = (parsed as Record<string, unknown>)["measuredQuality"];
+  if (typeof measured !== "object" || measured === null) return undefined;
+  const digest = (measured as Record<string, unknown>)["corpusSha256"];
+  const actual = createHash("sha256").update(jsonl, "utf8").digest("hex");
+  return digest === actual ? (measured as SentenceQualityMeasurement) : undefined;
+}
+
 async function main(): Promise<void> {
   const canon = readCanon();
+  const cedict = readCedictForms(CEDICT_JSON);
   const forms = [...new Set(canon.flatMap((w) => w.forms))].sort();
   const log = (line: string): void => void process.stderr.write(`${line}\n`);
   log(`sentences: ${canon.length} canon rows -> ${forms.length} lookup forms`);
+  log(`sentences: ${cedict.forms.size} CC-CEDICT compound forms for the buriedness check`);
 
   const raw = await fetchSentences(forms);
   const digest = createHash("sha256")
@@ -711,7 +970,12 @@ async function main(): Promise<void> {
     .digest("hex");
   log(`sentences: read ${raw.length} source rows (extraction sha256 ${digest.slice(0, 16)})`);
 
-  const { records, stats } = build(canon, raw);
+  const { records, stats } = build(canon, raw, cedict);
+  const jsonl = toJsonl(records);
+  // A measurement describes one exact corpus, so it survives a rebuild only if
+  // the rebuild produced that corpus. Otherwise it is dropped, not carried.
+  const measured = carriedMeasurement(jsonl);
+  if (measured !== undefined) stats.measuredQuality = measured;
   if (stats.idCollisions > 0) {
     throw new Error(
       `${stats.idCollisions} sentence id collisions at 12 hex digits. Widen sentenceId().`,
@@ -719,7 +983,7 @@ async function main(): Promise<void> {
   }
 
   mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(`${DATA_DIR}sentences.jsonl`, toJsonl(records));
+  writeFileSync(`${DATA_DIR}sentences.jsonl`, jsonl);
   writeFileSync(`${DATA_DIR}sentence-stats.json`, `${JSON.stringify(stats, null, 2)}\n`);
 
   const grades = BANDS.map((b) => `${b}=${stats.selected.gradeDistribution[String(b)] ?? 0}`).join(" ");

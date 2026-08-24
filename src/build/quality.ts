@@ -36,11 +36,19 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 
 import type { Band } from "./types.js";
+import type { SentenceQualityMeasurement } from "./sentence-schema.js";
 import {
+  JUDGE_PROMPT,
   QUALITY_REPORT_JSON,
   STRATA,
+  bandGroupOf,
+  buildLinks,
+  drawSample,
+  geminiClient,
+  lenGroupOf,
   readCanon,
   readCorpus,
+  resolveApiKey,
   stratifiedEstimate,
   stratumOf,
   wilson,
@@ -84,26 +92,6 @@ export interface LinkFeatures {
   zsg: Band;
   beyondHskTokens: number;
 }
-
-/**
- * Titles that turn the word in front of them into a name. A common noun sitting
- * in this slot is the `室先生` failure: the generator needed a surname, had a
- * headword, and used it.
- */
-const NAME_TITLES: readonly string[] = [
-  "先生",
-  "女士",
-  "小姐",
-  "老师",
-  "太太",
-  "夫人",
-  "同志",
-  "教授",
-  "医生",
-  "老板",
-  "阿姨",
-  "叔叔",
-];
 
 /**
  * CC-CEDICT's vocabulary for "this is not a free word". A headword whose gloss
@@ -201,10 +189,7 @@ export const PREDICTORS: readonly Predictor[] = [
     hypothesis:
       "A common noun immediately followed by a title, or preceded by 姓 or 叫, has been " +
       "pressed into service as a surname. This is the 室先生 failure.",
-    test: (f) =>
-      NAME_TITLES.some((t) => f.hanzi.includes(`${f.headword}${t}`)) ||
-      f.hanzi.includes(`姓${f.headword}`) ||
-      f.hanzi.includes(`叫${f.headword}`),
+    test: (f) => usedAsName(f.hanzi, f.headword),
     riskWeight: 3,
   },
   {
@@ -272,6 +257,342 @@ export function riskScore(f: LinkFeatures): number {
   let score = 0;
   for (const p of PREDICTORS) if (p.test(f)) score += p.riskWeight;
   return score;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Build-time exclusion gate                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The predictors above are a post-hoc scoring of a corpus that already shipped.
+ * This section is the same evidence turned into a rule the *build* runs, so the
+ * corpus never contains the links in the first place.
+ *
+ * Two tiers, and the difference between them is what happens when a headword
+ * has nothing better:
+ *
+ *   **hard**  the link is never selected while any unflagged candidate exists.
+ *             Every hard rule is measured at or above 45% broken against a
+ *             corpus base rate of 12.85% — a link one of these flags is three
+ *             to eight times worse than an average one.
+ *   **soft**  the link is selected only when no candidate clears both tiers.
+ *             These are the rules with real lift but too little precision to
+ *             delete on; they cost nothing here because the build has 137,541
+ *             graded sentences to choose from and ships 30,000.
+ *
+ * Neither tier can take a headword's last sentence: `sentences.ts` falls back
+ * through soft, then hard, then the whole candidate list, so coverage is
+ * arithmetically unchanged. A rule can only ever change *which* sentence a
+ * headword gets, or reduce a headword from three sentences to one.
+ *
+ * Every `evidence` string is a count over the 600 judged labels in
+ * `data/quality-report.json`, measured on the corpus that shipped before this
+ * gate existed. They are sample counts, not corpus rates: the corpus rate is
+ * population-weighted, and `PREDICTORS` above carries the weighted version for
+ * the four rules that predate this gate.
+ */
+
+/** One candidate (sentence, headword) pair, as the build sees it before selection. */
+export interface CandidateLink {
+  hanzi: string;
+  /** Numbered pinyin for the sentence, one syllable per Han character. Null when unparseable. */
+  pinyinNumbered: string | null;
+  /** The exact headword form that occurs in this sentence. */
+  headword: string;
+  /** Numbered pinyin of the headword, from the canon. */
+  headwordPinyinNumbered: string;
+  /** Canon forms attested in the sentence — `grade()`'s `words`. */
+  words: readonly string[];
+  /** Tokens of the same sentence under CC-CEDICT's much larger form list. */
+  cedictTokens: ReadonlySet<string>;
+  slot: string;
+  charLengthPercentilePct: number;
+  /** How many distinct canon headwords share this sentence with the headword blanked out. */
+  frameHeadwordCount: number;
+}
+
+/**
+ * Titles that turn the word in front of them into a name. A common noun sitting
+ * in this slot is the `室先生` failure: the generator needed a surname, had a
+ * headword, and used it.
+ *
+ * The list is longer than the twelve titles the first pass used, because the
+ * first pass caught 10 of the sample's defects and this one catches 18 with no
+ * false positive: the generator invents 延博士, 也律师, 区经理, 咸律师 and
+ * 枚董事长 as readily as it invents 室先生. Terms that are also ordinary nouns
+ * after a modifier — 同学, 专家, 记者, 护士 — are deliberately absent: 老同学
+ * and 女专家 would flag 老 and 女 for a use that is perfectly correct.
+ */
+const NAME_TITLES: readonly string[] = [
+  "先生", "女士", "小姐", "老师", "太太", "夫人", "同志", "教授", "医生", "老板",
+  "阿姨", "叔叔", "博士", "律师", "经理", "董事长", "总经理", "主任", "主席",
+  "部长", "校长", "院长", "秘书", "队长", "警官", "法官", "工程师", "大夫",
+  "师傅", "教练", "厂长", "局长", "处长", "科长", "市长", "省长", "县长",
+  "站长", "团长", "会长", "社长", "馆长", "老总", "总统", "总理", "将军",
+  "书记", "司令", "顾问", "大使", "牧师", "神父", "董事",
+];
+
+/** The `室先生` / `姓室` / `叫室` test, on one headword form. */
+export function usedAsName(hanzi: string, headword: string): boolean {
+  if (headword === "") return false;
+  return (
+    NAME_TITLES.some((t) => hanzi.includes(`${headword}${t}`)) ||
+    hanzi.includes(`姓${headword}`) ||
+    hanzi.includes(`叫${headword}`)
+  );
+}
+
+const HAN_CHAR = /\p{Script=Han}/u;
+
+/**
+ * Forward maximum matching over an arbitrary form list. `grade.ts` segments
+ * against the canon because ZSG must be re-derivable from the published word
+ * list alone; this one segments against CC-CEDICT's 120,400 headwords, which
+ * is not a grading input but is a far better answer to "is this character a
+ * word here, or a piece of one?". 校训 and 焊接 are not HSK words, so the canon
+ * segmenter hands back 训 and 焊 as free tokens; CC-CEDICT does not.
+ */
+export function maximalTokens(
+  hanzi: string,
+  forms: ReadonlySet<string>,
+  maxFormLength: number,
+): Set<string> {
+  const chars = [...hanzi];
+  const out = new Set<string>();
+  let i = 0;
+  while (i < chars.length) {
+    const head = chars[i];
+    if (head === undefined) break;
+    if (!HAN_CHAR.test(head)) {
+      i += 1;
+      continue;
+    }
+    let matched = false;
+    const limit = Math.min(maxFormLength, chars.length - i);
+    for (let len = limit; len >= 2; len -= 1) {
+      const slice = chars.slice(i, i + len);
+      if (!slice.every((c) => HAN_CHAR.test(c))) continue;
+      const candidate = slice.join("");
+      if (forms.has(candidate)) {
+        out.add(candidate);
+        i += len;
+        matched = true;
+        break;
+      }
+    }
+    if (matched) continue;
+    out.add(head);
+    i += 1;
+  }
+  return out;
+}
+
+export interface CedictForms {
+  forms: ReadonlySet<string>;
+  maxFormLength: number;
+}
+
+/**
+ * Every multi-character simplified headword CC-CEDICT knows, for `maximalTokens`.
+ * Reads the vendored dump the canon build already depends on, so this adds no
+ * new source and no network read. Single characters are excluded: a one-character
+ * entry cannot bury anything.
+ */
+export function readCedictForms(path: string): CedictForms {
+  const parsed = JSON.parse(readFileSync(path, "utf8")) as { data?: Record<string, unknown> };
+  const data = parsed.data;
+  if (typeof data !== "object" || data === null) {
+    throw new Error(`quality: ${path} has no "data" object. Expected the vendored CC-CEDICT dump.`);
+  }
+  const forms = new Set<string>();
+  let maxFormLength = 2;
+  for (const key of Object.keys(data)) {
+    const chars = [...key];
+    if (chars.length < 2 || !chars.every((c) => HAN_CHAR.test(c))) continue;
+    forms.add(key);
+    if (chars.length > maxFormLength) maxFormLength = chars.length;
+  }
+  // 8 characters is past every compound and into chengyu-plus-gloss territory;
+  // the cap keeps the inner loop bounded on a 120,000-entry form list.
+  return { forms, maxFormLength: Math.min(maxFormLength, 8) };
+}
+
+/**
+ * The sentence with the headword blanked out. Two sentences with the same frame
+ * are the same generated template filled with different words — `这是◇。`,
+ * `他是一个◇的人。`, `◇先生在学校工作。` — and a template stamped across
+ * hundreds of headwords is a frame, not a sentence about anything.
+ */
+export function maskedFrame(hanzi: string, headword: string): string {
+  return headword === "" ? hanzi : hanzi.split(headword).join("\u25c7");
+}
+
+/** One numbered-pinyin syllable, split into base and tone. Null when unparseable. */
+function syllable(raw: string): { base: string; tone: string } | null {
+  const cleaned = raw.toLowerCase().replace(/ü/g, "v").replace(/u:/g, "v");
+  const m = /^([a-z]+)([1-5])?$/.exec(cleaned);
+  if (m === null) return null;
+  const base = m[1];
+  if (base === undefined) return null;
+  return { base, tone: m[2] ?? "5" };
+}
+
+/**
+ * True when the sentence reads the headword as a different word.
+ *
+ * The source ships one pinyin syllable per Han character, so the syllables can
+ * be aligned to the characters positionally and the headword's own reading
+ * checked against the canon's. 他买了三担苹果 spells 担 `dan4`, the measure
+ * word; the headword is `dan1`, the verb. 农民伯伯正在地里干活 spells 地 `di4`,
+ * the noun; the headword is the particle `de5`. Both are well-formed Chinese
+ * that teaches the wrong word, which is exactly the defect the judge's
+ * `headwordNatural` flag keeps failing on.
+ *
+ * Conservative by construction: any misalignment, any unparseable syllable, and
+ * any occurrence that does match returns false. `bu` and `yi` are exempt from
+ * the tone test because 不 and 一 change tone by sandhi, and a neutral tone on
+ * either side matches anything, because the two sources spell it differently.
+ */
+export function readingMismatch(
+  hanzi: string,
+  pinyinNumbered: string | null,
+  headword: string,
+  headwordPinyinNumbered: string,
+): boolean {
+  if (pinyinNumbered === null || headword === "") return false;
+  const syllables = pinyinNumbered.split(" ").filter((s) => s !== "");
+  const chars = [...hanzi];
+  const positionOf = new Map<number, number>();
+  let han = 0;
+  chars.forEach((c, i) => {
+    if (HAN_CHAR.test(c)) {
+      positionOf.set(i, han);
+      han += 1;
+    }
+  });
+  if (han !== syllables.length) return false;
+
+  const headChars = [...headword];
+  const want = headwordPinyinNumbered.split(" ").filter((s) => s !== "").map(syllable);
+  if (want.length !== headChars.length || want.some((w) => w === null)) return false;
+
+  let sawOccurrence = false;
+  for (let i = 0; i + headChars.length <= chars.length; i += 1) {
+    if (chars.slice(i, i + headChars.length).join("") !== headword) continue;
+    const got: ({ base: string; tone: string } | null)[] = [];
+    for (let j = 0; j < headChars.length; j += 1) {
+      const at = positionOf.get(i + j);
+      got.push(at === undefined ? null : syllable(syllables[at] ?? ""));
+    }
+    if (got.some((g) => g === null)) continue;
+    sawOccurrence = true;
+    const agrees = got.every((g, j) => {
+      const w = want[j];
+      if (g === null || w === null || w === undefined) return true;
+      if (g.base !== w.base) return false;
+      if (w.base === "bu" || w.base === "yi") return true;
+      if (g.tone === "5" || w.tone === "5") return true;
+      return g.tone === w.tone;
+    });
+    if (agrees) return false;
+  }
+  return sawOccurrence;
+}
+
+export interface ExclusionRule {
+  id: string;
+  tier: "hard" | "soft";
+  /** What the rule says, in one line. Ships in `data/sentence-stats.json`. */
+  rule: string;
+  /** What the 600 judged labels say about it. Sample counts, not corpus rates. */
+  evidence: string;
+  /**
+   * Ranked roughly by the measured share of flagged links that are broken, and
+   * used for one thing only: when every candidate a headword has is flagged,
+   * the build keeps the lowest total weight. Without it a headword whose whole
+   * pool is flagged keeps an arbitrary member of it, and `室先生住在北京。`
+   * wins a coin toss against a merely buried headword.
+   */
+  weight: number;
+  test: (c: CandidateLink) => boolean;
+}
+
+/**
+ * Every rule the build applies, in the order a reader should meet them. A link
+ * flagged by any `hard` rule is excluded while an unflagged candidate exists;
+ * `soft` rules break the remaining tie the same way, one fallback later.
+ */
+export const EXCLUSION_RULES: readonly ExclusionRule[] = [
+  {
+    id: "headword-used-as-name",
+    tier: "hard",
+    rule: "The headword is immediately followed by a personal title, or preceded by 姓 or 叫 — it has been pressed into service as a surname.",
+    evidence: "18 of 18 flagged sample links are broken (100%), against a 12.85% corpus base rate.",
+    weight: 8,
+    test: (c) => usedAsName(c.hanzi, c.headword),
+  },
+  {
+    id: "slot-easy",
+    tier: "hard",
+    rule: "The sentence grades below the headword's own band, so the headword is the hardest thing in it and everything around it is filler.",
+    evidence: "13 of 16 flagged sample links are broken (81%).",
+    weight: 6,
+    test: (c) => c.slot === "easy",
+  },
+  {
+    id: "headword-not-discrete-token",
+    tier: "hard",
+    rule: "The headword does not survive canon segmentation as its own token: it is buried inside a longer HSK word, and the sentence teaches that word instead.",
+    evidence: "30 of 48 flagged sample links are broken (63%).",
+    weight: 5,
+    test: (c) => !c.words.includes(c.headword),
+  },
+  {
+    id: "headword-buried-in-compound",
+    tier: "hard",
+    rule: "Same test against CC-CEDICT's 120,400 headwords rather than the 11,092 HSK ones: 训 inside 校训, 焊 inside 焊接, 知识 inside 知识分子 — compounds the canon is too small to see.",
+    evidence: "39 of 81 flagged sample links are broken (48%); it flags 33 links the canon test misses, 9 of them broken (27%).",
+    weight: 4,
+    test: (c) => !c.cedictTokens.has(c.headword),
+  },
+  {
+    id: "headword-reading-mismatch",
+    tier: "hard",
+    rule: "The sentence's own pinyin reads the headword as a different word — 担 as dàn not dān, 地 as dì not de, 正 as zhēng not zhèng.",
+    evidence: "11 of 21 flagged sample links are broken (52%); 10 of 16 among single-character headwords (63%).",
+    weight: 4,
+    test: (c) =>
+      [...c.headword].length === 1 &&
+      readingMismatch(c.hanzi, c.pinyinNumbered, c.headword, c.headwordPinyinNumbered),
+  },
+  {
+    id: "sentence-short-for-band",
+    tier: "soft",
+    rule: "The sentence is in the bottom decile of length for its own grade band — a frame with the headword dropped into it rather than a sentence about anything. 这是自助。 是 five characters.",
+    evidence: "8 of 27 flagged sample links are broken (30%) among multi-character headwords, against 5.6% for the rest.",
+    weight: 2,
+    test: (c) => c.charLengthPercentilePct <= 10,
+  },
+  {
+    id: "frame-shared-with-other-headwords",
+    tier: "soft",
+    rule: "Blank the headword out and the same sentence is filed under another headword too: it is a template the source stamped across the word list, not a sentence written for this word.",
+    evidence: "Among single-character headwords that clear every hard rule, 10 of 16 links on a shared frame are broken (63%) against 11 of 67 on a unique one (16%).",
+    weight: 2,
+    test: (c) => c.frameHeadwordCount >= 2,
+  },
+];
+
+/** Which rules flag this candidate, in `EXCLUSION_RULES` order. */
+export function excludedBy(c: CandidateLink): string[] {
+  return EXCLUSION_RULES.filter((r) => r.test(c)).map((r) => r.id);
+}
+
+/** Total weight of the rules flagging this candidate. Zero for a clean one. */
+export function riskWeightOf(hits: readonly string[]): number {
+  let weight = 0;
+  for (const rule of EXCLUSION_RULES) if (hits.includes(rule.id)) weight += rule.weight;
+  return weight;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -664,8 +985,299 @@ function pct(x: number): string {
   return `${(x * 100).toFixed(2)}%`;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Re-measurement                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `--remeasure` judges a fresh stratified sample of the corpus as it stands now
+ * and writes the result into `data/sentence-stats.json`.
+ *
+ * It exists because the filter moved the thing being measured. The 600 labels
+ * in `data/quality-report.json` describe the corpus that shipped before the
+ * gate above existed: 11,308 of those links are no longer in the corpus, and
+ * the ones that remain are exactly the links the gate did not touch, so scoring
+ * the new corpus on them would be scoring a filter on the sample it was fitted
+ * to. A new seed and a new draw is the only honest answer.
+ *
+ * Everything about the instrument is `quality-judge.ts`'s: the same prompt, the
+ * same model, the same temperature, the same stratification, the same
+ * estimator. Only the seed and the corpus differ, so the number that comes back
+ * is comparable to the 12.85% it is being compared against.
+ *
+ * Usage:
+ *   GEMINI_API_KEY=... npx tsx src/build/quality.ts --remeasure \
+ *     [--seed zhongdex-quality-v2] [--n 600] [--model gemini-3.7-flash] \
+ *     [--concurrency 8] [--emit-labels out.json]
+ */
+
+const REMEASURE_SEED = "zhongdex-quality-v2";
+const REMEASURE_MODEL = "gemini-3.7-flash";
+const SENTENCE_STATS_JSON = "data/sentence-stats.json";
+/** The same default path `readCorpus()` reads; needed here for its digest. */
+const SENTENCES_JSONL = "data/sentences.jsonl";
+
+async function runPool<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  worker: (item: T) => Promise<R>,
+  onProgress: (done: number, total: number) => void,
+): Promise<R[]> {
+  const out: R[] = new Array<R>(items.length);
+  let next = 0;
+  let done = 0;
+  const runners = Array.from({ length: Math.max(1, Math.min(concurrency, items.length)) }, async () => {
+    for (;;) {
+      const index = next;
+      next += 1;
+      const item = items[index];
+      if (item === undefined) return;
+      out[index] = await worker(item);
+      done += 1;
+      onProgress(done, items.length);
+    }
+  });
+  await Promise.all(runners);
+  return out;
+}
+
+async function remeasure(argv: readonly string[]): Promise<void> {
+  const seed = arg(argv, "--seed") ?? REMEASURE_SEED;
+  const model = arg(argv, "--model") ?? REMEASURE_MODEL;
+  const size = Number(arg(argv, "--n") ?? 600);
+  const floor = Number(arg(argv, "--floor") ?? 40);
+  const concurrency = Number(arg(argv, "--concurrency") ?? 8);
+  const emitLabels = arg(argv, "--emit-labels");
+  const fromLabels = arg(argv, "--from-labels");
+  if (!Number.isFinite(size) || size <= 0) throw new Error("quality: --n must be a positive integer");
+
+  const corpusText = readFileSync(SENTENCES_JSONL, "utf8");
+  const corpus = readCorpus();
+  const canon = readCanon();
+  const links = buildLinks(corpus, canon);
+  const headwords = new Set(links.map((l) => l.wordId));
+  log(`quality: frame ${corpus.length} sentences, ${links.length} links, ${headwords.size} headwords`);
+
+  const sample = drawSample(links, size, floor, seed);
+  log(
+    `quality: drawn ${sample.links.length} links across ${sample.allocations.length} strata` +
+      ` (seed "${seed}") — judging with ${model} at concurrency ${concurrency}`,
+  );
+
+  // `--from-labels` re-derives the summary from labels an earlier run wrote,
+  // without spending the calls again. The draw is the same because the seed is
+  // the same, so this is an aggregation, not a second measurement — and it lets
+  // anyone recompute every number below from the raw labels.
+  let failures = 0;
+  let tokensUsed: number | null = null;
+  let labels: JudgedLink[];
+  if (fromLabels !== undefined) {
+    const saved = JSON.parse(readFileSync(fromLabels, "utf8")) as {
+      labels?: JudgedLink[];
+      totalTokens?: number;
+    };
+    labels = saved.labels ?? [];
+    tokensUsed = saved.totalTokens ?? null;
+    const drawn = new Set(sample.links.map((l) => l.linkId));
+    const stray = labels.filter((l) => !drawn.has(l.linkId)).length;
+    if (stray > 0) {
+      throw new Error(
+        `quality: ${stray} of the ${labels.length} labels in ${fromLabels} are not in the ` +
+          `sample seed "${seed}" draws. They were judged on a different draw or a different ` +
+          `corpus. Next: npm run quality:remeasure -- --seed <the seed those labels used>`,
+      );
+    }
+    log(`quality: re-aggregating ${labels.length} labels from ${fromLabels}, no model calls`);
+  } else {
+    const client = geminiClient(model, resolveApiKey(process.env));
+    const judged = await runPool(
+      sample.links,
+      concurrency,
+      async (link): Promise<JudgedLink | null> => {
+        try {
+          return { ...link, ...(await client.judge(link)) };
+        } catch (cause) {
+          failures += 1;
+          log(`  judge failed on ${link.linkId}: ${String(cause)}`);
+          return null;
+        }
+      },
+      (done, total) => {
+        if (done % 50 === 0 || done === total) log(`  judged ${done}/${total}`);
+      },
+    );
+    labels = judged.filter((j): j is JudgedLink => j !== null);
+    tokensUsed = client.tokensUsed();
+  }
+  if (labels.length === 0) throw new Error("quality: the judge returned no labels at all");
+
+  const populations = new Map(sample.allocations.map((a) => [a.stratum, a.population]));
+  const byStratum = STRATA.filter((s) => (populations.get(s) ?? 0) > 0).map((s) => {
+    const kept = labels.filter((l) => l.stratum === s);
+    return {
+      stratum: s,
+      population: populations.get(s) ?? 0,
+      n: kept.length,
+      broken: kept.filter((l) => l.verdict === "broken").length,
+      notClean: kept.filter((l) => l.verdict !== "good").length,
+    };
+  });
+  const broken = stratifiedEstimate(
+    byStratum.map((t) => ({ population: t.population, n: t.n, successes: t.broken })),
+  );
+  const notClean = stratifiedEstimate(
+    byStratum.map((t) => ({ population: t.population, n: t.n, successes: t.notClean })),
+  );
+
+  /**
+   * A breakdown by one axis. The rate is population-weighted across the strata
+   * inside the group, not a raw sample mean: the sample deliberately
+   * over-samples the small strata, so a mean over it would answer a question
+   * about the sample rather than about the corpus.
+   */
+  const group = (
+    stratumKeyOf: (s: string) => string,
+  ): { group: string; population: number; n: number; broken: number; brokenRate: number }[] => {
+    const keys = [...new Set(byStratum.map((t) => stratumKeyOf(t.stratum)))].sort();
+    return keys.map((key) => {
+      const inside = byStratum.filter((t) => stratumKeyOf(t.stratum) === key);
+      const estimate = stratifiedEstimate(
+        inside.map((t) => ({ population: t.population, n: t.n, successes: t.broken })),
+      );
+      return {
+        group: key,
+        population: inside.reduce((sum, t) => sum + t.population, 0),
+        n: inside.reduce((sum, t) => sum + t.n, 0),
+        broken: inside.reduce((sum, t) => sum + t.broken, 0),
+        brokenRate: estimate.estimate,
+      };
+    });
+  };
+  const byLength = group((s) => s.slice(s.indexOf("-len") + 4));
+  const byBand = group((s) => s.slice(1, s.indexOf("-len")));
+
+  const flagNames = ["grammatical", "semanticallySensible", "headwordNatural", "nativeWouldWrite"] as const;
+  const byFlag: Record<string, { failed: number; n: number; rate: number }> = {};
+  for (const flag of flagNames) {
+    const failed = labels.filter((l) => !l[flag]).length;
+    byFlag[flag] = { failed, n: labels.length, rate: labels.length === 0 ? 0 : failed / labels.length };
+  }
+
+  let baseline = "";
+  try {
+    const previous = JSON.parse(readFileSync(QUALITY_REPORT_JSON, "utf8")) as QualityReportJudgeSection;
+    baseline =
+      `The same instrument on the corpus that shipped before the quality gate measured ` +
+      `${pct(previous.results.corpusWide.brokenRate)} broken ` +
+      `(95% CI ${pct(previous.results.corpusWide.brokenCi95.low)}-` +
+      `${pct(previous.results.corpusWide.brokenCi95.high)}, n=${previous.sampling.judged}, ` +
+      `seed "${previous.sampling.seed}"), with ` +
+      `${pct(previous.results.corpusWide.notCleanRate - previous.results.corpusWide.brokenRate)} ` +
+      `further awkward. This measurement is a fresh draw on a new seed against the filtered ` +
+      `corpus, so it is like-for-like on everything but the corpus and the seed.`;
+  } catch {
+    baseline = "No earlier measurement was readable at data/quality-report.json.";
+  }
+
+  const measurement: SentenceQualityMeasurement = {
+    note:
+      "A judged defect rate for exactly this corpus. Same prompt, model, temperature, " +
+      "stratification and estimator as data/quality-report.json; a new seed, because the " +
+      "filter this corpus was built with was chosen partly by looking at the old sample. " +
+      "Re-run with `npx tsx src/build/quality.ts --remeasure`.",
+    generator: "src/build/quality.ts --remeasure",
+    corpusSha256: createHash("sha256").update(corpusText, "utf8").digest("hex"),
+    judge: {
+      provider: "google-generative-language",
+      model,
+      temperature: 0,
+      promptSha256: createHash("sha256").update(JUDGE_PROMPT, "utf8").digest("hex"),
+      totalTokens: tokensUsed,
+      failures,
+    },
+    sampling: {
+      unit: "headword link (one sentence paired with one canon headword it was selected for)",
+      design:
+        "Stratified random sample. Strata are HSK band group of the headword (1-3 / 4-6 / 7) " +
+        "crossed with headword character length (1 / 2 / 3+). Allocation is a floor per " +
+        "stratum plus the remainder proportional to stratum population; corpus-wide rates " +
+        "are population-weighted with a finite-population correction.",
+      seed,
+      seedInt: sample.seedInt,
+      requested: size,
+      judged: labels.length,
+      frame: { sentences: corpus.length, links: links.length, headwords: headwords.size },
+      strata: byStratum.map((t) => ({
+        stratum: t.stratum,
+        population: t.population,
+        weight: links.length === 0 ? 0 : t.population / links.length,
+        n: t.n,
+      })),
+    },
+    results: {
+      definition:
+        "broken = the judge says the sentence is ungrammatical, incoherent, or misuses the " +
+        "headword. awkward = parseable but stilted. good = natural Mandarin. notClean = " +
+        "broken + awkward.",
+      corpusWide: {
+        brokenRate: broken.estimate,
+        brokenCi95: broken.ci95,
+        notCleanRate: notClean.estimate,
+        notCleanCi95: notClean.ci95,
+      },
+      byHeadwordLength: byLength.map((g) => ({
+        lenGroup: g.group,
+        population: g.population,
+        n: g.n,
+        broken: g.broken,
+        brokenRate: g.brokenRate,
+      })),
+      byBandGroup: byBand.map((g) => ({
+        bandGroup: g.group,
+        population: g.population,
+        n: g.n,
+        broken: g.broken,
+        brokenRate: g.brokenRate,
+      })),
+      byFlag,
+    },
+    comparison: baseline,
+  };
+
+  const stats = JSON.parse(readFileSync(SENTENCE_STATS_JSON, "utf8")) as Record<string, unknown>;
+  stats["measuredQuality"] = measurement;
+  writeFileSync(SENTENCE_STATS_JSON, `${JSON.stringify(stats, null, 2)}\n`);
+  log("");
+  log(
+    `quality: broken ${pct(broken.estimate)} (95% CI ${pct(broken.ci95.low)}-${pct(broken.ci95.high)})` +
+      `, notClean ${pct(notClean.estimate)}, n=${labels.length}, seed "${seed}"`,
+  );
+  for (const g of byLength) {
+    log(`  headword length ${g.group.padEnd(3)} ${g.broken}/${g.n} broken (${pct(g.brokenRate)}), population ${g.population}`);
+  }
+  for (const g of byBand) {
+    log(`  band group ${g.group.padEnd(4)} ${g.broken}/${g.n} broken (${pct(g.brokenRate)}), population ${g.population}`);
+  }
+  log(`quality: wrote measuredQuality into ${SENTENCE_STATS_JSON}`);
+  if (emitLabels !== undefined) {
+    writeFileSync(
+      emitLabels,
+      `${JSON.stringify(
+        { schema: "zhongdex/quality-labels/v1", seed, model, totalTokens: tokensUsed, labels },
+        null,
+        2,
+      )}\n`,
+    );
+    log(`quality: wrote ${labels.length} labels to ${emitLabels}`);
+  }
+}
+
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
+  if (argv.includes("--remeasure")) {
+    await remeasure(argv);
+    return;
+  }
   const chosenId = arg(argv, "--policy") ?? "balanced";
   const emitTo = arg(argv, "--emit-exclusions");
 
@@ -683,7 +1295,8 @@ async function main(): Promise<void> {
     throw new Error(`quality: ${QUALITY_REPORT_JSON} carries no labels. Next: npm run judge:quality`);
   }
 
-  const corpus = readCorpus();
+  const corpusPath = arg(argv, "--corpus") ?? SENTENCES_JSONL;
+  const corpus = readCorpus(corpusPath);
   const canon = readCanon();
   const features = buildFeatures(corpus, canon);
   const byLinkId = new Map(features.map((f) => [f.linkId, f]));
@@ -700,10 +1313,15 @@ async function main(): Promise<void> {
     labels.push({ label, features: f, weight, broken: label.verdict === "broken" });
   }
   if (labels.length !== judged.labels.length) {
+    const missing = judged.labels.length - labels.length;
     throw new Error(
-      `quality: ${judged.labels.length - labels.length} judged links are no longer in the ` +
-        `corpus. The labels were measured against a different build of ` +
-        `data/sentences.jsonl. Next: npm run judge:quality`,
+      `quality: ${missing} of ${judged.labels.length} judged links are not in ${corpusPath}.\n` +
+        `  This tool scores a corpus against labels drawn from that same corpus, and these\n` +
+        `  labels describe a different one — most likely the corpus that shipped before the\n` +
+        `  build-time quality gate in this file, which removes links by design.\n` +
+        `  Next: npm run quality:remeasure  (draws and judges a fresh sample of the corpus\n` +
+        `  as it stands, on a new seed, and writes the result to data/sentence-stats.json)\n` +
+        `  or:   npx tsx src/build/quality.ts --corpus <the corpus the labels were drawn on>`,
     );
   }
 
