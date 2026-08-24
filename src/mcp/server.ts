@@ -33,7 +33,7 @@ import {
 import { z } from 'zod';
 
 import { DataMissingError, loadCorpus, type Corpus } from './data.js';
-import { callTool, completionValues, TOOLS, UnknownToolError } from './tools.js';
+import { buildTools, callTool, completionValues, UnknownToolError } from './tools.js';
 
 const PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const SERVER_NAME = 'zhongdex';
@@ -63,10 +63,11 @@ export function buildInstructions(corpus: Corpus): string {
     const withSentences = corpus.words.filter((w) => w.sentenceIds.length > 0).length;
     const coverage = corpus.words.length === 0 ? 0 : (withSentences / corpus.words.length) * 100;
 
+    const a = corpus.stats.audio;
     const absent: string[] = [];
     if (!corpus.audioHosting) {
         absent.push(
-            'No audio: zero clips are hosted, every audio field returns status "pending", and decks are built with no [sound:] references. Two-voice recordings are planned, not shipped'
+            `No hosted audio - ${n(a.wordsFemaleRecorded)} headwords and ${n(a.sentencesRecorded)} sentences have a female-voice recording in the archive (${n(a.wordsMaleRecorded)} male), none published, so no clip or URL is ever returned and decks carry no [sound:] refs`
         );
     }
     if (!corpus.words.some((w) => w.freq !== null)) absent.push('no frequency ranks');
@@ -84,22 +85,22 @@ export function buildInstructions(corpus: Corpus): string {
     const quality =
         corpus.sentences.length === 0
             ? ''
-            : '\n\nSentence quality, measured on a 42-sentence read, not asserted: ~75% clearly natural, ~15% awkward but parseable, ~8-10% clearly broken - concentrated on band 7 and single-character headwords. Review band-7 sentences before showing them to a learner.';
+            : '\n\nSentence quality, measured on a 42-sentence read: ~75% clearly natural, ~15% awkward but parseable, ~8-10% clearly broken, concentrated on band 7 and single-character headwords. Check band-7 sentences before showing a learner.';
 
     return `Zhongdex is a free, keyless Mandarin Chinese corpus. Release ${corpus.version} holds ${n(corpus.words.length)} HSK 3.0 (2026) headwords with pinyin, part of speech and glosses, ${sentences}, and ${corpus.packs.length} computed vocabulary packs. Search it when a task involves Chinese vocabulary, pinyin, HSK levels, example sentences, or building Chinese flashcards and decks.
 
 Typical jobs and the call that does them:
-- "Make me an HSK 3 deck" / "50 Chinese flashcards" -> mandarin_find_words, then mandarin_build_deck, which returns an array already shaped for the Anki MCP server's addNotes tool.
+- "Make me an HSK 3 deck" -> mandarin_find_words, then mandarin_build_deck, which returns an array already shaped for the Anki MCP server's addNotes tool.
 - "What does 你好 mean / give me a sentence with it" -> mandarin_lookup.
-- "Sentences using 把 at HSK 4" / "sentences where this is the only new word" -> mandarin_find_sentences.
+- "Sentences using 把 at HSK 4" / "where this is the only new word" -> mandarin_find_sentences.
 - "What ready-made word lists do you have?" -> mandarin_packs.
 
 Not in this release, so do not plan around it: ${absent.join('; ')}. Filters needing any of these return an empty result that names what to call instead.${quality}
 
 Rules that save you a call:
 - hsk:3 means exactly band 3; pass scope:'cumulative' for bands 1-3. HSK 3.0 (2026) took effect 1 July 2026 and is 40-60% smaller at levels 1-5 than the 2021 revision.
-- Every tool is read-only, unauthenticated, unmetered and deterministic within a release. Nothing here writes, bills, or synthesises audio on demand.
-- Every response ends with a version and licence line. The data is CC BY-SA 4.0; reproduce that line if you republish it.`;
+- Every tool is read-only, unauthenticated, unmetered and deterministic within a release. Nothing writes, bills, or synthesises audio on demand.
+- Every response ends with a version and licence line. The data is CC BY-SA 4.0; reproduce it if you republish.`;
 }
 
 /* ── prompts ─────────────────────────────────────────────────────────────── */
@@ -282,6 +283,7 @@ const DiscoverRequestSchema = z.object({
  */
 export function createServer(corpus: Corpus): Server {
     const instructions = buildInstructions(corpus);
+    const tools = buildTools(corpus);
     const server = new Server(
         { name: SERVER_NAME, title: SERVER_TITLE, version: SERVER_VERSION },
         {
@@ -310,7 +312,7 @@ export function createServer(corpus: Corpus): Server {
     }));
 
     server.setRequestHandler(ListToolsRequestSchema, () => ({
-        tools: TOOLS.map((t) => ({
+        tools: tools.map((t) => ({
             name: t.name,
             title: t.title,
             description: t.description,

@@ -120,41 +120,6 @@ function annotations(title: string): ToolDefinition['annotations'] {
     };
 }
 
-/**
- * The six descriptions from §5.1a, verbatim. They are the interface; do not
- * paraphrase them. Where a description promises MP3 URLs, {@link AUDIO_PENDING}
- * is appended — an addition, not a rewrite — because there is no audio hosting
- * in 0.1 and a description that promises a URL the server cannot return is the
- * one failure the agent has no way to recover from.
- */
-const AUDIO_PENDING =
-    '\n\n0.1 status: audio hosting is not live. No tool returns an audio URL; every audio field reports status "pending" instead.';
-
-/**
- * Measured, not asserted, and stated where an agent will see it before it
- * builds study material. A blind read of 42 sentences found roughly 75% clearly
- * natural, 15% awkward but parseable and 8-10% clearly broken, concentrated on
- * band 7 and single-character headwords. This is source-data quality; no
- * computable gate catches it, so the only honest option is to say so.
- */
-const SENTENCE_QUALITY =
-    '\n\nQuality caveat, measured on a 42-sentence sample: about 75% read as clearly natural, 15% as awkward but parseable, and 8-10% as clearly broken - concentrated on band 7 and on single-character headwords (e.g. a character used as a surname that is not one). Review band-7 results before putting them in front of a learner.';
-
-const DESCRIPTIONS = {
-    lookup:
-        'Look up Chinese (Mandarin) words you already know the spelling of, and get everything needed to make a flashcard in one call: simplified and traditional hanzi, tone-marked and numbered pinyin, English gloss, part of speech, measure words, the HSK band in all three standards, frequency rank, and direct MP3 URLs in a female (Amy) and a male (James) native voice — plus up to 3 example sentences per word, each graded by difficulty and each with its own audio in both voices. Batch up to 20 words per call. Use this when you already have the words. To FIND words by level, topic or frequency, call mandarin_find_words first and pass its ids here. Accepts simplified hanzi ("你好"), traditional, or numbered pinyin ("ni3 hao3"). For a character with more than one reading, append the reading to pin it: "行:hang2"; without one, every reading is returned. Read-only, free, no API key, no rate limit, no quota. Identical arguments always return an identical response within a release.',
-    findWords:
-        'Find Chinese (Mandarin) words by criteria rather than by spelling: HSK level, frequency band, topic, curated pack, or a text query in English, pinyin or hanzi. Returns a compact list of word ids with hanzi and pinyin — pass those ids to mandarin_lookup for full records, or straight to mandarin_build_deck. This is the right first call for "build me an HSK 3 deck", "the 200 most common verbs", "words about food". All filters are optional and AND together. band_standard defaults to HSK 3.0 (2026 revision), which is 40-60% smaller at levels 1-5 than the 2021 revision — set it explicitly if you need the older list. hsk:3 means exactly band 3; pass scope:\'cumulative\' for bands 1-3. Cursor-paginated, max 100 per page; every response states the total so you know the size of the set before fetching more. Read-only, free, no API key, no rate limit.',
-    findSentences:
-        "Find example Chinese sentences in a 467,000-sentence corpus, filtered the way a teacher or a deck-maker actually filters: by a word or character that must appear (contains), by named grammar pattern (162 of them, e.g. 'ba-disposal', 'bei-passive', 'le-change-of-state'), by difficulty 1-7 (the highest HSK 3.0 band of any word in the sentence), and by max_new_words — how many words in the sentence fall outside a given HSK level. max_new_words:1 gives true i+1 sentences where the target word is the only unknown; no other Mandarin source exposes that filter. Every sentence returns hanzi, tone-marked and numbered pinyin, English, its difficulty grade, and MP3 URLs in a female and a male voice. If you only want the 2-3 curated sentences that belong to a specific headword, use mandarin_lookup instead. Read-only, free, no API key, no rate limit.",
-    audio:
-        "Get an existing MP3 recording of Mandarin text in a female (Amy) or male (James) native voice, without generating anything. Covers 186,000 single words, 177,000 sentences, 79,000 recorded dialogue lines, and the full pinyin syllable chart. Three uses: (1) check whether a recording exists before you pay a TTS provider — pass up to 100 strings with check_only:true and get a yes/no per string in a few hundred tokens; (2) fetch the URL for text you already have; (3) pass a bare pinyin syllable ('zhi1') or a tone pair ('2-3') for pronunciation-drill audio and minimal-pair contrasts. Returns URLs, never bytes, unless you set inline:true for a single clip — one base64 MP3 costs about 19,000 tokens and a URL costs about 15. Nothing is synthesised on demand: text outside the corpus returns a clean miss, never a bill. Read-only, free, no API key, no rate limit.",
-    buildDeck:
-        "Turn a list of Chinese words into a ready-to-import flashcard deck. Returns three things: notes[] — an array shaped exactly like the notes argument of the Anki MCP server's addNotes tool, with [sound:...] references already written into the fields; media[] — one {filename, url} object per clip, shaped exactly like the arguments of that server's storeMediaFile tool; and next_steps — the literal sequence of calls to make. Store the media first: a note whose audio is not yet in the collection shows a broken reference. Maximum 100 words per call, the same cap addNotes enforces, so one build maps to exactly one addNotes call; for more, page mandarin_find_words and call this once per page. Accepts a pack id instead of a word list, and exclude_packs to subtract words the learner already knows. format defaults to 'anki-mcp'; set 'anki-csv', 'tsv', 'json' or 'pleco' to get a downloadable file, returned as a link rather than inline. Read-only — building a deck creates nothing on our side. Free, no API key, no rate limit.",
-    packs:
-        "List the 54 ready-made Chinese vocabulary packs — HSK bands under both the 2026 and 2021 syllabus, frequency tiers (Core 500 through Core 5000), measure words, high-yield radicals, separable verbs, slang, words that look alike, sung vocabulary, graded sentence sets, tone pairs, and 23 topic packs. Each entry gives the pack id, size, what it is band-closed at, and its audio coverage. The whole catalogue is about 2,000 tokens, so calling this first is cheaper than searching. Pass a pack id to mandarin_find_words({pack:...}) for the words, or straight to mandarin_build_deck({pack:...}) for a deck. Every pack's word list is generated by a published deterministic query over the corpus, not written by a model, and re-derives on every monthly release. Read-only, free, no API key, no rate limit.",
-} as const;
-
 const VOICES = ['both', 'female', 'male'] as const;
 const STANDARDS = ['hsk2026', 'hsk2021', 'hsk2_0'] as const;
 const DECK_FORMATS = ['anki-mcp', 'anki-csv', 'tsv', 'json', 'pleco'] as const;
@@ -164,209 +129,338 @@ type Standard = (typeof STANDARDS)[number];
 /** Band count per standard. Out-of-range never clamps; it raises E6. */
 const BANDS: Record<Standard, number> = { hsk2026: 7, hsk2021: 9, hsk2_0: 6 };
 
+export const TOOL_NAMES = [
+    'mandarin_lookup',
+    'mandarin_find_words',
+    'mandarin_find_sentences',
+    'mandarin_audio',
+    'mandarin_build_deck',
+    'mandarin_packs',
+] as const;
+
+/**
+ * Measured, not asserted, and placed where an agent sees it before it builds
+ * study material. A blind read of 42 sentences found roughly 75% clearly
+ * natural, 15% awkward but parseable and 8-10% clearly broken, concentrated on
+ * band 7 and single-character headwords. This is source-data quality; no
+ * computable gate catches it, so the only honest option is to say so.
+ */
+const SENTENCE_QUALITY =
+    '\n\nQuality caveat, measured on a 42-sentence sample: about 75% read as clearly natural, 15% as awkward but parseable, and 8-10% as clearly broken - concentrated on band 7 and on single-character headwords (e.g. a character used as a surname that is not one). Review band-7 results before putting them in front of a learner.';
+
+/* ── descriptions ────────────────────────────────────────────────────────── */
+
+/**
+ * Tool descriptions are what an agent reads before choosing a tool, which makes
+ * them the highest-risk place in the server to state something untrue: a false
+ * capability claim is planned around, and the resulting failure looks like our
+ * bug rather than an absent feature.
+ *
+ * So every count, coverage figure and capability claim below is rendered from
+ * the corpus that was actually loaded. Nothing is typed as a literal. These
+ * follow the shape §5.1a settled on — name the return shape, the batch cap, the
+ * sibling tool not to confuse this with, and close the two questions that make
+ * agents avoid a tool (will it cost me, can it fail on auth) — but the numbers
+ * are the build's, not the roadmap's.
+ */
+function describe(corpus: Corpus): Record<(typeof TOOL_NAMES)[number], string> {
+    const s = corpus.stats;
+    const n = (v: number): string => v.toLocaleString('en-US');
+    const pct = (v: number, of: number): string => (of === 0 ? '0%' : `${((v / of) * 100).toFixed(1)}%`);
+    const free = 'Read-only, free, no API key, no rate limit, no quota.';
+
+    const standards = ([
+        ['2026', s.bands.hsk2026],
+        ['2021', s.bands.hsk2021],
+        ['2.0', s.bands.hsk2_0],
+    ] as const)
+        .filter(([, v]) => v > 0)
+        .map(([label, v]) => `${label} (${pct(v, s.words)})`)
+        .join(', ');
+
+    const packKinds = s.packKinds
+        .map((k) => `${k.count} ${k.kind} (${k.examples.join(', ')})`)
+        .join(', ');
+
+    const noTopics =
+        corpus.topics.length === 0
+            ? ' This release ships no topic packs, so the topic filter matches nothing — pass pack with an id from mandarin_packs instead.'
+            : ` Topics are the ${corpus.topics.length} theme packs listed by mandarin_packs({kind:"theme"}).`;
+
+    const noPatterns =
+        corpus.patterns.length === 0
+            ? ' There is no grammar-pattern index in this release, so the pattern filter matches nothing; filter by the character with contains instead.'
+            : ` Filter by named grammar pattern (${corpus.patterns.length} of them) with pattern.`;
+
+    return {
+        mandarin_lookup:
+            'Look up Chinese (Mandarin) words you already know the spelling of, and get everything needed to make a flashcard in one call: simplified and traditional hanzi, tone-marked and numbered pinyin, English glosses, part of speech, measure words, HSK band, frequency rank, and up to 3 graded example sentences per word. ' +
+            'Batch up to 20 words per call. Use this when you already have the words. To FIND words by level, frequency or pack, call mandarin_find_words first and pass its ids here. ' +
+            'Accepts simplified hanzi ("你好"), traditional, or numbered pinyin ("ni3 hao3"). For a character with more than one reading, append the reading to pin it: "行:hang2"; without one, every reading is returned. ' +
+            `Release ${corpus.version} covers ${n(s.words)} headwords: ${pct(s.withGloss, s.words)} carry a gloss, ${pct(s.withFreq, s.words)} a frequency rank, ${pct(s.withSentence, s.words)} at least one example sentence. ` +
+            `No audio is returned — nothing is hosted in this release. ${free} Identical arguments always return an identical response within a release.`,
+
+        mandarin_find_words:
+            'Find Chinese (Mandarin) words by criteria rather than by spelling: HSK level, frequency range, curated pack, or a text query in English, pinyin or hanzi. ' +
+            'Returns a compact list of word ids with hanzi, pinyin and gloss — pass those ids to mandarin_lookup for full records, or straight to mandarin_build_deck. ' +
+            'This is the right first call for "build me an HSK 3 deck" or "the 200 most common verbs". All filters are optional and AND together. ' +
+            `band_standard defaults to HSK 3.0 (2026 revision), which is 40-60% smaller at levels 1-5 than the 2021 revision; headwords labelled per standard in release ${corpus.version}: ${standards}. ` +
+            "hsk:3 means exactly band 3; pass scope:'cumulative' for bands 1-3. " +
+            `Cursor-paginated, max 100 per page; every response states the total so you know the size of the set before fetching more.${noTopics} ${free}`,
+
+        mandarin_find_sentences:
+            'Find example Chinese sentences filtered the way a teacher or a deck-maker actually filters: by a word or character that must appear (contains), by exact headword (word), by difficulty 1-7 (the highest HSK 3.0 band of any word in the sentence), and by max_new_words — how many words in the sentence fall outside a given HSK level. ' +
+            'max_new_words:1 gives true i+1 sentences where the target word is the only unknown. ' +
+            `Release ${corpus.version} holds ${n(s.sentences)} graded sentences linked to ${pct(s.withSentence, s.words)} of headwords; each returns hanzi, tone-marked and numbered pinyin, English and its grade. No audio is returned - nothing is hosted in this release.${noPatterns} ` +
+            `If you only want the 2-3 curated sentences that belong to a specific headword, use mandarin_lookup instead. ${free}`,
+
+        mandarin_audio:
+            'Report whether a native-voice recording exists for Mandarin text. ' +
+            `This release hosts NO audio — there is no CDN, no bucket and no URL that resolves — so this tool returns availability, never a clip and never a link. What it can tell you: of ${n(s.words)} headwords, ${n(s.audio.wordsFemaleRecorded)} have a female-voice recording in the source archive and ${n(s.audio.wordsMaleRecorded)} have a male-voice one; of ${n(s.sentences)} sentences, ${n(s.audio.sentencesRecorded)} have a recording. None are published. ` +
+            'Use it for one thing: deciding whether to pay a TTS provider now or wait for the clip release. Pass up to 100 strings with check_only:true and read the per-string status. ' +
+            `Nothing is synthesised on demand and nothing is billed. inline:true is rejected — there are no bytes to return. ${free}`,
+
+        mandarin_build_deck:
+            "Turn a list of Chinese words into a ready-to-import flashcard deck. Returns notes[] — an array shaped exactly like the notes argument of the Anki MCP server's addNotes tool — plus media[] and next_steps, the literal sequence of calls to make. " +
+            `In release ${corpus.version} media[] is always empty and no [sound:] reference is written into any field, because no audio is hosted; a note pointing at media that is not in the collection renders as a broken card, so those fields are omitted instead. ` +
+            'Maximum 100 words per call, the same cap addNotes enforces, so one build maps to exactly one addNotes call; for more, page mandarin_find_words and call this once per page. ' +
+            'Accepts a pack id instead of a word list, and exclude_packs to subtract words the learner already knows. ' +
+            `format defaults to 'anki-mcp'; 'anki-csv', 'tsv', 'json' and 'pleco' return the file inline as text — there is no download host in this release. Building a deck creates nothing on our side. ${free}`,
+
+        mandarin_packs:
+            `List the ${n(s.packs)} ready-made Chinese vocabulary packs in release ${corpus.version}: ${packKinds}. ` +
+            'Each entry gives the pack id, size, what it is band-closed at, and its audio coverage. ' +
+            'The whole catalogue is a few hundred tokens, so calling this first is cheaper than searching. ' +
+            'Pass a pack id to mandarin_find_words({pack:...}) for the words, or straight to mandarin_build_deck({pack:...}) for a deck. ' +
+            `Every pack's word list is generated by a published deterministic query over the corpus, not written by a model, and re-derives on every release. ${free}`,
+    };
+}
+
 /* ── tool definitions ────────────────────────────────────────────────────── */
 
-export const TOOLS: readonly ToolDefinition[] = [
-    {
-        name: 'mandarin_lookup',
-        title: 'Look up Chinese words',
-        description: DESCRIPTIONS.lookup + AUDIO_PENDING,
-        annotations: annotations('Look up Chinese words'),
-        inputSchema: {
-            type: 'object',
-            properties: {
-                words: {
-                    type: 'array',
-                    items: { type: 'string' },
-                    minItems: 1,
-                    maxItems: 20,
-                    description:
-                        'Simplified hanzi, traditional hanzi, or numbered pinyin. Append a reading to pin a polyphone: "行:hang2".',
-                },
-                sentences: { type: 'integer', minimum: 0, maximum: 3, default: 2 },
-                voice: { type: 'string', enum: [...VOICES], default: 'both' },
-                script: {
-                    type: 'string',
-                    enum: ['simplified', 'traditional', 'both'],
-                    default: 'simplified',
-                },
-                response_format: {
-                    type: 'string',
-                    enum: ['concise', 'detailed', 'json'],
-                    default: 'concise',
-                },
-            },
-            required: ['words'],
-            additionalProperties: false,
-        },
-    },
-    {
-        name: 'mandarin_find_words',
-        title: 'Find Chinese words by criteria',
-        description: DESCRIPTIONS.findWords,
-        annotations: annotations('Find Chinese words by criteria'),
-        inputSchema: {
-            type: 'object',
-            properties: {
-                query: { type: 'string', maxLength: 64 },
-                query_type: {
-                    type: 'string',
-                    enum: ['auto', 'hanzi', 'pinyin', 'english'],
-                    default: 'auto',
-                },
-                hsk: { type: 'integer', minimum: 1, maximum: 9 },
-                band_standard: { type: 'string', enum: [...STANDARDS], default: 'hsk2026' },
-                scope: {
-                    type: 'string',
-                    enum: ['band', 'cumulative'],
-                    default: 'band',
-                    description: "'band' is exactly that band; 'cumulative' is bands 1..n.",
-                },
-                freq_min: { type: 'integer', minimum: 1 },
-                freq_max: { type: 'integer', minimum: 1 },
-                topic: { type: 'string', description: 'One of the published topic pack slugs.' },
-                pack: { type: 'string', description: 'One of the pack ids from mandarin_packs.' },
-                has_audio: {
-                    type: 'string',
-                    enum: ['any', 'both_voices', 'female', 'male'],
-                    default: 'any',
-                },
-                order: {
-                    type: 'string',
-                    enum: ['frequency', 'hsk', 'alphabetical'],
-                    default: 'frequency',
-                },
-                limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
-                cursor: { type: 'string' },
-            },
-            additionalProperties: false,
-        },
-    },
-    {
-        name: 'mandarin_find_sentences',
-        title: 'Find Chinese example sentences',
-        description: DESCRIPTIONS.findSentences + AUDIO_PENDING + SENTENCE_QUALITY,
-        annotations: annotations('Find Chinese example sentences'),
-        inputSchema: {
-            type: 'object',
-            properties: {
-                contains: { type: 'string', maxLength: 16 },
-                pattern: { type: 'string', description: 'A grammar pattern id.' },
-                word: { type: 'string' },
-                hsk: { type: 'integer', minimum: 1, maximum: 9 },
-                band_standard: { type: 'string', enum: [...STANDARDS], default: 'hsk2026' },
-                difficulty: { type: 'integer', minimum: 1, maximum: 7 },
-                max_new_words: {
-                    type: 'integer',
-                    minimum: 0,
-                    maximum: 5,
-                    description: 'Requires hsk. Words in the sentence outside that level.',
-                },
-                count: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
-                voice: { type: 'string', enum: [...VOICES], default: 'both' },
-                cursor: { type: 'string' },
-            },
-            additionalProperties: false,
-        },
-    },
-    {
-        name: 'mandarin_audio',
-        title: 'Fetch or check Mandarin recordings',
-        description: DESCRIPTIONS.audio + AUDIO_PENDING,
-        annotations: annotations('Fetch or check Mandarin recordings'),
-        inputSchema: {
-            type: 'object',
-            properties: {
-                text: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 100 },
-                voice: { type: 'string', enum: [...VOICES], default: 'both' },
-                check_only: { type: 'boolean', default: false },
-                inline: {
-                    type: 'boolean',
-                    default: false,
-                    description: 'Base64 a single clip. Rejected when text has more than one entry.',
-                },
-                contrast: { type: 'boolean', default: false },
-            },
-            required: ['text'],
-            additionalProperties: false,
-        },
-    },
-    {
-        name: 'mandarin_build_deck',
-        title: 'Build an import-ready flashcard deck',
-        description: DESCRIPTIONS.buildDeck + AUDIO_PENDING,
-        annotations: annotations('Build an import-ready flashcard deck'),
-        inputSchema: {
-            type: 'object',
-            properties: {
-                words: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 100 },
-                pack: { type: 'string' },
-                exclude_packs: { type: 'array', items: { type: 'string' } },
-                deck_name: { type: 'string', default: 'Zhongdex::HSK' },
-                model_name: { type: 'string', default: 'Zhongdex Mandarin' },
-                fields: { type: 'array', items: { type: 'string', enum: [...DECK_FIELDS] } },
-                format: { type: 'string', enum: [...DECK_FORMATS], default: 'anki-mcp' },
-                voice: { type: 'string', enum: [...VOICES], default: 'female' },
-                sentences: { type: 'integer', minimum: 0, maximum: 2, default: 1 },
-                tags: { type: 'array', items: { type: 'string' }, default: ['zhongdex'] },
-            },
-            additionalProperties: false,
-        },
-        outputSchema: {
-            type: 'object',
-            properties: {
-                deck_name: { type: 'string' },
-                model_name: { type: 'string' },
-                media: {
-                    type: 'array',
-                    items: {
-                        type: 'object',
-                        properties: { filename: { type: 'string' }, url: { type: 'string' } },
-                        required: ['filename', 'url'],
-                        additionalProperties: false,
+/**
+ * Built per corpus so descriptions and the one corpus-dependent parameter hint
+ * stay true to the data. Deterministic order is required for prompt-cache hits:
+ * lookup, find_words, find_sentences, audio, build_deck, packs.
+ */
+export function buildTools(corpus: Corpus): readonly ToolDefinition[] {
+    const d = describe(corpus);
+    const topicHint =
+        corpus.topics.length === 0
+            ? 'Theme pack slug. This release ships none — use pack instead.'
+            : 'One of the published theme pack slugs.';
+    return [
+        {
+            name: 'mandarin_lookup',
+            title: 'Look up Chinese words',
+            description: d.mandarin_lookup,
+            annotations: annotations('Look up Chinese words'),
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    words: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        minItems: 1,
+                        maxItems: 20,
+                        description:
+                            'Simplified hanzi, traditional hanzi, or numbered pinyin. Append a reading to pin a polyphone: "行:hang2".',
+                    },
+                    sentences: { type: 'integer', minimum: 0, maximum: 3, default: 2 },
+                    voice: { type: 'string', enum: [...VOICES], default: 'both' },
+                    script: {
+                        type: 'string',
+                        enum: ['simplified', 'traditional', 'both'],
+                        default: 'simplified',
+                    },
+                    response_format: {
+                        type: 'string',
+                        enum: ['concise', 'detailed', 'json'],
+                        default: 'concise',
                     },
                 },
-                notes: {
-                    type: 'array',
-                    items: {
-                        type: 'object',
-                        properties: {
-                            fields: { type: 'object', additionalProperties: { type: 'string' } },
-                            tags: { type: 'array', items: { type: 'string' } },
+                required: ['words'],
+                additionalProperties: false,
+            },
+        },
+        {
+            name: 'mandarin_find_words',
+            title: 'Find Chinese words by criteria',
+            description: d.mandarin_find_words,
+            annotations: annotations('Find Chinese words by criteria'),
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    query: { type: 'string', maxLength: 64 },
+                    query_type: {
+                        type: 'string',
+                        enum: ['auto', 'hanzi', 'pinyin', 'english'],
+                        default: 'auto',
+                    },
+                    hsk: { type: 'integer', minimum: 1, maximum: 9 },
+                    band_standard: { type: 'string', enum: [...STANDARDS], default: 'hsk2026' },
+                    scope: {
+                        type: 'string',
+                        enum: ['band', 'cumulative'],
+                        default: 'band',
+                        description: "'band' is exactly that band; 'cumulative' is bands 1..n.",
+                    },
+                    freq_min: { type: 'integer', minimum: 1 },
+                    freq_max: { type: 'integer', minimum: 1 },
+                    topic: { type: 'string', description: topicHint },
+                    pack: { type: 'string', description: 'A pack id from mandarin_packs.' },
+                    has_audio: {
+                        type: 'string',
+                        enum: ['any', 'both_voices', 'female', 'male'],
+                        default: 'any',
+                        description: 'Filters on hosted audio. Nothing is hosted in this release.',
+                    },
+                    order: {
+                        type: 'string',
+                        enum: ['frequency', 'hsk', 'alphabetical'],
+                        default: 'frequency',
+                    },
+                    limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+                    cursor: { type: 'string' },
+                },
+                additionalProperties: false,
+            },
+        },
+        {
+            name: 'mandarin_find_sentences',
+            title: 'Find Chinese example sentences',
+            description: d.mandarin_find_sentences + SENTENCE_QUALITY,
+            annotations: annotations('Find Chinese example sentences'),
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    contains: { type: 'string', maxLength: 16 },
+                    pattern: { type: 'string', description: 'A grammar pattern id.' },
+                    word: { type: 'string' },
+                    hsk: { type: 'integer', minimum: 1, maximum: 9 },
+                    band_standard: { type: 'string', enum: [...STANDARDS], default: 'hsk2026' },
+                    difficulty: { type: 'integer', minimum: 1, maximum: 7 },
+                    max_new_words: {
+                        type: 'integer',
+                        minimum: 0,
+                        maximum: 5,
+                        description: 'Requires hsk. Words in the sentence outside that level.',
+                    },
+                    count: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
+                    voice: { type: 'string', enum: [...VOICES], default: 'both' },
+                    cursor: { type: 'string' },
+                },
+                additionalProperties: false,
+            },
+        },
+        {
+            name: 'mandarin_audio',
+            title: 'Check Mandarin recording availability',
+            description: d.mandarin_audio,
+            annotations: annotations('Check Mandarin recording availability'),
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    text: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 100 },
+                    voice: { type: 'string', enum: [...VOICES], default: 'both' },
+                    check_only: { type: 'boolean', default: false },
+                    inline: {
+                        type: 'boolean',
+                        default: false,
+                        description: 'Rejected in this release: no clips are hosted, so there are no bytes.',
+                    },
+                    contrast: { type: 'boolean', default: false },
+                },
+                required: ['text'],
+                additionalProperties: false,
+            },
+        },
+        {
+            name: 'mandarin_build_deck',
+            title: 'Build an import-ready flashcard deck',
+            description: d.mandarin_build_deck,
+            annotations: annotations('Build an import-ready flashcard deck'),
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    words: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 100 },
+                    pack: { type: 'string' },
+                    exclude_packs: { type: 'array', items: { type: 'string' } },
+                    deck_name: { type: 'string', default: 'Zhongdex::HSK' },
+                    model_name: { type: 'string', default: 'Zhongdex Mandarin' },
+                    fields: { type: 'array', items: { type: 'string', enum: [...DECK_FIELDS] } },
+                    format: { type: 'string', enum: [...DECK_FORMATS], default: 'anki-mcp' },
+                    voice: { type: 'string', enum: [...VOICES], default: 'female' },
+                    sentences: { type: 'integer', minimum: 0, maximum: 2, default: 1 },
+                    tags: { type: 'array', items: { type: 'string' }, default: ['zhongdex'] },
+                },
+                additionalProperties: false,
+            },
+            outputSchema: {
+                type: 'object',
+                properties: {
+                    deck_name: { type: 'string' },
+                    model_name: { type: 'string' },
+                    media: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: { filename: { type: 'string' }, url: { type: 'string' } },
+                            required: ['filename', 'url'],
+                            additionalProperties: false,
                         },
-                        required: ['fields'],
-                        additionalProperties: false,
                     },
+                    notes: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                fields: { type: 'object', additionalProperties: { type: 'string' } },
+                                tags: { type: 'array', items: { type: 'string' } },
+                            },
+                            required: ['fields'],
+                            additionalProperties: false,
+                        },
+                    },
+                    next_steps: { type: 'string' },
+                    audio_status: { type: 'string', enum: ['available', 'pending'] },
                 },
-                next_steps: { type: 'string' },
-                audio_status: { type: 'string', enum: ['available', 'pending'] },
+                required: ['deck_name', 'model_name', 'media', 'notes', 'next_steps', 'audio_status'],
+                additionalProperties: false,
             },
-            required: ['deck_name', 'model_name', 'media', 'notes', 'next_steps', 'audio_status'],
-            additionalProperties: false,
         },
-    },
-    {
-        name: 'mandarin_packs',
-        title: 'List the curated vocabulary packs',
-        description: DESCRIPTIONS.packs,
-        annotations: annotations('List the curated vocabulary packs'),
-        inputSchema: {
-            type: 'object',
-            properties: {
-                kind: {
-                    type: 'string',
-                    enum: ['band', 'frequency', 'theme', 'form', 'grammar', 'media'],
+        {
+            name: 'mandarin_packs',
+            title: 'List the curated vocabulary packs',
+            description: d.mandarin_packs,
+            annotations: annotations('List the curated vocabulary packs'),
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    kind: {
+                        type: 'string',
+                        enum: ['band', 'frequency', 'theme', 'form', 'grammar', 'media'],
+                    },
+                    level: { type: 'integer', minimum: 1, maximum: 7 },
+                    q: { type: 'string', maxLength: 32 },
+                    limit: { type: 'integer', minimum: 1, maximum: 60, default: 60 },
                 },
-                level: { type: 'integer', minimum: 1, maximum: 7 },
-                q: { type: 'string', maxLength: 32 },
-                limit: { type: 'integer', minimum: 1, maximum: 60, default: 60 },
+                additionalProperties: false,
             },
-            additionalProperties: false,
         },
-    },
-];
+    ];
+}
 
-const BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
+const toolCache = new WeakMap<Corpus, Map<string, ToolDefinition>>();
+
+function toolsFor(corpus: Corpus): Map<string, ToolDefinition> {
+    let cached = toolCache.get(corpus);
+    if (cached === undefined) {
+        cached = new Map(buildTools(corpus).map((t) => [t.name, t]));
+        toolCache.set(corpus, cached);
+    }
+    return cached;
+}
 
 /* ── argument reading ────────────────────────────────────────────────────── */
 
@@ -1192,31 +1286,68 @@ function runAudio(corpus: Corpus, tool: ToolDefinition, args: Args): ToolResult 
         );
     }
     const voice = readEnum(args, 'voice', VOICES, 'both');
-    const checkOnly = readBool(args, 'check_only', false);
     const inline = readBool(args, 'inline', false);
-    readBool(args, 'contrast', false);
+    const contrast = readBool(args, 'contrast', false);
+    readBool(args, 'check_only', false);
 
-    if (inline && items.length > 1) {
+    if (inline) {
         throw new ToolError(
-            `inline:true takes exactly one string; you passed ${items.length}. One base64 MP3 costs about 19,000 tokens ` +
-                `and a URL costs about 15. Next: mandarin_audio({text:["${items[0] ?? ''}"], inline:true}), or drop inline to get URLs for all ${items.length}.`
+            `inline:true returns base64 clip bytes, and release ${corpus.version} hosts no clips — there is nothing to encode. ` +
+                `Next: mandarin_audio({text:["${items[0] ?? ''}"], check_only:true}) to see whether a recording exists at all.`
         );
     }
 
-    if (!corpus.audioHosting) {
-        // Honest answer, not an error: the agent asked whether a clip exists and
-        // the answer is "no clip is served by this release", for every string.
-        const lines = items.map((t) => `${t} · pending`);
-        const head =
-            `No audio is hosted in release ${corpus.version}: the clip release has not shipped, so every string below is "pending" ` +
-            `for voice "${voice}" — not "missing", and not a URL. Nothing was synthesised and nothing was billed. ` +
-            (checkOnly
-                ? 'Treat check_only as "unknown" for now and keep your own TTS path.'
-                : 'Use your own TTS for now; mandarin_lookup and mandarin_build_deck omit audio fields rather than emit a dead link.');
-        return text([head, lines.join('\n'), envelopeFooter(corpus)].join('\n\n'));
+    // Voice-by-voice truth, read from the canon. "recorded" means a clip exists
+    // in the source archive and has no address yet; that is the distinction the
+    // TTS-or-wait decision actually turns on.
+    const label: Record<string, string> = {
+        hosted: 'hosted',
+        recorded: 'recorded, not published',
+        none: 'no recording',
+        unknown: 'unknown',
+    };
+    const lines: string[] = [];
+    for (const item of items) {
+        const word =
+            corpus.bySimplified.get(item)?.[0] ??
+            corpus.byTraditional.get(item)?.[0] ??
+            corpus.byNumbered.get(numberedKey(item))?.[0];
+        if (word !== undefined) {
+            const voices =
+                voice === 'female'
+                    ? [`female: ${label[word.audio.female] ?? 'unknown'}`]
+                    : voice === 'male'
+                      ? [`male: ${label[word.audio.male] ?? 'unknown'}`]
+                      : [
+                            `female: ${label[word.audio.female] ?? 'unknown'}`,
+                            `male: ${label[word.audio.male] ?? 'unknown'}`,
+                        ];
+            lines.push(`${item} · word · ${voices.join(' · ')}`);
+            continue;
+        }
+        const sentence = corpus.sentencesByHanzi.get(item);
+        if (sentence !== undefined) {
+            lines.push(`${item} · sentence · ${label[sentence.audio] ?? 'unknown'}`);
+            continue;
+        }
+        lines.push(`${item} · not in the corpus · no recording`);
     }
 
-    throw new ToolError('Audio index present but unreadable; report this as a build bug.');
+    const s = corpus.stats;
+    const n = (v: number): string => v.toLocaleString('en-US');
+    const head = corpus.audioHosting
+        ? `Availability in release ${corpus.version}.`
+        : `Nothing is hosted in release ${corpus.version}, so this is availability only — no URL is returned for any string below, ` +
+          `and "recorded, not published" means a clip exists in the source archive with no address yet. ` +
+          `Corpus-wide: ${n(s.audio.wordsFemaleRecorded)} of ${n(s.words)} headwords have a female recording, ` +
+          `${n(s.audio.wordsMaleRecorded)} a male one, ${n(s.audio.sentencesRecorded)} of ${n(s.sentences)} sentences have one. ` +
+          'Nothing was synthesised and nothing was billed.';
+
+    const drill = contrast
+        ? '\n\ncontrast:true asked for a pinyin-syllable or tone-pair drill. This release ships no syllable chart, so no contrast set exists yet.'
+        : '';
+
+    return text([head, lines.join('\n') + drill, envelopeFooter(corpus)].join('\n\n'));
 }
 
 /* ── 5. mandarin_build_deck ──────────────────────────────────────────────── */
@@ -1476,7 +1607,7 @@ function runPacks(corpus: Corpus, tool: ToolDefinition, args: Args): ToolResult 
     );
     const level = readOptionalInt(args, 'level', 1, 7, 'HSK 3.0 (2026) has 7 bands.');
     const q = readString(args, 'q', 32);
-    const limit = readInt(args, 'limit', 1, 60, 60, 'The catalogue is 54 packs.');
+    const limit = readInt(args, 'limit', 1, 60, 60, `The catalogue is ${corpus.packs.length} packs.`);
 
     let matched = corpus.packs;
     if (kind !== null) matched = matched.filter((p) => p.kind === kind);
@@ -1548,10 +1679,10 @@ export class UnknownToolError extends Error {}
  * failure (`isError: true`); throws only for an unknown tool name.
  */
 export function callTool(corpus: Corpus, name: string, rawArgs: unknown): ToolResult {
-    const tool = BY_NAME.get(name);
+    const tool = toolsFor(corpus).get(name);
     if (tool === undefined) {
         throw new UnknownToolError(
-            `Unknown tool "${name}". This server has six: ${TOOLS.map((t) => t.name).join(', ')}.`
+            `Unknown tool "${name}". This server has six: ${TOOL_NAMES.join(', ')}.`
         );
     }
     const args: Args =

@@ -40,9 +40,11 @@
  *   audio             audio.female / audio.male URLs, else status "pending"
  *
  * ── Audio ──────────────────────────────────────────────────────────────────
- * There is no audio hosting in 0.1 and no audio index in the data. Nothing in
- * this module emits an audio URL; `audioHosting` is false and the tool layer
- * reports status "pending" instead of a URL that would 404.
+ * The canon distinguishes RECORDED from HOSTED: `audio.female` is an object
+ * `{available, hosted}`, not a URL. A clip can exist in the source archive and
+ * still have no address. `audioHosting` is true only when something is actually
+ * `hosted`, so nothing here can emit a URL that would 404 — and if a later build
+ * changes `female` to a URL string, that is recognised too.
  */
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -53,6 +55,14 @@ export class DataMissingError extends Error {
         super(message);
         this.name = 'DataMissingError';
     }
+}
+
+/** Per-voice state. `recorded` means a clip exists in the archive but has no address yet. */
+export type VoiceAudio = 'hosted' | 'recorded' | 'none' | 'unknown';
+
+export interface AudioState {
+    female: VoiceAudio;
+    male: VoiceAudio;
 }
 
 export interface WordRecord {
@@ -76,6 +86,7 @@ export interface WordRecord {
     sentenceIds: string[];
     /** Pack slugs this word belongs to; filled from the pack index at load. */
     packs: string[];
+    audio: AudioState;
 }
 
 export interface SentenceRecord {
@@ -96,6 +107,7 @@ export interface SentenceRecord {
     newWordCount: Record<string, number> | null;
     /** Headword links: which canon word this sentence was selected for, and how hard it is for it. */
     headwords: { wordId: string; slot: string }[];
+    audio: VoiceAudio;
 }
 
 export interface PackRecord {
@@ -119,6 +131,30 @@ export interface GrammarPattern {
     hsk: number | null;
 }
 
+/**
+ * Counts computed once at load. Tool descriptions and the discover instructions
+ * are rendered from these, never from a literal typed into prose — a number in a
+ * description that is not derived will drift the moment the build changes.
+ */
+export interface CorpusStats {
+    words: number;
+    withGloss: number;
+    withSentence: number;
+    bands: { hsk2026: number; hsk2021: number; hsk2_0: number };
+    withFreq: number;
+    sentences: number;
+    packs: number;
+    /** One entry per `kind` present, with a couple of real slugs as examples. */
+    packKinds: { kind: string; count: number; examples: string[] }[];
+    audio: {
+        wordsFemaleRecorded: number;
+        wordsMaleRecorded: number;
+        wordsHosted: number;
+        sentencesRecorded: number;
+        sentencesHosted: number;
+    };
+}
+
 export interface Corpus {
     /** Corpus release, e.g. `2026.09`. Stamped into every footer and every cursor. */
     version: string;
@@ -130,13 +166,16 @@ export interface Corpus {
     byNumbered: Map<string, WordRecord[]>;
     sentences: SentenceRecord[];
     sentencesById: Map<string, SentenceRecord>;
+    /** Exact sentence text, so mandarin_audio can answer for sentences as well as words. */
+    sentencesByHanzi: Map<string, SentenceRecord>;
     patterns: GrammarPattern[];
     packs: PackRecord[];
     packsBySlug: Map<string, PackRecord>;
     /** Slugs of `kind: "theme"` packs — the published topic list for `topic`. */
     topics: string[];
-    /** False in 0.1: no clips are hosted, so no tool may return an audio URL. */
+    /** True only when some clip is actually hosted. No tool may return a URL while this is false. */
     audioHosting: boolean;
+    stats: CorpusStats;
 }
 
 /* ── field readers ───────────────────────────────────────────────────────── */
@@ -247,6 +286,22 @@ function rowsOf(doc: unknown, ...keys: string[]): Row[] {
     return [];
 }
 
+/**
+ * `{available, hosted}` object, a bare URL string, or a bare boolean — all three
+ * shapes have appeared. Only `hosted` (or a real https URL) counts as servable.
+ */
+function readVoice(node: unknown): VoiceAudio {
+    if (typeof node === 'string') return node.startsWith('https://') ? 'hosted' : 'unknown';
+    if (typeof node === 'boolean') return node ? 'recorded' : 'none';
+    if (node && typeof node === 'object') {
+        const row = node as Row;
+        if (row['hosted'] === true) return 'hosted';
+        if (row['available'] === true) return 'recorded';
+        if (row['available'] === false) return 'none';
+    }
+    return 'unknown';
+}
+
 /* ── loading ─────────────────────────────────────────────────────────────── */
 
 function loadWords(dir: string): { version: string | null; words: WordRecord[]; audioHosting: boolean } {
@@ -268,12 +323,15 @@ function loadWords(dir: string): { version: string | null; words: WordRecord[]; 
         const pinyinNumbered = asString(
             pick(row, 'pinyin.numbered', 'pinyin_numbered', 'pinyinNumbered', 'numbered')
         );
-        const audio = pick(row, 'audio');
-        if (audio && typeof audio === 'object') {
-            if (asString(pick(audio as Row, 'female')) !== null || asString(pick(audio as Row, 'male')) !== null) {
-                audioHosting = true;
-            }
-        }
+        const audioNode = pick(row, 'audio');
+        const audio: AudioState =
+            audioNode && typeof audioNode === 'object'
+                ? {
+                      female: readVoice((audioNode as Row)['female']),
+                      male: readVoice((audioNode as Row)['male']),
+                  }
+                : { female: 'unknown', male: 'unknown' };
+        if (audio.female === 'hosted' || audio.male === 'hosted') audioHosting = true;
         words.push({
             id:
                 asString(pick(row, 'id')) ??
@@ -297,6 +355,7 @@ function loadWords(dir: string): { version: string | null; words: WordRecord[]; 
             zipf: asNumber(pick(row, 'zipf', 'zipfScore')),
             sentenceIds: asStringArray(pick(row, 'sentences', 'sentence_ids')),
             packs: [],
+            audio,
         });
     }
     if (words.length === 0) {
@@ -362,6 +421,7 @@ function loadSentences(dir: string): SentenceRecord[] {
                       )
                     : null,
             headwords: links,
+            audio: readVoice(pick(row, 'audio')),
         });
     }
     return out;
@@ -375,6 +435,7 @@ function loadSentences(dir: string): SentenceRecord[] {
 const KINDS = ['band', 'frequency', 'theme', 'form', 'grammar', 'media'] as const;
 const KIND_ALIASES: Record<string, (typeof KINDS)[number]> = {
     pos: 'form',
+    delta: 'band',
     radical: 'form',
     freq: 'frequency',
     topic: 'theme',
@@ -523,6 +584,7 @@ export function loadCorpus(dir: string): Corpus {
 
     const sentences = loadSentences(dir);
     const sentencesById = new Map(sentences.map((s) => [s.id, s]));
+    const sentencesByHanzi = new Map(sentences.map((s) => [s.hanzi, s]));
 
     // The canon carries no sentence ids; the link lives on the sentence side as
     // `headwords[].wordId`. Invert it once here so lookup is a map read.
@@ -571,11 +633,59 @@ export function loadCorpus(dir: string): Corpus {
         byNumbered,
         sentences,
         sentencesById,
+        sentencesByHanzi,
         patterns: loadPatterns(dir, sentences),
         packs,
         packsBySlug,
         topics: packs.filter((p) => p.kind === 'theme').map((p) => p.slug).sort(),
         audioHosting,
+        stats: computeStats(words, sentences, packs),
+    };
+}
+
+function computeStats(
+    words: readonly WordRecord[],
+    sentences: readonly SentenceRecord[],
+    packs: readonly PackRecord[]
+): CorpusStats {
+    // Examples lead with the largest pack of each kind: more use to an agent than
+    // whichever slug sorts first, and still fully derived and deterministic.
+    const kinds = new Map<string, PackRecord[]>();
+    for (const pack of packs) {
+        const bucket = kinds.get(pack.kind);
+        if (bucket === undefined) kinds.set(pack.kind, [pack]);
+        else bucket.push(pack);
+    }
+    const count = (test: (w: WordRecord) => boolean): number => words.filter(test).length;
+    return {
+        words: words.length,
+        withGloss: count((w) => w.gloss.length > 0),
+        withSentence: count((w) => w.sentenceIds.length > 0),
+        bands: {
+            hsk2026: count((w) => w.hsk2026 !== null),
+            hsk2021: count((w) => w.hsk2021 !== null),
+            hsk2_0: count((w) => w.hsk2 !== null),
+        },
+        withFreq: count((w) => w.freq !== null),
+        sentences: sentences.length,
+        packs: packs.length,
+        packKinds: [...kinds.entries()]
+            .map(([kind, group]) => ({
+                kind,
+                count: group.length,
+                examples: [...group]
+                    .sort((a, b) => b.size - a.size || (a.slug < b.slug ? -1 : 1))
+                    .slice(0, 2)
+                    .map((p) => p.slug),
+            }))
+            .sort((a, b) => b.count - a.count),
+        audio: {
+            wordsFemaleRecorded: count((w) => w.audio.female === 'recorded' || w.audio.female === 'hosted'),
+            wordsMaleRecorded: count((w) => w.audio.male === 'recorded' || w.audio.male === 'hosted'),
+            wordsHosted: count((w) => w.audio.female === 'hosted' || w.audio.male === 'hosted'),
+            sentencesRecorded: sentences.filter((s) => s.audio === 'recorded' || s.audio === 'hosted').length,
+            sentencesHosted: sentences.filter((s) => s.audio === 'hosted').length,
+        },
     };
 }
 
