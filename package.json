@@ -30,6 +30,7 @@
     "eval:agent": "tsx evals/agent-tasks.ts",
     "judge:quality": "tsx src/build/quality-judge.ts",
     "quality:filter": "tsx src/build/quality.ts",
+    "quality:remeasure": "tsx src/build/quality.ts --remeasure",
     "typecheck": "tsc --noEmit",
     "typecheck:worker": "tsc --noEmit -p worker/tsconfig.json",
     "metrics": "tsx src/metrics/collect.ts",

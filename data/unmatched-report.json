@@ -1,0 +1,5851 @@
+{
+  "schema": "zhongdex/unmatched-report/v1",
+  "generator": "src/build/reconcile-unmatched.ts",
+  "question": "50 canon records carry enrichedVia: null, so band2021 is unknown rather than absent and the 2021→2026 delta pack has to exclude them. Which of them can be resolved without guessing?",
+  "method": {
+    "candidates": "Derived from the annotation pattern in the simplified cell, then cross-checked against the source list's own Variants and CEDICT columns. No candidate is invented by this script that the source does not also propose.",
+    "tiers": [
+      "reading-exact — normalised numbered pinyin equal (the tier canon.ts already uses)",
+      "reading-neutral-tone — readings differ only in neutral tone (the tolerance cedict.ts already applies)",
+      "marked-pinyin — tone-marked pinyin equal; consulted only when the numbered tiers find nothing"
+    ],
+    "resolveWhen": "Exactly one upstream row matches, at the first tier that matches anything, on the record's primary form. Two matching rows, or a match only on a secondary variant while the primary form is itself attested upstream, resolves nothing and records both.",
+    "neverDone": "No form is guessed, no band is inferred from a sibling word, and nothing is written to the canon or the enrichment snapshot by this script."
+  },
+  "inputs": {
+    "canon": {
+      "path": "data/hsk_bands.json",
+      "sha256": "342c10b776ef50737c7d61a8367099bbd92c2abd417e30a7f832ab1dd14d4daf",
+      "records": 11092
+    },
+    "hsk30Csv": {
+      "path": "scripts/hsk30.csv",
+      "sha256": "8c2b73f74776240bcf154624730fc6fb2c42c254d5c5d0f88943878b8e575b9b"
+    },
+    "ccCedict": {
+      "path": "scripts/cedict.json",
+      "sha256": "96aa9e46bcd37efc6225941a98d5120d6e6a388e865f19e9fd140eeb48971da9"
+    },
+    "production": {
+      "system": "SayMei production Postgres",
+      "table": "global_dictionary",
+      "access": "read-only SELECT; audio_url reduced to a boolean in the query, no URL captured",
+      "columns": [
+        "characters",
+        "pinyin",
+        "pinyin_numbered",
+        "hsk_new_level",
+        "hsk_old_level",
+        "frequency_rank",
+        "zipf_score",
+        "audio_url (as a boolean)"
+      ],
+      "formsQueried": 82,
+      "formsWithRows": 71
+    }
+  },
+  "summary": {
+    "records": 50,
+    "resolved": 39,
+    "ambiguous": 1,
+    "genuinelyAbsent": 10,
+    "resolvedByTier": {
+      "reading-exact": 37,
+      "marked-pinyin": 1,
+      "reading-neutral-tone": 1
+    },
+    "byPattern": {
+      "alt-form": 9,
+      "optional-element": 5,
+      "example-in-parens": 20,
+      "homograph-index": 4,
+      "plain": 12
+    },
+    "candidatesAgreeWithSource": 50,
+    "band2021Gained": 37,
+    "band2021KnownAbsentAfterFix": 2,
+    "resolutionsSharingAnUpstreamRowWithAnotherCanonRecord": 11
+  },
+  "proposedChange": {
+    "owner": "src/build/canon.ts and src/build/enrich.ts",
+    "summary": "Add one join tier, and capture the forms it needs. Neither file is edited by this script.",
+    "steps": [
+      "1. enrich.ts: request the variant forms as well as the canon's literal simplified forms. The variant of a record is the simplified form of its CEDICT key (already parsed by cedict.ts), falling back to the Variants column. That adds 82 forms to the snapshot request.",
+      "2. canon.ts: after the exact-form lookup misses, retry joinRecord against the variant form using the CEDICT key's reading, with the reading-exact, neutral-tone and marked tiers in that order, resolving only on a single match.",
+      "3. types.ts: extend EnrichmentJoin with \"variant-reading\" so the weaker basis is visible in the data and a consumer can filter it. Do not label these joins `reading`.",
+      "4. canon-stats.json: report the new tier in enrichment.joined, and drop the caveat that the delta is a range once the unresolved remainder is down to the records listed here."
+    ],
+    "apply": [
+      {
+        "id": "dex:w:ge1ge5:哥哥|哥:n",
+        "listId": "L1-0118",
+        "simplified": "哥哥|哥",
+        "joinTo": "哥哥",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 2,
+          "frequencyRank": 2047,
+          "zipf": 4.93,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:ma1ma5:妈妈|妈:n",
+        "listId": "L1-0224",
+        "simplified": "妈妈|妈",
+        "joinTo": "妈妈",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 1,
+          "frequencyRank": 997,
+          "zipf": 5.24,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:mei4mei5:妹妹|妹:n",
+        "listId": "L1-0237",
+        "simplified": "妹妹|妹",
+        "joinTo": "妹妹",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 2,
+          "frequencyRank": 2603,
+          "zipf": 4.8,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:jie3jie5:姐姐|姐:n",
+        "listId": "L1-0178",
+        "simplified": "姐姐|姐",
+        "joinTo": "姐姐",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 2,
+          "frequencyRank": 2330,
+          "zipf": 4.86,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:di4di5:弟弟|弟:n",
+        "listId": "L1-0074",
+        "simplified": "弟弟|弟",
+        "joinTo": "弟弟",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 2,
+          "frequencyRank": 3117,
+          "zipf": 4.7,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:you3shi2hou5:有时候|有时:adv",
+        "listId": "L1-0444",
+        "simplified": "有时候|有时",
+        "joinTo": "有时候",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": null,
+          "frequencyRank": 3645,
+          "zipf": 4.62,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:you3xie1:有（一）些:pron",
+        "listId": "L1-0445",
+        "simplified": "有（一）些",
+        "joinTo": "有些",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": null,
+          "frequencyRank": 610,
+          "zipf": 5.46,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:ba4ba5:爸爸|爸:n",
+        "listId": "L1-0004",
+        "simplified": "爸爸|爸",
+        "joinTo": "爸爸",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 1,
+          "frequencyRank": 2263,
+          "zipf": 4.88,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:di4:第（第二）:prefix",
+        "listId": "L1-0075",
+        "simplified": "第（第二）",
+        "joinTo": "第",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": null,
+          "frequencyRank": 253,
+          "zipf": 5.85,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:tou5:头（里头）:suffix",
+        "listId": "L2-0550",
+        "simplified": "头（里头）",
+        "joinTo": "头",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": null,
+          "band2_0": null,
+          "frequencyRank": 1520,
+          "zipf": 5.07,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:jia1:家（科学家）:suffix",
+        "listId": "L2-0257",
+        "simplified": "家（科学家）",
+        "joinTo": "家",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 1,
+          "frequencyRank": 389,
+          "zipf": 5.64,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:xiao3:小（小王）:prefix",
+        "listId": "L2-0602",
+        "simplified": "小（小王）",
+        "joinTo": "小",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 1,
+          "frequencyRank": 235,
+          "zipf": 5.89,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:you3dian3r5:有（一）点儿:adv",
+        "listId": "L2-0686",
+        "simplified": "有（一）点儿",
+        "joinTo": "有点儿",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 17285,
+          "zipf": 3.77,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:cheng1:称1:v",
+        "listId": "L2-0062",
+        "simplified": "称1",
+        "joinTo": "称",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 547,
+          "zipf": 5.51,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:lv4:绿:adj",
+        "listId": "L2-0370",
+        "simplified": "绿",
+        "joinTo": "绿",
+        "tier": "marked-pinyin",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": 3,
+          "frequencyRank": 2377,
+          "zipf": null,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:lao3:老（老王）:prefix",
+        "listId": "L2-0340",
+        "simplified": "老（老王）",
+        "joinTo": "老",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 3,
+          "frequencyRank": 616,
+          "zipf": 5.46,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:na4shi2hou5:那时候|那时:x",
+        "listId": "L2-0390",
+        "simplified": "那时候|那时",
+        "joinTo": "那时候",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 3516,
+          "zipf": 4.64,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:mian4:面1:n",
+        "listId": "L2-0377",
+        "simplified": "面1",
+        "joinTo": "面",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 1385,
+          "zipf": 5.11,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:mian4:面2:n",
+        "listId": "L2-0378",
+        "simplified": "面2",
+        "joinTo": "面",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 1385,
+          "zipf": 5.11,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:chu1:初（初一）:prefix",
+        "listId": "L3-0103",
+        "simplified": "初（初一）",
+        "joinTo": "初",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 1939,
+          "zipf": 4.95,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:hua4:化（现代化）:suffix",
+        "listId": "L3-0301",
+        "simplified": "化（现代化）",
+        "joinTo": "化",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 1907,
+          "zipf": 4.96,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:yuan2:员（服务员）:suffix",
+        "listId": "L3-0869",
+        "simplified": "员（服务员）",
+        "joinTo": "员",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 1424,
+          "zipf": 5.09,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:xing4:性（积极性）:suffix",
+        "listId": "L3-0810",
+        "simplified": "性（积极性）",
+        "joinTo": "性",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 829,
+          "zipf": 5.33,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:zhe3:者（志愿者）:suffix",
+        "listId": "L3-0885",
+        "simplified": "者（志愿者）",
+        "joinTo": "者",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 400,
+          "zipf": 5.64,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:pin3:品（工艺品）:suffix",
+        "listId": "L5-0559",
+        "simplified": "品（工艺品）",
+        "joinTo": "品",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 5,
+          "band2_0": null,
+          "frequencyRank": 4638,
+          "zipf": 4.49,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:cha4dian3r5:差（一）点儿:adv",
+        "listId": "L5-0087",
+        "simplified": "差（一）点儿",
+        "joinTo": "差点儿",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 5,
+          "band2_0": null,
+          "frequencyRank": 43257,
+          "zipf": 3.2,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:ma3tou2:码头:n",
+        "listId": "L5-0489",
+        "simplified": "码头",
+        "joinTo": "码头",
+        "tier": "reading-neutral-tone",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 5,
+          "band2_0": 6,
+          "frequencyRank": 5063,
+          "zipf": 4.45,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:cheng1:称2:v",
+        "listId": "L5-0101",
+        "simplified": "称2",
+        "joinTo": "称",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 547,
+          "zipf": 5.51,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:li4:力（影响力）:suffix",
+        "listId": "L6-0536",
+        "simplified": "力（影响力）",
+        "joinTo": "力",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 2243,
+          "zipf": 4.88,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:hao3rong2yi4:好（不）容易:adj",
+        "listId": "L6-0368",
+        "simplified": "好（不）容易",
+        "joinTo": "好容易",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 6,
+          "band2_0": null,
+          "frequencyRank": 7828,
+          "zipf": 4.21,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:zu2:族（上班族）:suffix",
+        "listId": "L6-1128",
+        "simplified": "族（上班族）",
+        "joinTo": "族",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 6,
+          "band2_0": null,
+          "frequencyRank": 3121,
+          "zipf": 4.7,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:jie4:界（文艺界）:suffix",
+        "listId": "L6-0453",
+        "simplified": "界（文艺界）",
+        "joinTo": "界",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 6,
+          "band2_0": null,
+          "frequencyRank": 3431,
+          "zipf": 4.65,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:zhang3:长（秘书长）:suffix",
+        "listId": "L6-1043",
+        "simplified": "长（秘书长）",
+        "joinTo": "长",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": null,
+          "band2_0": null,
+          "frequencyRank": 292,
+          "zipf": 5.77,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:ye4:业（服务业）:suffix",
+        "listId": "L7-4858",
+        "simplified": "业（服务业）",
+        "joinTo": "业",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 7,
+          "band2_0": null,
+          "frequencyRank": 2718,
+          "zipf": 4.78,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:du4:度（知名度）:suffix",
+        "listId": "L7-0948",
+        "simplified": "度（知名度）",
+        "joinTo": "度",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 1779,
+          "zipf": 4.99,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:gan3:感（责任感）:suffix",
+        "listId": "L7-1257",
+        "simplified": "感（责任感）",
+        "joinTo": "感",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 7,
+          "band2_0": null,
+          "frequencyRank": 2767,
+          "zipf": 4.77,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:lv4:率（成功率）:suffix",
+        "listId": "L7-2733",
+        "simplified": "率（成功率）",
+        "joinTo": "率",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 7,
+          "band2_0": null,
+          "frequencyRank": 2518,
+          "zipf": 4.82,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:mao2tai2:茅台（酒）:n",
+        "listId": "L7-2799",
+        "simplified": "茅台（酒）",
+        "joinTo": "茅台",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 7,
+          "band2_0": null,
+          "frequencyRank": 31517,
+          "zipf": 3.42,
+          "audioAvailable": true
+        }
+      },
+      {
+        "id": "dex:w:fei1:非（非金属）:prefix",
+        "listId": "L7-1095",
+        "simplified": "非（非金属）",
+        "joinTo": "非",
+        "tier": "reading-exact",
+        "set": {
+          "enrichedVia": "variant-reading",
+          "band2021": 4,
+          "band2_0": 5,
+          "frequencyRank": 750,
+          "zipf": 5.39,
+          "audioAvailable": true
+        }
+      }
+    ],
+    "leaveUnknown": [
+      {
+        "id": "dex:w:zhe4shi2hou5zhe4shi2:这时候|这时:x",
+        "simplified": "这时候|这时",
+        "verdict": "ambiguous",
+        "reason": "The record's primary form 这时候 has 1 upstream row(s), none matching its declared reading; only the secondary variant 这时 matches. Resolving to a secondary variant when the primary form is itself attested upstream would be a choice between two attested words, so nothing is resolved. Both are recorded below."
+      },
+      {
+        "id": "dex:w:bu4li4yu2:不利于:x",
+        "simplified": "不利于",
+        "verdict": "genuinely-absent",
+        "reason": "No candidate form has any row in global_dictionary: 不利于. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list."
+      },
+      {
+        "id": "dex:w:bu4ru2shuo1:不如说:x",
+        "simplified": "不如说",
+        "verdict": "genuinely-absent",
+        "reason": "No candidate form has any row in global_dictionary: 不如说. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list."
+      },
+      {
+        "id": "dex:w:bu4nan2:不难:x",
+        "simplified": "不难",
+        "verdict": "genuinely-absent",
+        "reason": "No candidate form has any row in global_dictionary: 不难. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list."
+      },
+      {
+        "id": "dex:w:ding4wei2:定为:x",
+        "simplified": "定为",
+        "verdict": "genuinely-absent",
+        "reason": "No candidate form has any row in global_dictionary: 定为. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list."
+      },
+      {
+        "id": "dex:w:huai2zhe5:怀着:x",
+        "simplified": "怀着",
+        "verdict": "genuinely-absent",
+        "reason": "No candidate form has any row in global_dictionary: 怀着. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list."
+      },
+      {
+        "id": "dex:w:zhuo2yan3yu2:着眼于:x",
+        "simplified": "着眼于",
+        "verdict": "genuinely-absent",
+        "reason": "No candidate form has any row in global_dictionary: 着眼于. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list."
+      },
+      {
+        "id": "dex:w:zhi4li4yu2:致力于:x",
+        "simplified": "致力于",
+        "verdict": "genuinely-absent",
+        "reason": "No candidate form has any row in global_dictionary: 致力于. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list."
+      },
+      {
+        "id": "dex:w:chen4zhe5:趁着:x",
+        "simplified": "趁着",
+        "verdict": "genuinely-absent",
+        "reason": "No candidate form has any row in global_dictionary: 趁着. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list."
+      },
+      {
+        "id": "dex:w:nan2yi3xiang3xiang4:难以想象:x",
+        "simplified": "难以想象",
+        "verdict": "genuinely-absent",
+        "reason": "No candidate form has any row in global_dictionary: 难以想象. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list."
+      },
+      {
+        "id": "dex:w:fei1wang3:飞往:x",
+        "simplified": "飞往",
+        "verdict": "genuinely-absent",
+        "reason": "No candidate form has any row in global_dictionary: 飞往. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list."
+      }
+    ]
+  },
+  "records": [
+    {
+      "id": "dex:w:ge1ge5:哥哥|哥:n",
+      "listId": "L1-0118",
+      "simplified": "哥哥|哥",
+      "traditional": "哥哥|哥",
+      "pinyin": {
+        "marked": "gēge|gē",
+        "numbered": "ge1 ge5"
+      },
+      "pos": [
+        "N"
+      ],
+      "band2026": 1,
+      "pattern": "alt-form",
+      "patternNote": "\"哥哥|哥\" is an entry and its short form, written in parallel with the pinyin cell.",
+      "sourceDeclaredKey": {
+        "form": "哥哥",
+        "reading": "ge1 ge5",
+        "raw": "哥哥|哥哥[ge1 ge5]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "哥哥",
+          "pinyin": "gēge"
+        },
+        {
+          "form": "哥",
+          "pinyin": "gē"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "哥哥",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "gēge",
+          "readingKey": "ge1ge5",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "ge1 ge5",
+          "cedict": [
+            "ge1 ge5 — older brother"
+          ],
+          "upstreamRows": [
+            {
+              "form": "哥哥",
+              "pinyin": "gē ge ｜ gē",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 2029,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "哥哥",
+              "pinyin": "gē ge",
+              "pinyinNumbered": "ge1 ge5",
+              "band2021": 1,
+              "band2_0": 2,
+              "frequencyRank": 2047,
+              "zipf": 4.93,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "哥",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "gē",
+          "readingKey": "ge1",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "ge1",
+          "cedict": [
+            "ge1 — elder brother"
+          ],
+          "upstreamRows": [
+            {
+              "form": "哥",
+              "pinyin": "gē ge ｜ gē",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 1905,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "哥",
+              "pinyin": "gē",
+              "pinyinNumbered": "ge1",
+              "band2021": 1,
+              "band2_0": null,
+              "frequencyRank": 3624,
+              "zipf": 4.62,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 哥哥, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "哥哥",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 2,
+          "frequencyRank": 2047,
+          "zipf": 4.93,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "哥哥",
+          "pinyin": "gē ge",
+          "pinyinNumbered": "ge1 ge5",
+          "band2021": 1,
+          "band2_0": 2,
+          "frequencyRank": 2047,
+          "zipf": 4.93,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "A duplicate upstream row for 哥哥 (pinyin \"gē ge ｜ gē\") gives frequency_rank 2029 against this row's 2047. The bands come only from this row; the rank is contested."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:ma1ma5:妈妈|妈:n",
+      "listId": "L1-0224",
+      "simplified": "妈妈|妈",
+      "traditional": "媽媽|媽",
+      "pinyin": {
+        "marked": "māma|mā",
+        "numbered": "ma1 ma5"
+      },
+      "pos": [
+        "N"
+      ],
+      "band2026": 1,
+      "pattern": "alt-form",
+      "patternNote": "\"妈妈|妈\" is an entry and its short form, written in parallel with the pinyin cell.",
+      "sourceDeclaredKey": {
+        "form": "妈妈",
+        "reading": "ma1 ma5",
+        "raw": "媽媽|妈妈[ma1 ma5]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "妈妈",
+          "pinyin": "māma"
+        },
+        {
+          "form": "妈",
+          "pinyin": "mā"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "妈妈",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "māma",
+          "readingKey": "ma1ma5",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "ma1 ma5",
+          "cedict": [
+            "ma1 ma5 — mama"
+          ],
+          "upstreamRows": [
+            {
+              "form": "妈妈",
+              "pinyin": "mā ma ｜ mā",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 1939,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "妈妈",
+              "pinyin": "mā ma",
+              "pinyinNumbered": "ma1 ma5",
+              "band2021": 1,
+              "band2_0": 1,
+              "frequencyRank": 997,
+              "zipf": 5.24,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "妈",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "mā",
+          "readingKey": "ma1",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "ma1",
+          "cedict": [
+            "ma1 — ma"
+          ],
+          "upstreamRows": [
+            {
+              "form": "妈",
+              "pinyin": "mā ma ｜ mā",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 1752,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "妈",
+              "pinyin": "mā",
+              "pinyinNumbered": "ma1",
+              "band2021": 1,
+              "band2_0": null,
+              "frequencyRank": 1651,
+              "zipf": 5.02,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 妈妈, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "妈妈",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 1,
+          "frequencyRank": 997,
+          "zipf": 5.24,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "妈妈",
+          "pinyin": "mā ma",
+          "pinyinNumbered": "ma1 ma5",
+          "band2021": 1,
+          "band2_0": 1,
+          "frequencyRank": 997,
+          "zipf": 5.24,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "A duplicate upstream row for 妈妈 (pinyin \"mā ma ｜ mā\") gives frequency_rank 1939 against this row's 997. The bands come only from this row; the rank is contested."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:mei4mei5:妹妹|妹:n",
+      "listId": "L1-0237",
+      "simplified": "妹妹|妹",
+      "traditional": "妹妹|妹",
+      "pinyin": {
+        "marked": "mèimei|mèi",
+        "numbered": "mei4 mei5"
+      },
+      "pos": [
+        "N"
+      ],
+      "band2026": 1,
+      "pattern": "alt-form",
+      "patternNote": "\"妹妹|妹\" is an entry and its short form, written in parallel with the pinyin cell.",
+      "sourceDeclaredKey": {
+        "form": "妹妹",
+        "reading": "mei4 mei5",
+        "raw": "妹妹|妹妹[mei4 mei5]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "妹妹",
+          "pinyin": "mèimei"
+        },
+        {
+          "form": "妹",
+          "pinyin": "mèi"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "妹妹",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "mèimei",
+          "readingKey": "mei4mei5",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "mei4 mei5",
+          "cedict": [
+            "mei4 mei5 — younger sister"
+          ],
+          "upstreamRows": [
+            {
+              "form": "妹妹",
+              "pinyin": "mèi",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 3808,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "妹妹",
+              "pinyin": "mèi mei",
+              "pinyinNumbered": "mei4 mei5",
+              "band2021": 1,
+              "band2_0": 2,
+              "frequencyRank": 2603,
+              "zipf": 4.8,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "妹",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "mèi",
+          "readingKey": "mei4",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "mei4",
+          "cedict": [
+            "mei4 — younger sister"
+          ],
+          "upstreamRows": [
+            {
+              "form": "妹",
+              "pinyin": "mèi",
+              "pinyinNumbered": "mei4",
+              "band2021": 1,
+              "band2_0": null,
+              "frequencyRank": 9347,
+              "zipf": 4.11,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 妹妹, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "妹妹",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 2,
+          "frequencyRank": 2603,
+          "zipf": 4.8,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "妹妹",
+          "pinyin": "mèi mei",
+          "pinyinNumbered": "mei4 mei5",
+          "band2021": 1,
+          "band2_0": 2,
+          "frequencyRank": 2603,
+          "zipf": 4.8,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "A duplicate upstream row for 妹妹 (pinyin \"mèi\") gives frequency_rank 3808 against this row's 2603. The bands come only from this row; the rank is contested."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:jie3jie5:姐姐|姐:n",
+      "listId": "L1-0178",
+      "simplified": "姐姐|姐",
+      "traditional": "姐姐|姐",
+      "pinyin": {
+        "marked": "jiějie|jiě",
+        "numbered": "jie3 jie5"
+      },
+      "pos": [
+        "N"
+      ],
+      "band2026": 1,
+      "pattern": "alt-form",
+      "patternNote": "\"姐姐|姐\" is an entry and its short form, written in parallel with the pinyin cell.",
+      "sourceDeclaredKey": {
+        "form": "姐姐",
+        "reading": "jie3 jie5",
+        "raw": "姐姐|姐姐[jie3 jie5]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "姐姐",
+          "pinyin": "jiějie"
+        },
+        {
+          "form": "姐",
+          "pinyin": "jiě"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "姐姐",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "jiějie",
+          "readingKey": "jie3jie5",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "jie3 jie5",
+          "cedict": [
+            "jie3 jie5 — older sister"
+          ],
+          "upstreamRows": [
+            {
+              "form": "姐姐",
+              "pinyin": "jiě jie ｜ jiě",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 3119,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "姐姐",
+              "pinyin": "jiě jie",
+              "pinyinNumbered": "jie3 jie5",
+              "band2021": 1,
+              "band2_0": 2,
+              "frequencyRank": 2330,
+              "zipf": 4.86,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "姐",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "jiě",
+          "readingKey": "jie3",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "jie3",
+          "cedict": [
+            "jie3 — older sister"
+          ],
+          "upstreamRows": [
+            {
+              "form": "姐",
+              "pinyin": "jiě jie ｜ jiě",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 5811,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "姐",
+              "pinyin": "jiě",
+              "pinyinNumbered": "jie3",
+              "band2021": 1,
+              "band2_0": null,
+              "frequencyRank": 10034,
+              "zipf": 4.07,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 姐姐, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "姐姐",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 2,
+          "frequencyRank": 2330,
+          "zipf": 4.86,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "姐姐",
+          "pinyin": "jiě jie",
+          "pinyinNumbered": "jie3 jie5",
+          "band2021": 1,
+          "band2_0": 2,
+          "frequencyRank": 2330,
+          "zipf": 4.86,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "A duplicate upstream row for 姐姐 (pinyin \"jiě jie ｜ jiě\") gives frequency_rank 3119 against this row's 2330. The bands come only from this row; the rank is contested."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:di4di5:弟弟|弟:n",
+      "listId": "L1-0074",
+      "simplified": "弟弟|弟",
+      "traditional": "弟弟|弟",
+      "pinyin": {
+        "marked": "dìdi|dì",
+        "numbered": "di4 di5"
+      },
+      "pos": [
+        "N"
+      ],
+      "band2026": 1,
+      "pattern": "alt-form",
+      "patternNote": "\"弟弟|弟\" is an entry and its short form, written in parallel with the pinyin cell.",
+      "sourceDeclaredKey": {
+        "form": "弟弟",
+        "reading": "di4 di5",
+        "raw": "弟弟|弟弟[di4 di5]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "弟弟",
+          "pinyin": "dìdi"
+        },
+        {
+          "form": "弟",
+          "pinyin": "dì"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "弟弟",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "dìdi",
+          "readingKey": "di4di5",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "di4 di5",
+          "cedict": [
+            "di4 di5 — younger brother"
+          ],
+          "upstreamRows": [
+            {
+              "form": "弟弟",
+              "pinyin": "dì di ｜ dì",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 4811,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "弟弟",
+              "pinyin": "dì di",
+              "pinyinNumbered": "di4 di5",
+              "band2021": 1,
+              "band2_0": 2,
+              "frequencyRank": 3117,
+              "zipf": 4.7,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "弟",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "dì",
+          "readingKey": "di4",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "di4",
+          "cedict": [
+            "di4 — younger brother",
+            "ti4 — variant of 悌[ti4]"
+          ],
+          "upstreamRows": [
+            {
+              "form": "弟",
+              "pinyin": "dì di ｜ dì",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 2689,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "弟",
+              "pinyin": "dì",
+              "pinyinNumbered": "di4",
+              "band2021": 1,
+              "band2_0": null,
+              "frequencyRank": 14961,
+              "zipf": 3.85,
+              "audioAvailable": true
+            },
+            {
+              "form": "弟",
+              "pinyin": "tì",
+              "pinyinNumbered": "ti4",
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 14962,
+              "zipf": 3.85,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 弟弟, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "弟弟",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 2,
+          "frequencyRank": 3117,
+          "zipf": 4.7,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "弟弟",
+          "pinyin": "dì di",
+          "pinyinNumbered": "di4 di5",
+          "band2021": 1,
+          "band2_0": 2,
+          "frequencyRank": 3117,
+          "zipf": 4.7,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "A duplicate upstream row for 弟弟 (pinyin \"dì di ｜ dì\") gives frequency_rank 4811 against this row's 3117. The bands come only from this row; the rank is contested."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:you3shi2hou5:有时候|有时:adv",
+      "listId": "L1-0444",
+      "simplified": "有时候|有时",
+      "traditional": "有時候|有時",
+      "pinyin": {
+        "marked": "yǒushíhou|yǒushí",
+        "numbered": "you3 shi2 hou5"
+      },
+      "pos": [
+        "Adv"
+      ],
+      "band2026": 1,
+      "pattern": "alt-form",
+      "patternNote": "\"有时候|有时\" is an entry and its short form, written in parallel with the pinyin cell.",
+      "sourceDeclaredKey": {
+        "form": "有时候",
+        "reading": "you3 shi2 hou5",
+        "raw": "有時候|有时候[you3 shi2 hou5]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "有时候",
+          "pinyin": "yǒushíhou"
+        },
+        {
+          "form": "有时",
+          "pinyin": "yǒushí"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "有时候",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "yǒushíhou",
+          "readingKey": "you3shi2hou5",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "you3 shi2 hou5",
+          "cedict": [
+            "you3 shi2 hou5 — sometimes"
+          ],
+          "upstreamRows": [
+            {
+              "form": "有时候",
+              "pinyin": "yǒu shí hòu ｜ yǒu",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 6063,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "有时候",
+              "pinyin": "yǒu shí hou",
+              "pinyinNumbered": "you3 shi2 hou5",
+              "band2021": 1,
+              "band2_0": null,
+              "frequencyRank": 3645,
+              "zipf": 4.62,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "有时",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "yǒushí",
+          "readingKey": "you3shi2",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "you3 shi2",
+          "cedict": [
+            "you3 shi2 — sometimes"
+          ],
+          "upstreamRows": [
+            {
+              "form": "有时",
+              "pinyin": "yǒu shí hòu ｜ yǒu",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 1235,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "有时",
+              "pinyin": "yǒu shí",
+              "pinyinNumbered": "you3 shi2",
+              "band2021": 1,
+              "band2_0": null,
+              "frequencyRank": 1632,
+              "zipf": 5.03,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 有时候, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "有时候",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": null,
+          "frequencyRank": 3645,
+          "zipf": 4.62,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "有时候",
+          "pinyin": "yǒu shí hou",
+          "pinyinNumbered": "you3 shi2 hou5",
+          "band2021": 1,
+          "band2_0": null,
+          "frequencyRank": 3645,
+          "zipf": 4.62,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "A duplicate upstream row for 有时候 (pinyin \"yǒu shí hòu ｜ yǒu\") gives frequency_rank 6063 against this row's 3645. The bands come only from this row; the rank is contested."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:you3xie1:有（一）些:pron",
+      "listId": "L1-0445",
+      "simplified": "有（一）些",
+      "traditional": "有（一）些",
+      "pinyin": {
+        "marked": "yǒu(yī)xiē",
+        "numbered": "you3 xie1"
+      },
+      "pos": [
+        "Pron"
+      ],
+      "band2026": 1,
+      "pattern": "optional-element",
+      "patternNote": "\"有（一）些\" writes 一 as optional material inside the word.",
+      "sourceDeclaredKey": {
+        "form": "有些",
+        "reading": "you3 xie1",
+        "raw": "有些|有些[you3 xie1]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "有些",
+          "pinyin": "yǒuxiē"
+        },
+        {
+          "form": "有一些",
+          "pinyin": "yǒuyīxiē"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "有些",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "yǒuxiē",
+          "readingKey": "you3xie1",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "you3 xie1",
+          "cedict": [
+            "you3 xie1 — some"
+          ],
+          "upstreamRows": [
+            {
+              "form": "有些",
+              "pinyin": "yǒu xiē",
+              "pinyinNumbered": "you3 xie1",
+              "band2021": 1,
+              "band2_0": null,
+              "frequencyRank": 610,
+              "zipf": 5.46,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "有一些",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "yǒuyīxiē",
+          "readingKey": "you3yi1xie1",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "you3 yi1 xie1",
+          "cedict": [
+            "you3 yi1 xie1 — somewhat"
+          ],
+          "upstreamRows": [
+            {
+              "form": "有一些",
+              "pinyin": "yǒu yī xiē",
+              "pinyinNumbered": "you3 yi1 xie1",
+              "band2021": 1,
+              "band2_0": null,
+              "frequencyRank": 3007,
+              "zipf": 4.72,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 有些, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "有些",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": null,
+          "frequencyRank": 610,
+          "zipf": 5.46,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "有些",
+          "pinyin": "yǒu xiē",
+          "pinyinNumbered": "you3 xie1",
+          "band2021": 1,
+          "band2_0": null,
+          "frequencyRank": 610,
+          "zipf": 5.46,
+          "audioAvailable": true
+        },
+        "caveats": []
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:ba4ba5:爸爸|爸:n",
+      "listId": "L1-0004",
+      "simplified": "爸爸|爸",
+      "traditional": "爸爸|爸",
+      "pinyin": {
+        "marked": "bàba|bà",
+        "numbered": "ba4 ba5"
+      },
+      "pos": [
+        "N"
+      ],
+      "band2026": 1,
+      "pattern": "alt-form",
+      "patternNote": "\"爸爸|爸\" is an entry and its short form, written in parallel with the pinyin cell.",
+      "sourceDeclaredKey": {
+        "form": "爸爸",
+        "reading": "ba4 ba5",
+        "raw": "爸爸|爸爸[ba4 ba5]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "爸爸",
+          "pinyin": "bàba"
+        },
+        {
+          "form": "爸",
+          "pinyin": "bà"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "爸爸",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "bàba",
+          "readingKey": "ba4ba5",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "ba4 ba5",
+          "cedict": [
+            "ba4 ba5 — (coll.) father; dad"
+          ],
+          "upstreamRows": [
+            {
+              "form": "爸爸",
+              "pinyin": "bàba ｜ bà",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 3417,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "爸爸",
+              "pinyin": "bà ba",
+              "pinyinNumbered": "ba4 ba5",
+              "band2021": 1,
+              "band2_0": 1,
+              "frequencyRank": 2263,
+              "zipf": 4.88,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "爸",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "bà",
+          "readingKey": "ba4",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "ba4",
+          "cedict": [
+            "ba4 — father"
+          ],
+          "upstreamRows": [
+            {
+              "form": "爸",
+              "pinyin": "bàba ｜ bà",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 4692,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "爸",
+              "pinyin": "bà",
+              "pinyinNumbered": "ba4",
+              "band2021": 1,
+              "band2_0": null,
+              "frequencyRank": 8590,
+              "zipf": 4.16,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 爸爸, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "爸爸",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 1,
+          "frequencyRank": 2263,
+          "zipf": 4.88,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "爸爸",
+          "pinyin": "bà ba",
+          "pinyinNumbered": "ba4 ba5",
+          "band2021": 1,
+          "band2_0": 1,
+          "frequencyRank": 2263,
+          "zipf": 4.88,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "A duplicate upstream row for 爸爸 (pinyin \"bàba ｜ bà\") gives frequency_rank 3417 against this row's 2263. The bands come only from this row; the rank is contested."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:di4:第（第二）:prefix",
+      "listId": "L1-0075",
+      "simplified": "第（第二）",
+      "traditional": "第（第二）",
+      "pinyin": {
+        "marked": "dì (dì-èr)",
+        "numbered": "di4"
+      },
+      "pos": [
+        "Prefix"
+      ],
+      "band2026": 1,
+      "pattern": "example-in-parens",
+      "patternNote": "\"第（第二）\" is the bound form 第 with 第二 shown as an example of it; 第二 contains 第, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "第",
+        "reading": "di4",
+        "raw": "第|第[di4]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "第",
+          "pinyin": "dì"
+        },
+        {
+          "form": "第二",
+          "pinyin": "dì-èr"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "第",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "dì",
+          "readingKey": "di4",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "di4",
+          "cedict": [
+            "di4 — (prefix indicating ordinal number, as in 第六[di4 liu4] \"sixth\")"
+          ],
+          "upstreamRows": [
+            {
+              "form": "第",
+              "pinyin": "dì",
+              "pinyinNumbered": "di4",
+              "band2021": 1,
+              "band2_0": null,
+              "frequencyRank": 253,
+              "zipf": 5.85,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "第二",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "dì-èr",
+          "readingKey": "di4er4",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "di4 er4",
+          "cedict": [
+            "di4 er4 — second"
+          ],
+          "upstreamRows": [
+            {
+              "form": "第二",
+              "pinyin": "dì èr",
+              "pinyinNumbered": "di4 er4",
+              "band2021": 1,
+              "band2_0": null,
+              "frequencyRank": 1412,
+              "zipf": 5.1,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 第, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "第",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": null,
+          "frequencyRank": 253,
+          "zipf": 5.85,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "第",
+          "pinyin": "dì",
+          "pinyinNumbered": "di4",
+          "band2021": 1,
+          "band2_0": null,
+          "frequencyRank": 253,
+          "zipf": 5.85,
+          "audioAvailable": true
+        },
+        "caveats": []
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:tou5:头（里头）:suffix",
+      "listId": "L2-0550",
+      "simplified": "头（里头）",
+      "traditional": "頭（裡頭）",
+      "pinyin": {
+        "marked": "tou (lǐtou)",
+        "numbered": "tou5"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 2,
+      "pattern": "example-in-parens",
+      "patternNote": "\"头（里头）\" is the bound form 头 with 里头 shown as an example of it; 里头 contains 头, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "头",
+        "reading": "tou5",
+        "raw": "頭|头[tou5]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "头",
+          "pinyin": "tou"
+        },
+        {
+          "form": "里头",
+          "pinyin": "lǐtou"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "头",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "tou",
+          "readingKey": "tou5",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "tou5",
+          "cedict": [
+            "tou2 — head",
+            "tou5 — suffix for nouns"
+          ],
+          "upstreamRows": [
+            {
+              "form": "头",
+              "pinyin": "tóu",
+              "pinyinNumbered": "tou2",
+              "band2021": 2,
+              "band2_0": null,
+              "frequencyRank": 1519,
+              "zipf": 5.07,
+              "audioAvailable": true
+            },
+            {
+              "form": "头",
+              "pinyin": "tou",
+              "pinyinNumbered": "tou5",
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 1520,
+              "zipf": 5.07,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "里头",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "lǐtou",
+          "readingKey": "li3tou5",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "li3 tou5",
+          "cedict": [
+            "li3 tou5 — inside; interior"
+          ],
+          "upstreamRows": [
+            {
+              "form": "里头",
+              "pinyin": "lǐ",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 10595,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "里头",
+              "pinyin": "lǐ tou",
+              "pinyinNumbered": "li3 tou5",
+              "band2021": 2,
+              "band2_0": null,
+              "frequencyRank": 10680,
+              "zipf": 4.04,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 头, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "头",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": null,
+          "band2_0": null,
+          "frequencyRank": 1520,
+          "zipf": 5.07,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "头",
+          "pinyin": "tou",
+          "pinyinNumbered": "tou5",
+          "band2021": null,
+          "band2_0": null,
+          "frequencyRank": 1520,
+          "zipf": 5.07,
+          "audioAvailable": true
+        },
+        "caveats": []
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:jia1:家（科学家）:suffix",
+      "listId": "L2-0257",
+      "simplified": "家（科学家）",
+      "traditional": "家（科學家）",
+      "pinyin": {
+        "marked": "jiā (kēxuéjiā)",
+        "numbered": "jia1"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 2,
+      "pattern": "example-in-parens",
+      "patternNote": "\"家（科学家）\" is the bound form 家 with 科学家 shown as an example of it; 科学家 contains 家, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "家",
+        "reading": "jia1",
+        "raw": "家|家[jia1]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "家",
+          "pinyin": "jiā"
+        },
+        {
+          "form": "科学家",
+          "pinyin": "kēxuéjiā"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "家",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "jiā",
+          "readingKey": "jia1",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "jia1",
+          "cedict": [
+            "jia1 — used in 傢伙|家伙[jia1 huo5] and 傢俱|家俱[jia1 ju4]",
+            "jia1 — home"
+          ],
+          "upstreamRows": [
+            {
+              "form": "家",
+              "pinyin": "jiā",
+              "pinyinNumbered": "jia1",
+              "band2021": 1,
+              "band2_0": 1,
+              "frequencyRank": 389,
+              "zipf": 5.64,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "科学家",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "kēxuéjiā",
+          "readingKey": "ke1xue2jia1",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "ke1 xue2 jia1",
+          "cedict": [
+            "ke1 xue2 jia1 — scientist"
+          ],
+          "upstreamRows": [
+            {
+              "form": "科学家",
+              "pinyin": "kē xué jiā",
+              "pinyinNumbered": "ke1 xue2 jia1",
+              "band2021": 2,
+              "band2_0": null,
+              "frequencyRank": 2675,
+              "zipf": 4.79,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 家, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "家",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 1,
+          "frequencyRank": 389,
+          "zipf": 5.64,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "家",
+          "pinyin": "jiā",
+          "pinyinNumbered": "jia1",
+          "band2021": 1,
+          "band2_0": 1,
+          "frequencyRank": 389,
+          "zipf": 5.64,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "Upstream has one row per (form, reading), so this row is the free word 家; 1 canon record(s) already join to it (dex:w:jia1:家:n). band2021 and frequency are therefore form-level facts about 家, not sense-level facts about this entry. The canon already assigns one upstream row to several records elsewhere (259 canon rows share a simplified form), so this is the existing behaviour, not a new one — but enrichedVia must say `variant-reading` so a consumer can filter it."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:xiao3:小（小王）:prefix",
+      "listId": "L2-0602",
+      "simplified": "小（小王）",
+      "traditional": "小（小王）",
+      "pinyin": {
+        "marked": "xiǎo (Xiǎo Wáng)",
+        "numbered": "xiao3"
+      },
+      "pos": [
+        "Prefix"
+      ],
+      "band2026": 2,
+      "pattern": "example-in-parens",
+      "patternNote": "\"小（小王）\" is the bound form 小 with 小王 shown as an example of it; 小王 contains 小, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "小",
+        "reading": "xiao3",
+        "raw": "小|小[xiao3]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "小",
+          "pinyin": "xiǎo"
+        },
+        {
+          "form": "小王",
+          "pinyin": "Xiǎo Wáng"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "小",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "xiǎo",
+          "readingKey": "xiao3",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "xiao3",
+          "cedict": [
+            "xiao3 — small"
+          ],
+          "upstreamRows": [
+            {
+              "form": "小",
+              "pinyin": "xiǎo",
+              "pinyinNumbered": "xiao3",
+              "band2021": 1,
+              "band2_0": 1,
+              "frequencyRank": 235,
+              "zipf": 5.89,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "小王",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "Xiǎo Wáng",
+          "readingKey": "xiao3wang2",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "xiao3 wang2",
+          "cedict": [],
+          "upstreamRows": [
+            {
+              "form": "小王",
+              "pinyin": "xiǎowáng",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": null,
+              "zipf": null,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 小, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "小",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 1,
+          "frequencyRank": 235,
+          "zipf": 5.89,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "小",
+          "pinyin": "xiǎo",
+          "pinyinNumbered": "xiao3",
+          "band2021": 1,
+          "band2_0": 1,
+          "frequencyRank": 235,
+          "zipf": 5.89,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "Upstream has one row per (form, reading), so this row is the free word 小; 1 canon record(s) already join to it (dex:w:xiao3:小:adj). band2021 and frequency are therefore form-level facts about 小, not sense-level facts about this entry. The canon already assigns one upstream row to several records elsewhere (259 canon rows share a simplified form), so this is the existing behaviour, not a new one — but enrichedVia must say `variant-reading` so a consumer can filter it."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:you3dian3r5:有（一）点儿:adv",
+      "listId": "L2-0686",
+      "simplified": "有（一）点儿",
+      "traditional": "有（一）點兒",
+      "pinyin": {
+        "marked": "yǒu(yī)diǎnr",
+        "numbered": "you3 dian3 r5"
+      },
+      "pos": [
+        "Adv"
+      ],
+      "band2026": 2,
+      "pattern": "optional-element",
+      "patternNote": "\"有（一）点儿\" writes 一 as optional material inside the word.",
+      "sourceDeclaredKey": {
+        "form": "有点儿",
+        "reading": "you3 dian3 r5",
+        "raw": "有點兒|有点儿[you3 dian3 r5]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "有点儿",
+          "pinyin": "yǒudiǎnr"
+        },
+        {
+          "form": "有一点儿",
+          "pinyin": "yǒuyīdiǎnr"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "有点儿",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "yǒudiǎnr",
+          "readingKey": "you3dian3r5",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "you3 dian3 r5",
+          "cedict": [
+            "you3 dian3 r5 — slightly"
+          ],
+          "upstreamRows": [
+            {
+              "form": "有点儿",
+              "pinyin": "yǒu diǎn r",
+              "pinyinNumbered": "you3 dian3 r5",
+              "band2021": 2,
+              "band2_0": null,
+              "frequencyRank": 17285,
+              "zipf": 3.77,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "有一点儿",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "yǒuyīdiǎnr",
+          "readingKey": "you3yi1dian3r5",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "you3 yi1 dian3 r5",
+          "cedict": [
+            "you3 yi1 dian3 r5 — a bit"
+          ],
+          "upstreamRows": [
+            {
+              "form": "有一点儿",
+              "pinyin": "yǒu yī diǎn r",
+              "pinyinNumbered": "you3 yi1 dian3 r5",
+              "band2021": 2,
+              "band2_0": null,
+              "frequencyRank": 56852,
+              "zipf": 2.95,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 有点儿, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "有点儿",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 17285,
+          "zipf": 3.77,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "有点儿",
+          "pinyin": "yǒu diǎn r",
+          "pinyinNumbered": "you3 dian3 r5",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 17285,
+          "zipf": 3.77,
+          "audioAvailable": true
+        },
+        "caveats": []
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:cheng1:称1:v",
+      "listId": "L2-0062",
+      "simplified": "称1",
+      "traditional": "稱1",
+      "pinyin": {
+        "marked": "chēng",
+        "numbered": "cheng1"
+      },
+      "pos": [
+        "V"
+      ],
+      "band2026": 2,
+      "pattern": "homograph-index",
+      "patternNote": "\"称1\" is 称 with the source's sense index 1 appended; the digit is not part of the word.",
+      "sourceDeclaredKey": {
+        "form": "称",
+        "reading": "cheng1",
+        "raw": "稱|称[cheng1]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "称",
+          "pinyin": "chēng"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "称",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "chēng",
+          "readingKey": "cheng1",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "cheng1",
+          "cedict": [
+            "chen4 — to fit; to match; to suit",
+            "cheng1 — to weigh",
+            "cheng4 — old variant of 秤[cheng4]"
+          ],
+          "upstreamRows": [
+            {
+              "form": "称",
+              "pinyin": "chèn",
+              "pinyinNumbered": "chen4",
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 546,
+              "zipf": 5.51,
+              "audioAvailable": true
+            },
+            {
+              "form": "称",
+              "pinyin": "chēng",
+              "pinyinNumbered": "cheng1",
+              "band2021": 2,
+              "band2_0": null,
+              "frequencyRank": 547,
+              "zipf": 5.51,
+              "audioAvailable": true
+            },
+            {
+              "form": "称",
+              "pinyin": "chèng",
+              "pinyinNumbered": "cheng4",
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 548,
+              "zipf": 5.51,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 称, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "称",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 547,
+          "zipf": 5.51,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "称",
+          "pinyin": "chēng",
+          "pinyinNumbered": "cheng1",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 547,
+          "zipf": 5.51,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "2 of these 50 records resolve to this same upstream row: 称2 (dex:w:cheng1:称2:v). Upstream carries one row per (form, reading) and does not split the sense the source list splits, so they take the same band and the same rank."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:lv4:绿:adj",
+      "listId": "L2-0370",
+      "simplified": "绿",
+      "traditional": "綠",
+      "pinyin": {
+        "marked": "lǜ",
+        "numbered": "lu:4"
+      },
+      "pos": [
+        "Adj"
+      ],
+      "band2026": 2,
+      "pattern": "plain",
+      "patternNote": "\"绿\" carries no annotation: it is the word as the list writes it.",
+      "sourceDeclaredKey": {
+        "form": "绿",
+        "reading": "lu:4",
+        "raw": "綠|绿[lu:4]"
+      },
+      "sourceDeclaredVariants": [],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "绿",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "lǜ",
+          "readingKey": "lv4",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "lu:4",
+          "cedict": [
+            "lu4 — used in names",
+            "lu:4 — green"
+          ],
+          "upstreamRows": [
+            {
+              "form": "绿",
+              "pinyin": "lǜ",
+              "pinyinNumbered": null,
+              "band2021": 2,
+              "band2_0": 3,
+              "frequencyRank": 2377,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "绿",
+              "pinyin": "lù",
+              "pinyinNumbered": "lu4",
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 3584,
+              "zipf": 4.63,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the marked-pinyin tier, on the form 绿, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "绿",
+        "tier": "marked-pinyin",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": 3,
+          "frequencyRank": 2377,
+          "zipf": null,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "绿",
+          "pinyin": "lǜ",
+          "pinyinNumbered": null,
+          "band2021": 2,
+          "band2_0": 3,
+          "frequencyRank": 2377,
+          "zipf": null,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "Matched on tone-marked pinyin because no upstream row for this form carries a numbered reading that matches; the marked column is free text upstream."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:lao3:老（老王）:prefix",
+      "listId": "L2-0340",
+      "simplified": "老（老王）",
+      "traditional": "老（老王）",
+      "pinyin": {
+        "marked": "lǎo (Lǎo Wáng)",
+        "numbered": "lao3"
+      },
+      "pos": [
+        "Prefix"
+      ],
+      "band2026": 2,
+      "pattern": "example-in-parens",
+      "patternNote": "\"老（老王）\" is the bound form 老 with 老王 shown as an example of it; 老王 contains 老, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "老",
+        "reading": "lao3",
+        "raw": "老|老[lao3]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "老",
+          "pinyin": "lǎo"
+        },
+        {
+          "form": "老王",
+          "pinyin": "Lǎo Wáng"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "老",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "lǎo",
+          "readingKey": "lao3",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "lao3",
+          "cedict": [
+            "lao3 — prefix used before the surname of a person or a numeral indicating the order of birth of the children in a family or to indicate affection or familiarity"
+          ],
+          "upstreamRows": [
+            {
+              "form": "老",
+              "pinyin": "lǎo",
+              "pinyinNumbered": "lao3",
+              "band2021": 1,
+              "band2_0": 3,
+              "frequencyRank": 616,
+              "zipf": 5.46,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "老王",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "Lǎo Wáng",
+          "readingKey": "lao3wang2",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "lao3 wang2",
+          "cedict": [],
+          "upstreamRows": []
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 老, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "老",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 1,
+          "band2_0": 3,
+          "frequencyRank": 616,
+          "zipf": 5.46,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "老",
+          "pinyin": "lǎo",
+          "pinyinNumbered": "lao3",
+          "band2021": 1,
+          "band2_0": 3,
+          "frequencyRank": 616,
+          "zipf": 5.46,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "Upstream has one row per (form, reading), so this row is the free word 老; 2 canon record(s) already join to it (dex:w:lao3:老:adj, dex:w:lao3:老:adv). band2021 and frequency are therefore form-level facts about 老, not sense-level facts about this entry. The canon already assigns one upstream row to several records elsewhere (259 canon rows share a simplified form), so this is the existing behaviour, not a new one — but enrichedVia must say `variant-reading` so a consumer can filter it."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:zhe4shi2hou5zhe4shi2:这时候|这时:x",
+      "listId": "L2-0722",
+      "simplified": "这时候|这时",
+      "traditional": "這時候|這時",
+      "pinyin": {
+        "marked": "zhè shíhou|zhè shí",
+        "numbered": "zhe4 shi2 hou5 zhe4 shi2"
+      },
+      "pos": [],
+      "band2026": 2,
+      "pattern": "alt-form",
+      "patternNote": "\"这时候|这时\" is an entry and its short form, written in parallel with the pinyin cell.",
+      "sourceDeclaredKey": null,
+      "sourceDeclaredVariants": [
+        {
+          "form": "这时候",
+          "pinyin": "zhè shíhou"
+        },
+        {
+          "form": "这时",
+          "pinyin": "zhè shí"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "这时候",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "zhè shíhou",
+          "readingKey": "zhe4shi2hou5",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "zhe4 shi2 hou5",
+          "cedict": [],
+          "upstreamRows": [
+            {
+              "form": "这时候",
+              "pinyin": "zhè shí",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 4170,
+              "zipf": null,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "这时",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "zhè shí",
+          "readingKey": "zhe4shi2",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "zhe4 shi2",
+          "cedict": [
+            "zhe4 shi2 — at this time"
+          ],
+          "upstreamRows": [
+            {
+              "form": "这时",
+              "pinyin": "zhè shí",
+              "pinyinNumbered": "zhe4 shi2",
+              "band2021": 2,
+              "band2_0": null,
+              "frequencyRank": 5593,
+              "zipf": 4.4,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "ambiguous",
+      "reason": "The record's primary form 这时候 has 1 upstream row(s), none matching its declared reading; only the secondary variant 这时 matches. Resolving to a secondary variant when the primary form is itself attested upstream would be a choice between two attested words, so nothing is resolved. Both are recorded below.",
+      "resolution": null,
+      "alternatives": [
+        {
+          "candidate": "这时候",
+          "tier": null,
+          "row": {
+            "form": "这时候",
+            "pinyin": "zhè shí",
+            "pinyinNumbered": null,
+            "band2021": null,
+            "band2_0": null,
+            "frequencyRank": 4170,
+            "zipf": null,
+            "audioAvailable": true
+          }
+        },
+        {
+          "candidate": "这时",
+          "tier": "reading-exact",
+          "row": {
+            "form": "这时",
+            "pinyin": "zhè shí",
+            "pinyinNumbered": "zhe4 shi2",
+            "band2021": 2,
+            "band2_0": null,
+            "frequencyRank": 5593,
+            "zipf": 4.4,
+            "audioAvailable": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "dex:w:na4shi2hou5:那时候|那时:x",
+      "listId": "L2-0390",
+      "simplified": "那时候|那时",
+      "traditional": "那時候|那時",
+      "pinyin": {
+        "marked": "nà shíhou|nà shí",
+        "numbered": "na4 shi2 hou5"
+      },
+      "pos": [],
+      "band2026": 2,
+      "pattern": "alt-form",
+      "patternNote": "\"那时候|那时\" is an entry and its short form, written in parallel with the pinyin cell.",
+      "sourceDeclaredKey": {
+        "form": "那时候",
+        "reading": "na4 shi2 hou5",
+        "raw": "那時候|那时候[na4 shi2 hou5]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "那时候",
+          "pinyin": "nà shíhou"
+        },
+        {
+          "form": "那时",
+          "pinyin": "nà shí"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "那时候",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "nà shíhou",
+          "readingKey": "na4shi2hou5",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "na4 shi2 hou5",
+          "cedict": [
+            "na4 shi2 hou5 — at that time"
+          ],
+          "upstreamRows": [
+            {
+              "form": "那时候",
+              "pinyin": "nà shí",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": null,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "那时候",
+              "pinyin": "nà shí hou",
+              "pinyinNumbered": "na4 shi2 hou5",
+              "band2021": 2,
+              "band2_0": null,
+              "frequencyRank": 3516,
+              "zipf": 4.64,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "那时",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "nà shí",
+          "readingKey": "na4shi2",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "na4 shi2",
+          "cedict": [
+            "na4 shi2 — then"
+          ],
+          "upstreamRows": [
+            {
+              "form": "那时",
+              "pinyin": "nà shí",
+              "pinyinNumbered": "na4 shi2",
+              "band2021": 2,
+              "band2_0": null,
+              "frequencyRank": 3039,
+              "zipf": 4.72,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 那时候, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "那时候",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 3516,
+          "zipf": 4.64,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "那时候",
+          "pinyin": "nà shí hou",
+          "pinyinNumbered": "na4 shi2 hou5",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 3516,
+          "zipf": 4.64,
+          "audioAvailable": true
+        },
+        "caveats": []
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:mian4:面1:n",
+      "listId": "L2-0377",
+      "simplified": "面1",
+      "traditional": "面1",
+      "pinyin": {
+        "marked": "miàn",
+        "numbered": "mian4"
+      },
+      "pos": [
+        "N",
+        "M"
+      ],
+      "band2026": 2,
+      "pattern": "homograph-index",
+      "patternNote": "\"面1\" is 面 with the source's sense index 1 appended; the digit is not part of the word.",
+      "sourceDeclaredKey": {
+        "form": "面",
+        "reading": "mian4",
+        "raw": "面|面[mian4]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "面",
+          "pinyin": "miàn"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "面",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "miàn",
+          "readingKey": "mian4",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "mian4",
+          "cedict": [
+            "mian4 — face",
+            "mian4 — variant of 麵|面[mian4]",
+            "mian4 — flour"
+          ],
+          "upstreamRows": [
+            {
+              "form": "面",
+              "pinyin": "miàn",
+              "pinyinNumbered": "mian4",
+              "band2021": 2,
+              "band2_0": null,
+              "frequencyRank": 1385,
+              "zipf": 5.11,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 面, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "面",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 1385,
+          "zipf": 5.11,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "面",
+          "pinyin": "miàn",
+          "pinyinNumbered": "mian4",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 1385,
+          "zipf": 5.11,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "2 of these 50 records resolve to this same upstream row: 面2 (dex:w:mian4:面2:n). Upstream carries one row per (form, reading) and does not split the sense the source list splits, so they take the same band and the same rank."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:mian4:面2:n",
+      "listId": "L2-0378",
+      "simplified": "面2",
+      "traditional": "面2",
+      "pinyin": {
+        "marked": "miàn",
+        "numbered": "mian4"
+      },
+      "pos": [
+        "N"
+      ],
+      "band2026": 2,
+      "pattern": "homograph-index",
+      "patternNote": "\"面2\" is 面 with the source's sense index 2 appended; the digit is not part of the word.",
+      "sourceDeclaredKey": {
+        "form": "面",
+        "reading": "mian4",
+        "raw": "麵|面[mian4]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "面",
+          "pinyin": "miàn"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "面",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "miàn",
+          "readingKey": "mian4",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "mian4",
+          "cedict": [
+            "mian4 — face",
+            "mian4 — variant of 麵|面[mian4]",
+            "mian4 — flour"
+          ],
+          "upstreamRows": [
+            {
+              "form": "面",
+              "pinyin": "miàn",
+              "pinyinNumbered": "mian4",
+              "band2021": 2,
+              "band2_0": null,
+              "frequencyRank": 1385,
+              "zipf": 5.11,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 面, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "面",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 1385,
+          "zipf": 5.11,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "面",
+          "pinyin": "miàn",
+          "pinyinNumbered": "mian4",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 1385,
+          "zipf": 5.11,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "2 of these 50 records resolve to this same upstream row: 面1 (dex:w:mian4:面1:n). Upstream carries one row per (form, reading) and does not split the sense the source list splits, so they take the same band and the same rank."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:chu1:初（初一）:prefix",
+      "listId": "L3-0103",
+      "simplified": "初（初一）",
+      "traditional": "初（初一）",
+      "pinyin": {
+        "marked": "chū (chūyī)",
+        "numbered": "chu1"
+      },
+      "pos": [
+        "Prefix"
+      ],
+      "band2026": 3,
+      "pattern": "example-in-parens",
+      "patternNote": "\"初（初一）\" is the bound form 初 with 初一 shown as an example of it; 初一 contains 初, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "初",
+        "reading": "chu1",
+        "raw": "初|初[chu1]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "初",
+          "pinyin": "chū"
+        },
+        {
+          "form": "初一",
+          "pinyin": "chūyī"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "初",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "chū",
+          "readingKey": "chu1",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "chu1",
+          "cedict": [
+            "chu1 — at first"
+          ],
+          "upstreamRows": [
+            {
+              "form": "初",
+              "pinyin": "chū",
+              "pinyinNumbered": "chu1",
+              "band2021": 3,
+              "band2_0": null,
+              "frequencyRank": 1939,
+              "zipf": 4.95,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "初一",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "chūyī",
+          "readingKey": "chu1yi1",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "chu1 yi1",
+          "cedict": [
+            "chu1 yi1 — first day of lunar month"
+          ],
+          "upstreamRows": [
+            {
+              "form": "初一",
+              "pinyin": "chū yī",
+              "pinyinNumbered": "chu1 yi1",
+              "band2021": 3,
+              "band2_0": null,
+              "frequencyRank": 24878,
+              "zipf": 3.56,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 初, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "初",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 1939,
+          "zipf": 4.95,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "初",
+          "pinyin": "chū",
+          "pinyinNumbered": "chu1",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 1939,
+          "zipf": 4.95,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "Upstream has one row per (form, reading), so this row is the free word 初; 1 canon record(s) already join to it (dex:w:chu1:初:adv). band2021 and frequency are therefore form-level facts about 初, not sense-level facts about this entry. The canon already assigns one upstream row to several records elsewhere (259 canon rows share a simplified form), so this is the existing behaviour, not a new one — but enrichedVia must say `variant-reading` so a consumer can filter it."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:hua4:化（现代化）:suffix",
+      "listId": "L3-0301",
+      "simplified": "化（现代化）",
+      "traditional": "化（現代化）",
+      "pinyin": {
+        "marked": "huà (xiàndàihuà)",
+        "numbered": "hua4"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 3,
+      "pattern": "example-in-parens",
+      "patternNote": "\"化（现代化）\" is the bound form 化 with 现代化 shown as an example of it; 现代化 contains 化, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "化",
+        "reading": "hua4",
+        "raw": "化|化[hua4]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "化",
+          "pinyin": "huà"
+        },
+        {
+          "form": "现代化",
+          "pinyin": "xiàndàihuà"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "化",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "huà",
+          "readingKey": "hua4",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "hua4",
+          "cedict": [
+            "hua1 — variant of 花[hua1]",
+            "hua4 — to make into"
+          ],
+          "upstreamRows": [
+            {
+              "form": "化",
+              "pinyin": "huā",
+              "pinyinNumbered": "hua1",
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 1906,
+              "zipf": 4.96,
+              "audioAvailable": true
+            },
+            {
+              "form": "化",
+              "pinyin": "huà",
+              "pinyinNumbered": "hua4",
+              "band2021": 3,
+              "band2_0": null,
+              "frequencyRank": 1907,
+              "zipf": 4.96,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "现代化",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "xiàndàihuà",
+          "readingKey": "xian4dai4hua4",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "xian4 dai4 hua4",
+          "cedict": [
+            "xian4 dai4 hua4 — modernization"
+          ],
+          "upstreamRows": [
+            {
+              "form": "现代化",
+              "pinyin": "xiàn dài huà",
+              "pinyinNumbered": "xian4 dai4 hua4",
+              "band2021": 3,
+              "band2_0": null,
+              "frequencyRank": 2672,
+              "zipf": 4.79,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 化, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "化",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 1907,
+          "zipf": 4.96,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "化",
+          "pinyin": "huà",
+          "pinyinNumbered": "hua4",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 1907,
+          "zipf": 4.96,
+          "audioAvailable": true
+        },
+        "caveats": []
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:yuan2:员（服务员）:suffix",
+      "listId": "L3-0869",
+      "simplified": "员（服务员）",
+      "traditional": "員（服務員）",
+      "pinyin": {
+        "marked": "yuán (fúwùyuán)",
+        "numbered": "yuan2"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 3,
+      "pattern": "example-in-parens",
+      "patternNote": "\"员（服务员）\" is the bound form 员 with 服务员 shown as an example of it; 服务员 contains 员, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "员",
+        "reading": "yuan2",
+        "raw": "員|员[yuan2]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "员",
+          "pinyin": "yuán"
+        },
+        {
+          "form": "服务员",
+          "pinyin": "fúwùyuán"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "员",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "yuán",
+          "readingKey": "yuan2",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "yuan2",
+          "cedict": [
+            "yuan2 — (bound form) person engaged in a certain field of activity"
+          ],
+          "upstreamRows": [
+            {
+              "form": "员",
+              "pinyin": "yuán （fú wù yuá",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 1460,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "员",
+              "pinyin": "yuán",
+              "pinyinNumbered": "yuan2",
+              "band2021": 3,
+              "band2_0": null,
+              "frequencyRank": 1424,
+              "zipf": 5.09,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "服务员",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "fúwùyuán",
+          "readingKey": "fu2wu4yuan2",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "fu2 wu4 yuan2",
+          "cedict": [
+            "fu2 wu4 yuan2 — waiter"
+          ],
+          "upstreamRows": [
+            {
+              "form": "服务员",
+              "pinyin": "fú wù yuán",
+              "pinyinNumbered": "fu2 wu4 yuan2",
+              "band2021": 3,
+              "band2_0": 2,
+              "frequencyRank": 13010,
+              "zipf": 3.93,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 员, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "员",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 1424,
+          "zipf": 5.09,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "员",
+          "pinyin": "yuán",
+          "pinyinNumbered": "yuan2",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 1424,
+          "zipf": 5.09,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "A duplicate upstream row for 员 (pinyin \"yuán （fú wù yuá\") gives frequency_rank 1460 against this row's 1424. The bands come only from this row; the rank is contested."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:xing4:性（积极性）:suffix",
+      "listId": "L3-0810",
+      "simplified": "性（积极性）",
+      "traditional": "性（積極性）",
+      "pinyin": {
+        "marked": "xìng(jījíxìng)",
+        "numbered": "xing4"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 3,
+      "pattern": "example-in-parens",
+      "patternNote": "\"性（积极性）\" is the bound form 性 with 积极性 shown as an example of it; 积极性 contains 性, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "性",
+        "reading": "xing4",
+        "raw": "性|性[xing4]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "性",
+          "pinyin": "xìng"
+        },
+        {
+          "form": "积极性",
+          "pinyin": "jījíxìng"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "性",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "xìng",
+          "readingKey": "xing4",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "xing4",
+          "cedict": [
+            "xing4 — nature"
+          ],
+          "upstreamRows": [
+            {
+              "form": "性",
+              "pinyin": "xìng",
+              "pinyinNumbered": "xing4",
+              "band2021": 3,
+              "band2_0": null,
+              "frequencyRank": 829,
+              "zipf": 5.33,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "积极性",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "jījíxìng",
+          "readingKey": "ji1ji2xing4",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "ji1 ji2 xing4",
+          "cedict": [
+            "ji1 ji2 xing4 — zeal"
+          ],
+          "upstreamRows": [
+            {
+              "form": "积极性",
+              "pinyin": "jī jí xìng",
+              "pinyinNumbered": "ji1 ji2 xing4",
+              "band2021": 3,
+              "band2_0": null,
+              "frequencyRank": 21495,
+              "zipf": 3.65,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 性, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "性",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 829,
+          "zipf": 5.33,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "性",
+          "pinyin": "xìng",
+          "pinyinNumbered": "xing4",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 829,
+          "zipf": 5.33,
+          "audioAvailable": true
+        },
+        "caveats": []
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:zhe3:者（志愿者）:suffix",
+      "listId": "L3-0885",
+      "simplified": "者（志愿者）",
+      "traditional": "者（志願者）",
+      "pinyin": {
+        "marked": "zhě (zhìyuànzhě)",
+        "numbered": "zhe3"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 3,
+      "pattern": "example-in-parens",
+      "patternNote": "\"者（志愿者）\" is the bound form 者 with 志愿者 shown as an example of it; 志愿者 contains 者, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "者",
+        "reading": "zhe3",
+        "raw": "者|者[zhe3]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "者",
+          "pinyin": "zhě"
+        },
+        {
+          "form": "志愿者",
+          "pinyin": "zhìyuànzhě"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "者",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "zhě",
+          "readingKey": "zhe3",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "zhe3",
+          "cedict": [
+            "zhe3 — (after a verb or adjective) one who (is) ..."
+          ],
+          "upstreamRows": [
+            {
+              "form": "者",
+              "pinyin": "zhě",
+              "pinyinNumbered": "zhe3",
+              "band2021": 3,
+              "band2_0": null,
+              "frequencyRank": 400,
+              "zipf": 5.64,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "志愿者",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "zhìyuànzhě",
+          "readingKey": "zhi4yuan4zhe3",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "zhi4 yuan4 zhe3",
+          "cedict": [
+            "zhi4 yuan4 zhe3 — volunteer"
+          ],
+          "upstreamRows": [
+            {
+              "form": "志愿者",
+              "pinyin": "zhì yuàn zhě",
+              "pinyinNumbered": "zhi4 yuan4 zhe3",
+              "band2021": 3,
+              "band2_0": null,
+              "frequencyRank": 7432,
+              "zipf": 4.24,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 者, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "者",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 400,
+          "zipf": 5.64,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "者",
+          "pinyin": "zhě",
+          "pinyinNumbered": "zhe3",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 400,
+          "zipf": 5.64,
+          "audioAvailable": true
+        },
+        "caveats": []
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:pin3:品（工艺品）:suffix",
+      "listId": "L5-0559",
+      "simplified": "品（工艺品）",
+      "traditional": "品（工藝品）",
+      "pinyin": {
+        "marked": "pǐn (gōngyìpǐn)",
+        "numbered": "pin3"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 5,
+      "pattern": "example-in-parens",
+      "patternNote": "\"品（工艺品）\" is the bound form 品 with 工艺品 shown as an example of it; 工艺品 contains 品, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "品",
+        "reading": "pin3",
+        "raw": "品|品[pin3]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "品",
+          "pinyin": "pǐn"
+        },
+        {
+          "form": "工艺品",
+          "pinyin": "gōngyìpǐn"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "品",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "pǐn",
+          "readingKey": "pin3",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "pin3",
+          "cedict": [
+            "pin3 — (bound form) article; commodity; product; goods"
+          ],
+          "upstreamRows": [
+            {
+              "form": "品",
+              "pinyin": "pǐn",
+              "pinyinNumbered": "pin3",
+              "band2021": 5,
+              "band2_0": null,
+              "frequencyRank": 4638,
+              "zipf": 4.49,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "工艺品",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "gōngyìpǐn",
+          "readingKey": "gong1yi4pin3",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "gong1 yi4 pin3",
+          "cedict": [
+            "gong1 yi4 pin3 — handicraft article"
+          ],
+          "upstreamRows": [
+            {
+              "form": "工艺品",
+              "pinyin": "gōng yì pǐn",
+              "pinyinNumbered": "gong1 yi4 pin3",
+              "band2021": 5,
+              "band2_0": 6,
+              "frequencyRank": 24976,
+              "zipf": 3.56,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 品, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "品",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 5,
+          "band2_0": null,
+          "frequencyRank": 4638,
+          "zipf": 4.49,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "品",
+          "pinyin": "pǐn",
+          "pinyinNumbered": "pin3",
+          "band2021": 5,
+          "band2_0": null,
+          "frequencyRank": 4638,
+          "zipf": 4.49,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "Upstream has one row per (form, reading), so this row is the free word 品; 1 canon record(s) already join to it (dex:w:pin3:品:v). band2021 and frequency are therefore form-level facts about 品, not sense-level facts about this entry. The canon already assigns one upstream row to several records elsewhere (259 canon rows share a simplified form), so this is the existing behaviour, not a new one — but enrichedVia must say `variant-reading` so a consumer can filter it."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:cha4dian3r5:差（一）点儿:adv",
+      "listId": "L5-0087",
+      "simplified": "差（一）点儿",
+      "traditional": "差（一）點兒",
+      "pinyin": {
+        "marked": "chà(yī)diǎnr",
+        "numbered": "cha4 dian3 r5"
+      },
+      "pos": [
+        "Adv"
+      ],
+      "band2026": 5,
+      "pattern": "optional-element",
+      "patternNote": "\"差（一）点儿\" writes 一 as optional material inside the word.",
+      "sourceDeclaredKey": {
+        "form": "差点儿",
+        "reading": "cha4 dian3 r5",
+        "raw": "差點兒|差点儿[cha4 dian3 r5]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "差点儿",
+          "pinyin": "chàdiǎnr"
+        },
+        {
+          "form": "差一点儿",
+          "pinyin": "chàyīdiǎnr"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "差点儿",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "chàdiǎnr",
+          "readingKey": "cha4dian3r5",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "cha4 dian3 r5",
+          "cedict": [
+            "cha4 dian3 r5 — erhua variant of 差點|差点[cha4 dian3]"
+          ],
+          "upstreamRows": [
+            {
+              "form": "差点儿",
+              "pinyin": "chā diǎnr",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 32273,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "差点儿",
+              "pinyin": "chà diǎn r",
+              "pinyinNumbered": "cha4 dian3 r5",
+              "band2021": 5,
+              "band2_0": null,
+              "frequencyRank": 43257,
+              "zipf": 3.2,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "差一点儿",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "chàyīdiǎnr",
+          "readingKey": "cha4yi1dian3r5",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "cha4 yi1 dian3 r5",
+          "cedict": [
+            "cha4 yi1 dian3 r5 — erhua variant of 差一點|差一点[cha4 yi1 dian3]"
+          ],
+          "upstreamRows": [
+            {
+              "form": "差一点儿",
+              "pinyin": "chà yī diǎn r",
+              "pinyinNumbered": "cha4 yi1 dian3 r5",
+              "band2021": 5,
+              "band2_0": null,
+              "frequencyRank": 58128,
+              "zipf": 2.91,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 差点儿, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "差点儿",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 5,
+          "band2_0": null,
+          "frequencyRank": 43257,
+          "zipf": 3.2,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "差点儿",
+          "pinyin": "chà diǎn r",
+          "pinyinNumbered": "cha4 dian3 r5",
+          "band2021": 5,
+          "band2_0": null,
+          "frequencyRank": 43257,
+          "zipf": 3.2,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "A duplicate upstream row for 差点儿 (pinyin \"chā diǎnr\") gives frequency_rank 32273 against this row's 43257. The bands come only from this row; the rank is contested."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:ma3tou2:码头:n",
+      "listId": "L5-0489",
+      "simplified": "码头",
+      "traditional": "碼頭",
+      "pinyin": {
+        "marked": "mǎtóu",
+        "numbered": "ma3 tou2"
+      },
+      "pos": [
+        "N"
+      ],
+      "band2026": 5,
+      "pattern": "plain",
+      "patternNote": "\"码头\" carries no annotation: it is the word as the list writes it.",
+      "sourceDeclaredKey": {
+        "form": "码头",
+        "reading": "ma3 tou2",
+        "raw": "碼頭|码头[ma3 tou2]"
+      },
+      "sourceDeclaredVariants": [],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "码头",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "mǎtóu",
+          "readingKey": "ma3tou2",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "ma3 tou2",
+          "cedict": [
+            "ma3 tou5 — wharf; dock; quay; pier"
+          ],
+          "upstreamRows": [
+            {
+              "form": "码头",
+              "pinyin": "mǎtóu",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 3367,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "码头",
+              "pinyin": "mǎ tou",
+              "pinyinNumbered": "ma3 tou5",
+              "band2021": 5,
+              "band2_0": 6,
+              "frequencyRank": 5063,
+              "zipf": 4.45,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-neutral-tone tier, on the form 码头, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "码头",
+        "tier": "reading-neutral-tone",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 5,
+          "band2_0": 6,
+          "frequencyRank": 5063,
+          "zipf": 4.45,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "码头",
+          "pinyin": "mǎ tou",
+          "pinyinNumbered": "ma3 tou5",
+          "band2021": 5,
+          "band2_0": 6,
+          "frequencyRank": 5063,
+          "zipf": 4.45,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "A duplicate upstream row for 码头 (pinyin \"mǎtóu\") gives frequency_rank 3367 against this row's 5063. The bands come only from this row; the rank is contested.",
+          "Matched on the neutral-tone tolerance the CC-CEDICT join already applies to this same word."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:cheng1:称2:v",
+      "listId": "L5-0101",
+      "simplified": "称2",
+      "traditional": "稱2",
+      "pinyin": {
+        "marked": "chēng",
+        "numbered": "cheng1"
+      },
+      "pos": [
+        "V"
+      ],
+      "band2026": 5,
+      "pattern": "homograph-index",
+      "patternNote": "\"称2\" is 称 with the source's sense index 2 appended; the digit is not part of the word.",
+      "sourceDeclaredKey": {
+        "form": "称",
+        "reading": "cheng1",
+        "raw": "稱|称[cheng1]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "称",
+          "pinyin": "chēng"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "称",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "chēng",
+          "readingKey": "cheng1",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "cheng1",
+          "cedict": [
+            "chen4 — to fit; to match; to suit",
+            "cheng1 — to weigh",
+            "cheng4 — old variant of 秤[cheng4]"
+          ],
+          "upstreamRows": [
+            {
+              "form": "称",
+              "pinyin": "chèn",
+              "pinyinNumbered": "chen4",
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 546,
+              "zipf": 5.51,
+              "audioAvailable": true
+            },
+            {
+              "form": "称",
+              "pinyin": "chēng",
+              "pinyinNumbered": "cheng1",
+              "band2021": 2,
+              "band2_0": null,
+              "frequencyRank": 547,
+              "zipf": 5.51,
+              "audioAvailable": true
+            },
+            {
+              "form": "称",
+              "pinyin": "chèng",
+              "pinyinNumbered": "cheng4",
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 548,
+              "zipf": 5.51,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 称, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "称",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 547,
+          "zipf": 5.51,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "称",
+          "pinyin": "chēng",
+          "pinyinNumbered": "cheng1",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 547,
+          "zipf": 5.51,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "2 of these 50 records resolve to this same upstream row: 称1 (dex:w:cheng1:称1:v). Upstream carries one row per (form, reading) and does not split the sense the source list splits, so they take the same band and the same rank."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:li4:力（影响力）:suffix",
+      "listId": "L6-0536",
+      "simplified": "力（影响力）",
+      "traditional": "力（影響力）",
+      "pinyin": {
+        "marked": "lì(yǐngxiǎnglì)",
+        "numbered": "li4"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 6,
+      "pattern": "example-in-parens",
+      "patternNote": "\"力（影响力）\" is the bound form 力 with 影响力 shown as an example of it; 影响力 contains 力, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "力",
+        "reading": "li4",
+        "raw": "力|力[li4]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "力",
+          "pinyin": "lì"
+        },
+        {
+          "form": "影响力",
+          "pinyin": "yǐngxiǎnglì"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "力",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "lì",
+          "readingKey": "li4",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "li4",
+          "cedict": [
+            "Li4 — surname Li",
+            "li4 — power"
+          ],
+          "upstreamRows": [
+            {
+              "form": "力",
+              "pinyin": "lì",
+              "pinyinNumbered": "Li4",
+              "band2021": 3,
+              "band2_0": null,
+              "frequencyRank": 2243,
+              "zipf": 4.88,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "影响力",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "yǐngxiǎnglì",
+          "readingKey": "ying3xiang3li4",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "ying3 xiang3 li4",
+          "cedict": [
+            "ying3 xiang3 li4 — influence"
+          ],
+          "upstreamRows": [
+            {
+              "form": "影响力",
+              "pinyin": "yǐng xiǎng lì",
+              "pinyinNumbered": "ying3 xiang3 li4",
+              "band2021": 6,
+              "band2_0": null,
+              "frequencyRank": 4320,
+              "zipf": 4.53,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 力, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "力",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 2243,
+          "zipf": 4.88,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "力",
+          "pinyin": "lì",
+          "pinyinNumbered": "Li4",
+          "band2021": 3,
+          "band2_0": null,
+          "frequencyRank": 2243,
+          "zipf": 4.88,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "Upstream has one row per (form, reading), so this row is the free word 力; 1 canon record(s) already join to it (dex:w:li4:力:n). band2021 and frequency are therefore form-level facts about 力, not sense-level facts about this entry. The canon already assigns one upstream row to several records elsewhere (259 canon rows share a simplified form), so this is the existing behaviour, not a new one — but enrichedVia must say `variant-reading` so a consumer can filter it."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:hao3rong2yi4:好（不）容易:adj",
+      "listId": "L6-0368",
+      "simplified": "好（不）容易",
+      "traditional": "好（不）容易",
+      "pinyin": {
+        "marked": "hǎo(bù)róngyì",
+        "numbered": "hao3 rong2 yi4"
+      },
+      "pos": [
+        "Adj"
+      ],
+      "band2026": 6,
+      "pattern": "optional-element",
+      "patternNote": "\"好（不）容易\" writes 不 as optional material inside the word.",
+      "sourceDeclaredKey": {
+        "form": "好容易",
+        "reading": "hao3 rong2 yi4",
+        "raw": "好容易|好容易[hao3 rong2 yi4]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "好容易",
+          "pinyin": "hǎoróngyì"
+        },
+        {
+          "form": "好不容易",
+          "pinyin": "hǎobùróngyì"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "好容易",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "hǎoróngyì",
+          "readingKey": "hao3rong2yi4",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "hao3 rong2 yi4",
+          "cedict": [
+            "hao3 rong2 yi4 — (idiomatic usage) with great difficulty"
+          ],
+          "upstreamRows": [
+            {
+              "form": "好容易",
+              "pinyin": "hǎo róng yì",
+              "pinyinNumbered": "hao3 rong2 yi4",
+              "band2021": 6,
+              "band2_0": null,
+              "frequencyRank": 7828,
+              "zipf": 4.21,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "好不容易",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "hǎobùróngyì",
+          "readingKey": "hao3bu4rong2yi4",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "hao3 bu4 rong2 yi4",
+          "cedict": [
+            "hao3 bu4 rong2 yi4 — with great difficulty"
+          ],
+          "upstreamRows": [
+            {
+              "form": "好不容易",
+              "pinyin": "hǎo bù róng yì",
+              "pinyinNumbered": "hao3 bu4 rong2 yi4",
+              "band2021": 6,
+              "band2_0": null,
+              "frequencyRank": 15777,
+              "zipf": 3.82,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 好容易, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "好容易",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 6,
+          "band2_0": null,
+          "frequencyRank": 7828,
+          "zipf": 4.21,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "好容易",
+          "pinyin": "hǎo róng yì",
+          "pinyinNumbered": "hao3 rong2 yi4",
+          "band2021": 6,
+          "band2_0": null,
+          "frequencyRank": 7828,
+          "zipf": 4.21,
+          "audioAvailable": true
+        },
+        "caveats": []
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:zu2:族（上班族）:suffix",
+      "listId": "L6-1128",
+      "simplified": "族（上班族）",
+      "traditional": "族（上班族）",
+      "pinyin": {
+        "marked": "zú (shàngbānzú)",
+        "numbered": "zu2"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 6,
+      "pattern": "example-in-parens",
+      "patternNote": "\"族（上班族）\" is the bound form 族 with 上班族 shown as an example of it; 上班族 contains 族, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "族",
+        "reading": "zu2",
+        "raw": "族|族[zu2]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "族",
+          "pinyin": "zú"
+        },
+        {
+          "form": "上班族",
+          "pinyin": "shàngbānzú"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "族",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "zú",
+          "readingKey": "zu2",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "zu2",
+          "cedict": [
+            "zu2 — race"
+          ],
+          "upstreamRows": [
+            {
+              "form": "族",
+              "pinyin": "zú",
+              "pinyinNumbered": "zu2",
+              "band2021": 6,
+              "band2_0": null,
+              "frequencyRank": 3121,
+              "zipf": 4.7,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "上班族",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "shàngbānzú",
+          "readingKey": "shang4ban1zu2",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "shang4 ban1 zu2",
+          "cedict": [
+            "shang4 ban1 zu2 — office workers (as social group)"
+          ],
+          "upstreamRows": [
+            {
+              "form": "上班族",
+              "pinyin": "shàng bān zú",
+              "pinyinNumbered": "shang4 ban1 zu2",
+              "band2021": 6,
+              "band2_0": null,
+              "frequencyRank": 23184,
+              "zipf": 3.6,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 族, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "族",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 6,
+          "band2_0": null,
+          "frequencyRank": 3121,
+          "zipf": 4.7,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "族",
+          "pinyin": "zú",
+          "pinyinNumbered": "zu2",
+          "band2021": 6,
+          "band2_0": null,
+          "frequencyRank": 3121,
+          "zipf": 4.7,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "Upstream has one row per (form, reading), so this row is the free word 族; 1 canon record(s) already join to it (dex:w:zu2:族:n). band2021 and frequency are therefore form-level facts about 族, not sense-level facts about this entry. The canon already assigns one upstream row to several records elsewhere (259 canon rows share a simplified form), so this is the existing behaviour, not a new one — but enrichedVia must say `variant-reading` so a consumer can filter it."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:jie4:界（文艺界）:suffix",
+      "listId": "L6-0453",
+      "simplified": "界（文艺界）",
+      "traditional": "界（文藝界）",
+      "pinyin": {
+        "marked": "jiè(wényìjiè)",
+        "numbered": "jie4"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 6,
+      "pattern": "example-in-parens",
+      "patternNote": "\"界（文艺界）\" is the bound form 界 with 文艺界 shown as an example of it; 文艺界 contains 界, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "界",
+        "reading": "jie4",
+        "raw": "界|界[jie4]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "界",
+          "pinyin": "jiè"
+        },
+        {
+          "form": "文艺界",
+          "pinyin": "wényìjiè"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "界",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "jiè",
+          "readingKey": "jie4",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "jie4",
+          "cedict": [
+            "jie4 — (bound form) boundary; border"
+          ],
+          "upstreamRows": [
+            {
+              "form": "界",
+              "pinyin": "jiè",
+              "pinyinNumbered": "jie4",
+              "band2021": 6,
+              "band2_0": null,
+              "frequencyRank": 3431,
+              "zipf": 4.65,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "文艺界",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "wényìjiè",
+          "readingKey": "wen2yi4jie4",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "wen2 yi4 jie4",
+          "cedict": [],
+          "upstreamRows": [
+            {
+              "form": "文艺界",
+              "pinyin": "wényìjiè",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": null,
+              "zipf": null,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 界, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "界",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 6,
+          "band2_0": null,
+          "frequencyRank": 3431,
+          "zipf": 4.65,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "界",
+          "pinyin": "jiè",
+          "pinyinNumbered": "jie4",
+          "band2021": 6,
+          "band2_0": null,
+          "frequencyRank": 3431,
+          "zipf": 4.65,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "Upstream has one row per (form, reading), so this row is the free word 界; 1 canon record(s) already join to it (dex:w:jie4:界:n). band2021 and frequency are therefore form-level facts about 界, not sense-level facts about this entry. The canon already assigns one upstream row to several records elsewhere (259 canon rows share a simplified form), so this is the existing behaviour, not a new one — but enrichedVia must say `variant-reading` so a consumer can filter it."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:zhang3:长（秘书长）:suffix",
+      "listId": "L6-1043",
+      "simplified": "长（秘书长）",
+      "traditional": "長（秘書長）",
+      "pinyin": {
+        "marked": "zhǎng (mìshūzhǎng)",
+        "numbered": "zhang3"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 6,
+      "pattern": "example-in-parens",
+      "patternNote": "\"长（秘书长）\" is the bound form 长 with 秘书长 shown as an example of it; 秘书长 contains 长, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "长",
+        "reading": "zhang3",
+        "raw": "長|长[zhang3]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "长",
+          "pinyin": "zhǎng"
+        },
+        {
+          "form": "秘书长",
+          "pinyin": "mìshūzhǎng"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "长",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "zhǎng",
+          "readingKey": "zhang3",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "zhang3",
+          "cedict": [
+            "chang2 — long",
+            "zhang3 — chief"
+          ],
+          "upstreamRows": [
+            {
+              "form": "长",
+              "pinyin": "cháng",
+              "pinyinNumbered": "chang2",
+              "band2021": 2,
+              "band2_0": 2,
+              "frequencyRank": 291,
+              "zipf": 5.77,
+              "audioAvailable": true
+            },
+            {
+              "form": "长",
+              "pinyin": "zhǎng",
+              "pinyinNumbered": "zhang3",
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 292,
+              "zipf": 5.77,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "秘书长",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "mìshūzhǎng",
+          "readingKey": "mi4shu1zhang3",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "mi4 shu1 zhang3",
+          "cedict": [
+            "mi4 shu1 zhang3 — secretary-general"
+          ],
+          "upstreamRows": [
+            {
+              "form": "秘书长",
+              "pinyin": "mì shū zhǎng",
+              "pinyinNumbered": "mi4 shu1 zhang3",
+              "band2021": 6,
+              "band2_0": null,
+              "frequencyRank": 4113,
+              "zipf": 4.56,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 长, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "长",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": null,
+          "band2_0": null,
+          "frequencyRank": 292,
+          "zipf": 5.77,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "长",
+          "pinyin": "zhǎng",
+          "pinyinNumbered": "zhang3",
+          "band2021": null,
+          "band2_0": null,
+          "frequencyRank": 292,
+          "zipf": 5.77,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "Upstream has one row per (form, reading), so this row is the free word 长; 1 canon record(s) already join to it (dex:w:zhang3:长:v). band2021 and frequency are therefore form-level facts about 长, not sense-level facts about this entry. The canon already assigns one upstream row to several records elsewhere (259 canon rows share a simplified form), so this is the existing behaviour, not a new one — but enrichedVia must say `variant-reading` so a consumer can filter it."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:bu4li4yu2:不利于:x",
+      "listId": "L7-0253",
+      "simplified": "不利于",
+      "traditional": "不利於",
+      "pinyin": {
+        "marked": "bùlì yú",
+        "numbered": "bu4 li4 yu2"
+      },
+      "pos": [],
+      "band2026": 7,
+      "pattern": "plain",
+      "patternNote": "\"不利于\" carries no annotation: it is the word as the list writes it.",
+      "sourceDeclaredKey": null,
+      "sourceDeclaredVariants": [],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "不利于",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern"
+          ],
+          "declaredPinyin": "bùlì yú",
+          "readingKey": "bu4li4yu2",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "bu4 li4 yu2",
+          "cedict": [],
+          "upstreamRows": []
+        }
+      ],
+      "verdict": "genuinely-absent",
+      "reason": "No candidate form has any row in global_dictionary: 不利于. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list.",
+      "resolution": null,
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:bu4ru2shuo1:不如说:x",
+      "listId": "L7-0290",
+      "simplified": "不如说",
+      "traditional": "不如說",
+      "pinyin": {
+        "marked": "bùrú shuō",
+        "numbered": "bu4 ru2 shuo1"
+      },
+      "pos": [],
+      "band2026": 7,
+      "pattern": "plain",
+      "patternNote": "\"不如说\" carries no annotation: it is the word as the list writes it.",
+      "sourceDeclaredKey": null,
+      "sourceDeclaredVariants": [],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "不如说",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern"
+          ],
+          "declaredPinyin": "bùrú shuō",
+          "readingKey": "bu4ru2shuo1",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "bu4 ru2 shuo1",
+          "cedict": [],
+          "upstreamRows": []
+        }
+      ],
+      "verdict": "genuinely-absent",
+      "reason": "No candidate form has any row in global_dictionary: 不如说. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list.",
+      "resolution": null,
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:bu4nan2:不难:x",
+      "listId": "L7-0286",
+      "simplified": "不难",
+      "traditional": "不難",
+      "pinyin": {
+        "marked": "bù nán",
+        "numbered": "bu4 nan2"
+      },
+      "pos": [],
+      "band2026": 7,
+      "pattern": "plain",
+      "patternNote": "\"不难\" carries no annotation: it is the word as the list writes it.",
+      "sourceDeclaredKey": null,
+      "sourceDeclaredVariants": [],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "不难",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern"
+          ],
+          "declaredPinyin": "bù nán",
+          "readingKey": "bu4nan2",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "bu4 nan2",
+          "cedict": [],
+          "upstreamRows": []
+        }
+      ],
+      "verdict": "genuinely-absent",
+      "reason": "No candidate form has any row in global_dictionary: 不难. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list.",
+      "resolution": null,
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:ye4:业（服务业）:suffix",
+      "listId": "L7-4858",
+      "simplified": "业（服务业）",
+      "traditional": "業（服務業）",
+      "pinyin": {
+        "marked": "yè (fúwùyè)",
+        "numbered": "ye4"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 7,
+      "pattern": "example-in-parens",
+      "patternNote": "\"业（服务业）\" is the bound form 业 with 服务业 shown as an example of it; 服务业 contains 业, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "业",
+        "reading": "ye4",
+        "raw": "業|业[ye4]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "业",
+          "pinyin": "yè"
+        },
+        {
+          "form": "服务业",
+          "pinyin": "fúwùyè"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "业",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "yè",
+          "readingKey": "ye4",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "ye4",
+          "cedict": [
+            "Ye4 — surname Ye",
+            "ye4 — line of business"
+          ],
+          "upstreamRows": [
+            {
+              "form": "业",
+              "pinyin": "yè",
+              "pinyinNumbered": "Ye4",
+              "band2021": 7,
+              "band2_0": null,
+              "frequencyRank": 2718,
+              "zipf": 4.78,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "服务业",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "fúwùyè",
+          "readingKey": "fu2wu4ye4",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "fu2 wu4 ye4",
+          "cedict": [
+            "fu2 wu4 ye4 — service industry"
+          ],
+          "upstreamRows": [
+            {
+              "form": "服务业",
+              "pinyin": "fú wù yè",
+              "pinyinNumbered": "fu2 wu4 ye4",
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 9063,
+              "zipf": 4.13,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 业, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "业",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 7,
+          "band2_0": null,
+          "frequencyRank": 2718,
+          "zipf": 4.78,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "业",
+          "pinyin": "yè",
+          "pinyinNumbered": "Ye4",
+          "band2021": 7,
+          "band2_0": null,
+          "frequencyRank": 2718,
+          "zipf": 4.78,
+          "audioAvailable": true
+        },
+        "caveats": []
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:ding4wei2:定为:x",
+      "listId": "L7-0896",
+      "simplified": "定为",
+      "traditional": "定為",
+      "pinyin": {
+        "marked": "dìngwéi",
+        "numbered": "ding4 wei2"
+      },
+      "pos": [],
+      "band2026": 7,
+      "pattern": "plain",
+      "patternNote": "\"定为\" carries no annotation: it is the word as the list writes it.",
+      "sourceDeclaredKey": null,
+      "sourceDeclaredVariants": [],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "定为",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern"
+          ],
+          "declaredPinyin": "dìngwéi",
+          "readingKey": "ding4wei2",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "ding4 wei2",
+          "cedict": [],
+          "upstreamRows": []
+        }
+      ],
+      "verdict": "genuinely-absent",
+      "reason": "No candidate form has any row in global_dictionary: 定为. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list.",
+      "resolution": null,
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:du4:度（知名度）:suffix",
+      "listId": "L7-0948",
+      "simplified": "度（知名度）",
+      "traditional": "度（知名度）",
+      "pinyin": {
+        "marked": "dù(zhīmíngdù)",
+        "numbered": "du4"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 7,
+      "pattern": "example-in-parens",
+      "patternNote": "\"度（知名度）\" is the bound form 度 with 知名度 shown as an example of it; 知名度 contains 度, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "度",
+        "reading": "du4",
+        "raw": "度|度[du4]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "度",
+          "pinyin": "dù"
+        },
+        {
+          "form": "知名度",
+          "pinyin": "zhīmíngdù"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "度",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "dù",
+          "readingKey": "du4",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "du4",
+          "cedict": [
+            "du4 — to pass",
+            "duo2 — to estimate"
+          ],
+          "upstreamRows": [
+            {
+              "form": "度",
+              "pinyin": "dù",
+              "pinyinNumbered": "du4",
+              "band2021": 2,
+              "band2_0": null,
+              "frequencyRank": 1779,
+              "zipf": 4.99,
+              "audioAvailable": true
+            },
+            {
+              "form": "度",
+              "pinyin": "duó",
+              "pinyinNumbered": "duo2",
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 1780,
+              "zipf": 4.99,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "知名度",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "zhīmíngdù",
+          "readingKey": "zhi1ming2du4",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "zhi1 ming2 du4",
+          "cedict": [
+            "zhi1 ming2 du4 — reputation"
+          ],
+          "upstreamRows": [
+            {
+              "form": "知名度",
+              "pinyin": "zhī míng dù",
+              "pinyinNumbered": "zhi1 ming2 du4",
+              "band2021": 7,
+              "band2_0": null,
+              "frequencyRank": 10859,
+              "zipf": 4.03,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 度, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "度",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 1779,
+          "zipf": 4.99,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "度",
+          "pinyin": "dù",
+          "pinyinNumbered": "du4",
+          "band2021": 2,
+          "band2_0": null,
+          "frequencyRank": 1779,
+          "zipf": 4.99,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "Upstream has one row per (form, reading), so this row is the free word 度; 1 canon record(s) already join to it (dex:w:du4:度:n). band2021 and frequency are therefore form-level facts about 度, not sense-level facts about this entry. The canon already assigns one upstream row to several records elsewhere (259 canon rows share a simplified form), so this is the existing behaviour, not a new one — but enrichedVia must say `variant-reading` so a consumer can filter it."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:huai2zhe5:怀着:x",
+      "listId": "L7-1743",
+      "simplified": "怀着",
+      "traditional": "懷著",
+      "pinyin": {
+        "marked": "huáizhe",
+        "numbered": "huai2 zhe5"
+      },
+      "pos": [],
+      "band2026": 7,
+      "pattern": "plain",
+      "patternNote": "\"怀着\" carries no annotation: it is the word as the list writes it.",
+      "sourceDeclaredKey": null,
+      "sourceDeclaredVariants": [],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "怀着",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern"
+          ],
+          "declaredPinyin": "huáizhe",
+          "readingKey": "huai2zhe5",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "huai2 zhe5",
+          "cedict": [],
+          "upstreamRows": []
+        }
+      ],
+      "verdict": "genuinely-absent",
+      "reason": "No candidate form has any row in global_dictionary: 怀着. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list.",
+      "resolution": null,
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:gan3:感（责任感）:suffix",
+      "listId": "L7-1257",
+      "simplified": "感（责任感）",
+      "traditional": "感（責任感）",
+      "pinyin": {
+        "marked": "gǎn (zérèngǎn)",
+        "numbered": "gan3"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 7,
+      "pattern": "example-in-parens",
+      "patternNote": "\"感（责任感）\" is the bound form 感 with 责任感 shown as an example of it; 责任感 contains 感, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "感",
+        "reading": "gan3",
+        "raw": "感|感[gan3]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "感",
+          "pinyin": "gǎn"
+        },
+        {
+          "form": "责任感",
+          "pinyin": "zérèngǎn"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "感",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "gǎn",
+          "readingKey": "gan3",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "gan3",
+          "cedict": [
+            "gan3 — to feel"
+          ],
+          "upstreamRows": [
+            {
+              "form": "感",
+              "pinyin": "gǎn",
+              "pinyinNumbered": "gan3",
+              "band2021": 7,
+              "band2_0": null,
+              "frequencyRank": 2767,
+              "zipf": 4.77,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "责任感",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "zérèngǎn",
+          "readingKey": "ze2reng4an3",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "ze2 reng4 an3",
+          "cedict": [
+            "ze2 ren4 gan3 — sense of responsibility"
+          ],
+          "upstreamRows": [
+            {
+              "form": "责任感",
+              "pinyin": "zé rèn gǎn",
+              "pinyinNumbered": "ze2 ren4 gan3",
+              "band2021": 7,
+              "band2_0": null,
+              "frequencyRank": 13327,
+              "zipf": 3.92,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 感, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "感",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 7,
+          "band2_0": null,
+          "frequencyRank": 2767,
+          "zipf": 4.77,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "感",
+          "pinyin": "gǎn",
+          "pinyinNumbered": "gan3",
+          "band2021": 7,
+          "band2_0": null,
+          "frequencyRank": 2767,
+          "zipf": 4.77,
+          "audioAvailable": true
+        },
+        "caveats": []
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:lv4:率（成功率）:suffix",
+      "listId": "L7-2733",
+      "simplified": "率（成功率）",
+      "traditional": "率（成功率）",
+      "pinyin": {
+        "marked": "lǜ (chénggōnglǜ)",
+        "numbered": "lu:4"
+      },
+      "pos": [
+        "Suffix"
+      ],
+      "band2026": 7,
+      "pattern": "example-in-parens",
+      "patternNote": "\"率（成功率）\" is the bound form 率 with 成功率 shown as an example of it; 成功率 contains 率, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "率",
+        "reading": "lu:4",
+        "raw": "率|率[lu:4]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "率",
+          "pinyin": "lǜ"
+        },
+        {
+          "form": "成功率",
+          "pinyin": "chénggōnglǜ"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "率",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "lǜ",
+          "readingKey": "lv4",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "lu:4",
+          "cedict": [
+            "lu:4 — (bound form) ratio; rate; proportion",
+            "shuai4 — to lead"
+          ],
+          "upstreamRows": [
+            {
+              "form": "率",
+              "pinyin": "lǜ",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 968,
+              "zipf": null,
+              "audioAvailable": true
+            },
+            {
+              "form": "率",
+              "pinyin": "lù:",
+              "pinyinNumbered": "lu:4",
+              "band2021": 7,
+              "band2_0": null,
+              "frequencyRank": 2518,
+              "zipf": 4.82,
+              "audioAvailable": true
+            },
+            {
+              "form": "率",
+              "pinyin": "shuài",
+              "pinyinNumbered": "shuai4",
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": 2519,
+              "zipf": 4.82,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "成功率",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "chénggōnglǜ",
+          "readingKey": "cheng2gong1lv4",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "cheng2 gong1 lu:4",
+          "cedict": [],
+          "upstreamRows": [
+            {
+              "form": "成功率",
+              "pinyin": "chénggōnglǜ",
+              "pinyinNumbered": null,
+              "band2021": null,
+              "band2_0": null,
+              "frequencyRank": null,
+              "zipf": null,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 率, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "率",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 7,
+          "band2_0": null,
+          "frequencyRank": 2518,
+          "zipf": 4.82,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "率",
+          "pinyin": "lù:",
+          "pinyinNumbered": "lu:4",
+          "band2021": 7,
+          "band2_0": null,
+          "frequencyRank": 2518,
+          "zipf": 4.82,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "A duplicate upstream row for 率 (pinyin \"lǜ\") gives frequency_rank 968 against this row's 2518. The bands come only from this row; the rank is contested."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:zhuo2yan3yu2:着眼于:x",
+      "listId": "L7-5538",
+      "simplified": "着眼于",
+      "traditional": "著眼於",
+      "pinyin": {
+        "marked": "zhuóyǎn yú",
+        "numbered": "zhuo2 yan3 yu2"
+      },
+      "pos": [],
+      "band2026": 7,
+      "pattern": "plain",
+      "patternNote": "\"着眼于\" carries no annotation: it is the word as the list writes it.",
+      "sourceDeclaredKey": null,
+      "sourceDeclaredVariants": [],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "着眼于",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern"
+          ],
+          "declaredPinyin": "zhuóyǎn yú",
+          "readingKey": "zhuo2yan3yu2",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "zhuo2 yan3 yu2",
+          "cedict": [],
+          "upstreamRows": []
+        }
+      ],
+      "verdict": "genuinely-absent",
+      "reason": "No candidate form has any row in global_dictionary: 着眼于. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list.",
+      "resolution": null,
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:zhi4li4yu2:致力于:x",
+      "listId": "L7-5399",
+      "simplified": "致力于",
+      "traditional": "致力於",
+      "pinyin": {
+        "marked": "zhìlì yú",
+        "numbered": "zhi4 li4 yu2"
+      },
+      "pos": [],
+      "band2026": 7,
+      "pattern": "plain",
+      "patternNote": "\"致力于\" carries no annotation: it is the word as the list writes it.",
+      "sourceDeclaredKey": null,
+      "sourceDeclaredVariants": [],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "致力于",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern"
+          ],
+          "declaredPinyin": "zhìlì yú",
+          "readingKey": "zhi4li4yu2",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "zhi4 li4 yu2",
+          "cedict": [],
+          "upstreamRows": []
+        }
+      ],
+      "verdict": "genuinely-absent",
+      "reason": "No candidate form has any row in global_dictionary: 致力于. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list.",
+      "resolution": null,
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:mao2tai2:茅台（酒）:n",
+      "listId": "L7-2799",
+      "simplified": "茅台（酒）",
+      "traditional": "茅臺（酒）",
+      "pinyin": {
+        "marked": "Máotái(jiǔ)",
+        "numbered": "Mao2 tai2"
+      },
+      "pos": [
+        "N"
+      ],
+      "band2026": 7,
+      "pattern": "optional-element",
+      "patternNote": "\"茅台（酒）\" writes 酒 as optional material inside the word.",
+      "sourceDeclaredKey": {
+        "form": "茅台",
+        "reading": "Mao2 tai2",
+        "raw": "茅臺|茅台[Mao2 tai2]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "茅台",
+          "pinyin": "Máotái"
+        },
+        {
+          "form": "茅台酒",
+          "pinyin": "Máotáijiǔ"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "茅台",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "Máotái",
+          "readingKey": "mao2tai2",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "Mao2 tai2",
+          "cedict": [
+            "Mao2 tai2 — Maotai town in Renhuai county, Guizhou",
+            "mao2 tai2 — maotai liquor 茅臺酒|茅台酒[mao2 tai2 jiu3]"
+          ],
+          "upstreamRows": [
+            {
+              "form": "茅台",
+              "pinyin": "máo tái",
+              "pinyinNumbered": "Mao2 tai2",
+              "band2021": 7,
+              "band2_0": null,
+              "frequencyRank": 31517,
+              "zipf": 3.42,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "茅台酒",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "Máotáijiǔ",
+          "readingKey": "mao2tai2jiu3",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "mao2 tai2 jiu3",
+          "cedict": [
+            "mao2 tai2 jiu3 — maotai (a strong spirit produced in Guizhou)"
+          ],
+          "upstreamRows": [
+            {
+              "form": "茅台酒",
+              "pinyin": "máo tái jiǔ",
+              "pinyinNumbered": "mao2 tai2 jiu3",
+              "band2021": 7,
+              "band2_0": null,
+              "frequencyRank": 75960,
+              "zipf": 2.4,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 茅台, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "茅台",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 7,
+          "band2_0": null,
+          "frequencyRank": 31517,
+          "zipf": 3.42,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "茅台",
+          "pinyin": "máo tái",
+          "pinyinNumbered": "Mao2 tai2",
+          "band2021": 7,
+          "band2_0": null,
+          "frequencyRank": 31517,
+          "zipf": 3.42,
+          "audioAvailable": true
+        },
+        "caveats": []
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:chen4zhe5:趁着:x",
+      "listId": "L7-0443",
+      "simplified": "趁着",
+      "traditional": "趁著",
+      "pinyin": {
+        "marked": "chènzhe",
+        "numbered": "chen4 zhe5"
+      },
+      "pos": [],
+      "band2026": 7,
+      "pattern": "plain",
+      "patternNote": "\"趁着\" carries no annotation: it is the word as the list writes it.",
+      "sourceDeclaredKey": null,
+      "sourceDeclaredVariants": [],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "趁着",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern"
+          ],
+          "declaredPinyin": "chènzhe",
+          "readingKey": "chen4zhe5",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "chen4 zhe5",
+          "cedict": [],
+          "upstreamRows": []
+        }
+      ],
+      "verdict": "genuinely-absent",
+      "reason": "No candidate form has any row in global_dictionary: 趁着. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list.",
+      "resolution": null,
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:nan2yi3xiang3xiang4:难以想象:x",
+      "listId": "L7-2972",
+      "simplified": "难以想象",
+      "traditional": "難以想象",
+      "pinyin": {
+        "marked": "nányǐ-xiǎngxiàng",
+        "numbered": "nan2 yi3 xiang3 xiang4"
+      },
+      "pos": [],
+      "band2026": 7,
+      "pattern": "plain",
+      "patternNote": "\"难以想象\" carries no annotation: it is the word as the list writes it.",
+      "sourceDeclaredKey": null,
+      "sourceDeclaredVariants": [],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "难以想象",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern"
+          ],
+          "declaredPinyin": "nányǐ-xiǎngxiàng",
+          "readingKey": "nan2yi3xiang3xiang4",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "nan2 yi3 xiang3 xiang4",
+          "cedict": [],
+          "upstreamRows": []
+        }
+      ],
+      "verdict": "genuinely-absent",
+      "reason": "No candidate form has any row in global_dictionary: 难以想象. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list.",
+      "resolution": null,
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:fei1:非（非金属）:prefix",
+      "listId": "L7-1095",
+      "simplified": "非（非金属）",
+      "traditional": "非（非金屬）",
+      "pinyin": {
+        "marked": "fēi (fēijīnshǔ)",
+        "numbered": "fei1"
+      },
+      "pos": [
+        "Prefix"
+      ],
+      "band2026": 7,
+      "pattern": "example-in-parens",
+      "patternNote": "\"非（非金属）\" is the bound form 非 with 非金属 shown as an example of it; 非金属 contains 非, which is what marks the parenthesis as an example rather than optional material.",
+      "sourceDeclaredKey": {
+        "form": "非",
+        "reading": "fei1",
+        "raw": "非|非[fei1]"
+      },
+      "sourceDeclaredVariants": [
+        {
+          "form": "非",
+          "pinyin": "fēi"
+        },
+        {
+          "form": "非金属",
+          "pinyin": "fēijīnshǔ"
+        }
+      ],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "非",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column",
+            "hsk-list-cedict-column"
+          ],
+          "declaredPinyin": "fēi",
+          "readingKey": "fei1",
+          "readingKeySource": "cedict-key",
+          "readingNumbered": "fei1",
+          "cedict": [
+            "Fei1 — abbr. for 非洲[Fei1 zhou1], Africa",
+            "fei1 — to not be; not"
+          ],
+          "upstreamRows": [
+            {
+              "form": "非",
+              "pinyin": "fēi",
+              "pinyinNumbered": "Fei1",
+              "band2021": 4,
+              "band2_0": 5,
+              "frequencyRank": 750,
+              "zipf": 5.39,
+              "audioAvailable": true
+            }
+          ]
+        },
+        {
+          "form": "非金属",
+          "primary": false,
+          "proposedBy": [
+            "annotation-pattern",
+            "hsk-list-variants-column"
+          ],
+          "declaredPinyin": "fēijīnshǔ",
+          "readingKey": "fei1jin1shu3",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "fei1 jin1 shu3",
+          "cedict": [
+            "fei1 jin1 shu3 — nonmetal (chemistry)"
+          ],
+          "upstreamRows": [
+            {
+              "form": "非金属",
+              "pinyin": "fēi jīn shǔ",
+              "pinyinNumbered": "fei1 jin1 shu3",
+              "band2021": 7,
+              "band2_0": null,
+              "frequencyRank": 49498,
+              "zipf": 3.1,
+              "audioAvailable": true
+            }
+          ]
+        }
+      ],
+      "verdict": "resolved",
+      "reason": "Exactly one upstream row matches at the reading-exact tier, on the form 非, which is the form the source list's own CEDICT column names for this entry.",
+      "resolution": {
+        "form": "非",
+        "tier": "reading-exact",
+        "apply": {
+          "enrichedVia": "variant-reading",
+          "band2021": 4,
+          "band2_0": 5,
+          "frequencyRank": 750,
+          "zipf": 5.39,
+          "audioAvailable": true
+        },
+        "evidence": {
+          "form": "非",
+          "pinyin": "fēi",
+          "pinyinNumbered": "Fei1",
+          "band2021": 4,
+          "band2_0": 5,
+          "frequencyRank": 750,
+          "zipf": 5.39,
+          "audioAvailable": true
+        },
+        "caveats": [
+          "Upstream has one row per (form, reading), so this row is the free word 非; 1 canon record(s) already join to it (dex:w:fei1:非:adv). band2021 and frequency are therefore form-level facts about 非, not sense-level facts about this entry. The canon already assigns one upstream row to several records elsewhere (259 canon rows share a simplified form), so this is the existing behaviour, not a new one — but enrichedVia must say `variant-reading` so a consumer can filter it."
+        ]
+      },
+      "alternatives": []
+    },
+    {
+      "id": "dex:w:fei1wang3:飞往:x",
+      "listId": "L7-1092",
+      "simplified": "飞往",
+      "traditional": "飛往",
+      "pinyin": {
+        "marked": "fēiwǎng",
+        "numbered": "fei1 wang3"
+      },
+      "pos": [],
+      "band2026": 7,
+      "pattern": "plain",
+      "patternNote": "\"飞往\" carries no annotation: it is the word as the list writes it.",
+      "sourceDeclaredKey": null,
+      "sourceDeclaredVariants": [],
+      "candidatesAgreeWithSource": true,
+      "candidates": [
+        {
+          "form": "飞往",
+          "primary": true,
+          "proposedBy": [
+            "annotation-pattern"
+          ],
+          "declaredPinyin": "fēiwǎng",
+          "readingKey": "fei1wang3",
+          "readingKeySource": "declared-pinyin",
+          "readingNumbered": "fei1 wang3",
+          "cedict": [],
+          "upstreamRows": []
+        }
+      ],
+      "verdict": "genuinely-absent",
+      "reason": "No candidate form has any row in global_dictionary: 飞往. The enrichment source simply does not carry this entry, so band2021, band2_0, frequency and audio cannot be observed for it from this source at all. Leave enrichedVia null: the record is unknown, not demonstrably absent from the 2021 list.",
+      "resolution": null,
+      "alternatives": []
+    }
+  ]
+}

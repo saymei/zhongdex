@@ -1,0 +1,1303 @@
+{
+  "schema": "zhongdex/agent-eval/v1",
+  "generator": "evals/agent-tasks.ts",
+  "corpusVersion": "2026.09",
+  "target": "src/mcp/server.ts over stdio JSON-RPC, spawned as a child process",
+  "metrics": {
+    "passRate": "A task passes when every check passes. Checks are recomputed from data/hsk_bands.json, data/packs/*.json and data/sentences.jsonl by the eval's own reader, not by the server's.",
+    "tokensPerTask": "Bytes are exact (UTF-8 of every response body in the task). Tokens are an estimate: CJK codepoints × 1 + all other codepoints ÷ 4. Not a tokenizer — see llmTier.tokenAccuracy for the same responses counted by a real one.",
+    "recoveryRate": "Of the deliberate failures whose error text yields a machine-extractable next step, the share where executing that step returns isError: false. Errors yielding no extractable step are listed in summary.errorsWithNoNextCall and are not counted as recoveries."
+  },
+  "summary": {
+    "tasks": 21,
+    "passed": 21,
+    "passRate": 100,
+    "jobTasks": 11,
+    "jobTasksPassed": 11,
+    "failureTasks": 10,
+    "failureTasksPassed": 10,
+    "checks": 84,
+    "checksPassed": 84,
+    "calls": 32,
+    "totalBytes": 49220,
+    "totalTokens": 12322,
+    "medianTokensPerTask": 386,
+    "maxTokensPerTask": 2966,
+    "tokenBudgetPerResponse": 10000,
+    "responsesOverBudget": 0,
+    "recoveriesOffered": 8,
+    "recoveriesExecuted": 8,
+    "recoveriesSucceeded": 6,
+    "recoveryRate": 75,
+    "errorsWithNoNextCall": [
+      "fail-stale-cursor",
+      "fail-batch-cap"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "deck-hsk3-50",
+      "job": "Build a 50-word HSK 3 deck",
+      "kind": "job",
+      "calls": [
+        {
+          "tool": "mandarin_find_words",
+          "args": {
+            "hsk": 3,
+            "limit": 50
+          },
+          "isError": false,
+          "bytes": 3121,
+          "tokens": 800
+        },
+        {
+          "tool": "mandarin_build_deck",
+          "args": {
+            "words": [
+              "dex:w:liao3:了:v",
+              "dex:w:wei2:为:prep",
+              "dex:w:wei2:为:v",
+              "dex:w:bei4:被:prep",
+              "dex:w:bing4:并:adv",
+              "dex:w:shi2:时:n",
+              "dex:w:ba3:把:m",
+              "dex:w:ba3:把:prep",
+              "dex:w:you2:由:prep",
+              "dex:w:jiu4shi4:就是:conj",
+              "dex:w:suo3:所:n",
+              "dex:w:fa1zhan3:发展:v",
+              "dex:w:kai1shi3:开始:v",
+              "dex:w:she4hui4:社会:n",
+              "dex:w:shi4jie4:世界:n",
+              "dex:w:zhi1:只:m",
+              "dex:w:xu1yao4:需要:v",
+              "dex:w:yi3:已:adv",
+              "dex:w:di4qu1:地区:n",
+              "dex:w:nei4:内:n",
+              "dex:w:jing1ji4:经济:n",
+              "dex:w:qing2kuang4:情况:n",
+              "dex:w:ren2min2:人民:n",
+              "dex:w:fa1sheng1:发生:v",
+              "dex:w:wei4le5:为了:prep",
+              "dex:w:ru2he2:如何:pron",
+              "dex:w:jue2ding4:决定:v",
+              "dex:w:wen2hua4:文化:n",
+              "dex:w:xi1wang4:希望:v",
+              "dex:w:ji4shu4:技术:n",
+              "dex:w:shi3:使:v",
+              "dex:w:zhi3shi4:只是:adv",
+              "dex:w:guan1xi5:关系:n",
+              "dex:w:ren4he2:任何:pron",
+              "dex:w:zhi3you3:只有:conj",
+              "dex:w:yin1ci3:因此:conj",
+              "dex:w:you2xi4:游戏:n",
+              "dex:w:dai4biao3:代表:n",
+              "dex:w:zhi1chi2:支持:v",
+              "dex:w:jiao4:较:adv",
+              "dex:w:qu1:区:n",
+              "dex:w:cheng2shi4:城市:n",
+              "dex:w:shi4chang3:市场:n",
+              "dex:w:yue1:约:v",
+              "dex:w:ji4xu4:继续:v",
+              "dex:w:nei4rong2:内容:n",
+              "dex:w:you2yu2:由于:prep",
+              "dex:w:fang1shi4:方式:n",
+              "dex:w:mu4qian2:目前:n",
+              "dex:w:si3:死:v"
+            ],
+            "deck_name": "Zhongdex::HSK 3",
+            "voice": "female"
+          },
+          "isError": false,
+          "bytes": 747,
+          "tokens": 185
+        }
+      ],
+      "checks": [
+        {
+          "name": "find_words succeeded",
+          "ok": true,
+          "detail": "ok"
+        },
+        {
+          "name": "returned 50 ids",
+          "ok": true,
+          "detail": "50"
+        },
+        {
+          "name": "every id is a band-3 canon record",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "footer total is the band-3 count",
+          "ok": true,
+          "detail": "973"
+        },
+        {
+          "name": "build_deck succeeded",
+          "ok": true,
+          "detail": "ok"
+        },
+        {
+          "name": "50 notes",
+          "ok": true,
+          "detail": "50"
+        },
+        {
+          "name": "note order and content match the ids",
+          "ok": true,
+          "detail": "[\"了\",\"为\",\"为\",\"被\",\"并\",\"时\",\"把\",\"把\",\"由\",\"就是\",\"所\",\"发展\",\"开始\",\"社会\",\"世界\",\"只\",\"需要\",\"已\",\"地区\",\"内\",\"经济\",\"情况\",\"人民\",\"发生\",\"为了\",\"如何\",\"决定\",\"文化\",\"希望\",\"技术\",\"使\",\"只是\",\"关系\",\"任何\",\"只有\",\"因此\",\"游戏\",\"代表\",\"支持\",\"较\",\"区\",\"城市\",\"市场\",\"约\",\"继续\",\"内容\",\"由于\",\"方式\",\"目前\",\"死\"]"
+        },
+        {
+          "name": "every note carries Hanzi, Pinyin and English",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "media[] is empty while audio is unhosted",
+          "ok": true,
+          "detail": "[]"
+        },
+        {
+          "name": "audio_status is pending",
+          "ok": true,
+          "detail": "\"pending\""
+        },
+        {
+          "name": "no [sound:] reference in any note field",
+          "ok": true,
+          "detail": "0"
+        }
+      ],
+      "passed": true,
+      "bytes": 3868,
+      "tokens": 985,
+      "recovery": null
+    },
+    {
+      "id": "band-cumulative",
+      "job": "Words for a learner who has finished HSK 1–3",
+      "kind": "job",
+      "calls": [
+        {
+          "tool": "mandarin_find_words",
+          "args": {
+            "hsk": 3,
+            "scope": "cumulative",
+            "limit": 20
+          },
+          "isError": false,
+          "bytes": 1320,
+          "tokens": 334
+        }
+      ],
+      "checks": [
+        {
+          "name": "succeeded",
+          "ok": true,
+          "detail": "ok"
+        },
+        {
+          "name": "returned 20 ids",
+          "ok": true,
+          "detail": "20"
+        },
+        {
+          "name": "nothing above band 3",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "footer total is bands 1-3",
+          "ok": true,
+          "detail": "2245"
+        }
+      ],
+      "passed": true,
+      "bytes": 1320,
+      "tokens": 334,
+      "recovery": null
+    },
+    {
+      "id": "tone3-band2",
+      "job": "The tone-3 words in HSK band 2",
+      "kind": "job",
+      "calls": [
+        {
+          "tool": "mandarin_find_words",
+          "args": {
+            "hsk": 2,
+            "query": "3",
+            "query_type": "pinyin",
+            "limit": 100
+          },
+          "isError": false,
+          "bytes": 6026,
+          "tokens": 1549
+        }
+      ],
+      "checks": [
+        {
+          "name": "succeeded",
+          "ok": true,
+          "detail": "ok"
+        },
+        {
+          "name": "every hit is band 2 and carries a tone-3 syllable",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "footer total matches the corpus",
+          "ok": true,
+          "detail": "231"
+        },
+        {
+          "name": "page is capped at the limit",
+          "ok": true,
+          "detail": "100"
+        }
+      ],
+      "passed": true,
+      "bytes": 6026,
+      "tokens": 1549,
+      "recovery": null
+    },
+    {
+      "id": "polyphone-readings",
+      "job": "What are the readings of 行",
+      "kind": "job",
+      "calls": [
+        {
+          "tool": "mandarin_lookup",
+          "args": {
+            "words": [
+              "行"
+            ]
+          },
+          "isError": false,
+          "bytes": 1235,
+          "tokens": 304
+        },
+        {
+          "tool": "mandarin_lookup",
+          "args": {
+            "words": [
+              "行:hang2"
+            ]
+          },
+          "isError": false,
+          "bytes": 607,
+          "tokens": 148
+        }
+      ],
+      "checks": [
+        {
+          "name": "succeeded",
+          "ok": true,
+          "detail": "ok"
+        },
+        {
+          "name": "one block per reading",
+          "ok": true,
+          "detail": "2"
+        },
+        {
+          "name": "the ids are the canon's 行 records",
+          "ok": true,
+          "detail": "[\"dex:w:hang2:行:m\",\"dex:w:xing2:行:v\"]"
+        },
+        {
+          "name": "the response says the readings are ambiguous",
+          "ok": true,
+          "detail": "> 行 has 2 readings; both are returned below. Pass \"行:hang2\" or \"行:xing2\" to pin one."
+        },
+        {
+          "name": "pinning a reading returns exactly one record",
+          "ok": true,
+          "detail": "1"
+        },
+        {
+          "name": "and it is the hang2 record",
+          "ok": true,
+          "detail": "[\"dex:w:hang2:行:m\"]"
+        }
+      ],
+      "passed": true,
+      "bytes": 1842,
+      "tokens": 452,
+      "recovery": null
+    },
+    {
+      "id": "batch-lookup",
+      "job": "Look up ten words at once for flashcards",
+      "kind": "job",
+      "calls": [
+        {
+          "tool": "mandarin_lookup",
+          "args": {
+            "words": [
+              "一",
+              "一些",
+              "一半",
+              "一块儿",
+              "一样",
+              "一点儿",
+              "一起",
+              "一边",
+              "七",
+              "三"
+            ],
+            "sentences": 1
+          },
+          "isError": false,
+          "bytes": 3248,
+          "tokens": 793
+        }
+      ],
+      "checks": [
+        {
+          "name": "succeeded",
+          "ok": true,
+          "detail": "ok"
+        },
+        {
+          "name": "ten records back",
+          "ok": true,
+          "detail": "10"
+        },
+        {
+          "name": "every requested word appears",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "one batch stays inside the response budget",
+          "ok": true,
+          "detail": "793 tokens"
+        },
+        {
+          "name": "no audio url is emitted",
+          "ok": true,
+          "detail": "none"
+        }
+      ],
+      "passed": true,
+      "bytes": 3248,
+      "tokens": 793,
+      "recovery": null
+    },
+    {
+      "id": "ba-sentences",
+      "job": "Ten sentences using 把 at HSK 4",
+      "kind": "job",
+      "calls": [
+        {
+          "tool": "mandarin_find_sentences",
+          "args": {
+            "contains": "把",
+            "hsk": 4,
+            "count": 10
+          },
+          "isError": false,
+          "bytes": 2026,
+          "tokens": 500
+        }
+      ],
+      "checks": [
+        {
+          "name": "succeeded",
+          "ok": true,
+          "detail": "ok"
+        },
+        {
+          "name": "ten sentences",
+          "ok": true,
+          "detail": "10"
+        },
+        {
+          "name": "every id is a real corpus sentence",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "every sentence contains 把",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "nothing graded above HSK 4",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "footer shows what it returned",
+          "ok": true,
+          "detail": "10"
+        }
+      ],
+      "passed": true,
+      "bytes": 2026,
+      "tokens": 500,
+      "recovery": null
+    },
+    {
+      "id": "i-plus-one",
+      "job": "Sentences where 把 is the only new word at HSK 4",
+      "kind": "job",
+      "calls": [
+        {
+          "tool": "mandarin_find_sentences",
+          "args": {
+            "contains": "把",
+            "hsk": 4,
+            "max_new_words": 1,
+            "count": 5
+          },
+          "isError": false,
+          "bytes": 1097,
+          "tokens": 271
+        }
+      ],
+      "checks": [
+        {
+          "name": "succeeded",
+          "ok": true,
+          "detail": "ok"
+        },
+        {
+          "name": "five sentences",
+          "ok": true,
+          "detail": "5"
+        },
+        {
+          "name": "every sentence has at most one word outside HSK 4",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "footer total matches the corpus",
+          "ok": true,
+          "detail": "98"
+        }
+      ],
+      "passed": true,
+      "bytes": 1097,
+      "tokens": 271,
+      "recovery": null
+    },
+    {
+      "id": "packs-catalogue",
+      "job": "What ready-made word lists are there",
+      "kind": "job",
+      "calls": [
+        {
+          "tool": "mandarin_packs",
+          "args": {},
+          "isError": false,
+          "bytes": 5528,
+          "tokens": 1336
+        }
+      ],
+      "checks": [
+        {
+          "name": "succeeded",
+          "ok": true,
+          "detail": "ok"
+        },
+        {
+          "name": "footer total is the pack count",
+          "ok": true,
+          "detail": "28"
+        },
+        {
+          "name": "every pack on disk is listed",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the whole catalogue fits in one cheap call",
+          "ok": true,
+          "detail": "1336 tokens"
+        }
+      ],
+      "passed": true,
+      "bytes": 5528,
+      "tokens": 1336,
+      "recovery": null
+    },
+    {
+      "id": "pack-paging",
+      "job": "Page through a 500-word pack",
+      "kind": "job",
+      "calls": [
+        {
+          "tool": "mandarin_find_words",
+          "args": {
+            "pack": "hsk-2026-t1",
+            "limit": 100
+          },
+          "isError": false,
+          "bytes": 5799,
+          "tokens": 1485
+        },
+        {
+          "tool": "mandarin_find_words",
+          "args": {
+            "pack": "hsk-2026-t1",
+            "limit": 100,
+            "cursor": "dex:w:dian4ying3:电影:n@2026.09"
+          },
+          "isError": false,
+          "bytes": 5749,
+          "tokens": 1481
+        }
+      ],
+      "checks": [
+        {
+          "name": "first page succeeded",
+          "ok": true,
+          "detail": "ok"
+        },
+        {
+          "name": "100 words on the first page",
+          "ok": true,
+          "detail": "100"
+        },
+        {
+          "name": "footer total is the pack size",
+          "ok": true,
+          "detail": "500"
+        },
+        {
+          "name": "a cursor is offered",
+          "ok": true,
+          "detail": "dex:w:dian4ying3:电影:n@2026.09"
+        },
+        {
+          "name": "second page succeeded",
+          "ok": true,
+          "detail": "ok"
+        },
+        {
+          "name": "100 words on the second page",
+          "ok": true,
+          "detail": "100"
+        },
+        {
+          "name": "the pages do not overlap",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "every word paged is a member of the pack",
+          "ok": true,
+          "detail": "0"
+        }
+      ],
+      "passed": true,
+      "bytes": 11548,
+      "tokens": 2966,
+      "recovery": null
+    },
+    {
+      "id": "deck-minus-known",
+      "job": "Deck from a pack, minus what the learner already knows",
+      "kind": "job",
+      "calls": [
+        {
+          "tool": "mandarin_build_deck",
+          "args": {
+            "pack": "pos-numerals",
+            "exclude_packs": [
+              "hsk-2026-t1"
+            ],
+            "deck_name": "Zhongdex::Numerals"
+          },
+          "isError": false,
+          "bytes": 755,
+          "tokens": 187
+        }
+      ],
+      "checks": [
+        {
+          "name": "succeeded",
+          "ok": true,
+          "detail": "ok"
+        },
+        {
+          "name": "the deck is the pack minus the excluded pack",
+          "ok": true,
+          "detail": "7"
+        },
+        {
+          "name": "nothing from the excluded pack survives",
+          "ok": true,
+          "detail": "0"
+        }
+      ],
+      "passed": true,
+      "bytes": 755,
+      "tokens": 187,
+      "recovery": null
+    },
+    {
+      "id": "audio-check",
+      "job": "Check whether recordings exist before paying a TTS provider",
+      "kind": "job",
+      "calls": [
+        {
+          "tool": "mandarin_audio",
+          "args": {
+            "text": [
+              "一",
+              "一些",
+              "一半"
+            ],
+            "check_only": true
+          },
+          "isError": false,
+          "bytes": 709,
+          "tokens": 174
+        }
+      ],
+      "checks": [
+        {
+          "name": "not an error — an honest answer is not a failure",
+          "ok": true,
+          "detail": "Nothing is hosted in release 2026.09, so this is availability only — no URL is returned for any string below, and \"recor"
+        },
+        {
+          "name": "every string gets a verdict of its own",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "no url is returned",
+          "ok": true,
+          "detail": "none"
+        },
+        {
+          "name": "it says nothing was synthesised or billed",
+          "ok": true,
+          "detail": "Nothing is hosted in release 2026.09, so this is availability only — no URL is returned for any string below, and \"recorded, not published\" means a clip exists in the source archive with no address yet. Corpus-wide: 11,040 of 11,092 headwords have a female recording, 0 a male one, 23,744 of 29,613 sentences have one. Nothing was synthesised and nothing was billed."
+        },
+        {
+          "name": "a check sweep is cheap",
+          "ok": true,
+          "detail": "174 tokens"
+        }
+      ],
+      "passed": true,
+      "bytes": 709,
+      "tokens": 174,
+      "recovery": null
+    },
+    {
+      "id": "fail-overconstrained-words",
+      "job": "Over-constrained word filter (band 1 words with rank > 200,000)",
+      "kind": "failure",
+      "calls": [
+        {
+          "tool": "mandarin_find_words",
+          "args": {
+            "hsk": 1,
+            "freq_min": 200000
+          },
+          "isError": true,
+          "bytes": 303,
+          "tokens": 74
+        },
+        {
+          "tool": "mandarin_find_words",
+          "args": {
+            "hsk": 1,
+            "freq_min": 200000,
+            "limit": 20
+          },
+          "isError": true,
+          "bytes": 303,
+          "tokens": 74
+        }
+      ],
+      "checks": [
+        {
+          "name": "comes back as a tool error, not a protocol error",
+          "ok": true,
+          "detail": "0 words match. Filters: hsk 1 (hsk2026, band) · freq 200000-∞. dropping the freq"
+        },
+        {
+          "name": "says how many matched",
+          "ok": true,
+          "detail": "0 words match. Filters: hsk 1 (hsk2026, "
+        },
+        {
+          "name": "names the filters it applied",
+          "ok": true,
+          "detail": "0 words match. Filters: hsk 1 (hsk2026, band) · freq 200000-∞. dropping the frequency range gives 500 matches. Next: man"
+        },
+        {
+          "name": "counts what relaxing a filter would give",
+          "ok": true,
+          "detail": "0 words match. Filters: hsk 1 (hsk2026, band) · freq 200000-∞. dropping the frequency range gives 500 matches. Next: mandarin_find_words({hsk:1, freq_min:200000"
+        }
+      ],
+      "passed": true,
+      "bytes": 606,
+      "tokens": 148,
+      "recovery": {
+        "errorText": "0 words match. Filters: hsk 1 (hsk2026, band) · freq 200000-∞. dropping the frequency range gives 500 matches. Next: mandarin_find_words({hsk:1, freq_min:200000, limit:20}).",
+        "kind": "literal-call",
+        "suggested": "mandarin_find_words({hsk:1,freq_min:200000,limit:20})",
+        "recovered": false,
+        "detail": "Re-ran and failed again: 0 words match. Filters: hsk 1 (hsk2026, band) · freq 200000-∞. dropping the frequency range gives 500 matches. Next: mandarin_find_words({hsk:1, freq_min:200000"
+      }
+    },
+    {
+      "id": "fail-overconstrained-sentences",
+      "job": "Over-constrained sentence filter (把 at grade 1)",
+      "kind": "failure",
+      "calls": [
+        {
+          "tool": "mandarin_find_sentences",
+          "args": {
+            "contains": "把",
+            "hsk": 1,
+            "difficulty": 1,
+            "count": 10
+          },
+          "isError": true,
+          "bytes": 302,
+          "tokens": 74
+        },
+        {
+          "tool": "mandarin_find_sentences",
+          "args": {
+            "hsk": 1,
+            "difficulty": 1,
+            "count": 10
+          },
+          "isError": false,
+          "bytes": 1759,
+          "tokens": 434
+        }
+      ],
+      "checks": [
+        {
+          "name": "comes back as a tool error",
+          "ok": true,
+          "detail": "0 sentences match. Filters: contains \"把\" · hsk 1 · difficulty 1. dropping contai"
+        },
+        {
+          "name": "says how many matched",
+          "ok": true,
+          "detail": "0 sentences match. Filters: contains \"把\""
+        }
+      ],
+      "passed": true,
+      "bytes": 2061,
+      "tokens": 508,
+      "recovery": {
+        "errorText": "0 sentences match. Filters: contains \"把\" · hsk 1 · difficulty 1. dropping contains \"把\" gives 299 matches. Next: mandarin_find_sentences({hsk:1, difficulty:1, count:10}).",
+        "kind": "literal-call",
+        "suggested": "mandarin_find_sentences({hsk:1,difficulty:1,count:10})",
+        "recovered": true,
+        "detail": "Returned 1759 B, isError: false."
+      }
+    },
+    {
+      "id": "fail-unknown-word",
+      "job": "Looking up an English word as if it were Chinese",
+      "kind": "failure",
+      "calls": [
+        {
+          "tool": "mandarin_lookup",
+          "args": {
+            "words": [
+              "hello"
+            ]
+          },
+          "isError": true,
+          "bytes": 360,
+          "tokens": 88
+        },
+        {
+          "tool": "mandarin_find_words",
+          "args": {
+            "query": "hello",
+            "query_type": "english"
+          },
+          "isError": false,
+          "bytes": 268,
+          "tokens": 67
+        }
+      ],
+      "checks": [
+        {
+          "name": "comes back as a tool error",
+          "ok": true,
+          "detail": "No entry for \"hello\" — 1 of 1 words missed. \"hello\" is neither Han characters no"
+        },
+        {
+          "name": "says why, not just that",
+          "ok": true,
+          "detail": "No entry for \"hello\" — 1 of 1 words missed. \"hello\" is neither Han characters nor valid numbered pinyin. No headword wit"
+        }
+      ],
+      "passed": true,
+      "bytes": 628,
+      "tokens": 155,
+      "recovery": {
+        "errorText": "No entry for \"hello\" — 1 of 1 words missed. \"hello\" is neither Han characters nor valid numbered pinyin. No headword within edit distance 2. Next: if this is English, call mandarin_find_words({query:\"hello\", query_type:\"english\"}).",
+        "kind": "literal-call",
+        "suggested": "mandarin_find_words({query:\"hello\",query_type:\"english\"})",
+        "recovered": true,
+        "detail": "Returned 268 B, isError: false."
+      }
+    },
+    {
+      "id": "fail-nonsense-word",
+      "job": "Looking up a string that is not a word in any language",
+      "kind": "failure",
+      "calls": [
+        {
+          "tool": "mandarin_lookup",
+          "args": {
+            "words": [
+              "blorf"
+            ]
+          },
+          "isError": true,
+          "bytes": 360,
+          "tokens": 88
+        },
+        {
+          "tool": "mandarin_find_words",
+          "args": {
+            "query": "blorf",
+            "query_type": "english"
+          },
+          "isError": true,
+          "bytes": 281,
+          "tokens": 69
+        }
+      ],
+      "checks": [
+        {
+          "name": "comes back as a tool error",
+          "ok": true,
+          "detail": "No entry for \"blorf\" — 1 of 1 words missed. \"blorf\" is neither Han characters no"
+        },
+        {
+          "name": "reports the miss count out of the batch",
+          "ok": true,
+          "detail": "No entry for \"blorf\" — 1 of 1 words missed. \"blorf\" is neither Han characters nor valid numbered pinyin. No headword wit"
+        }
+      ],
+      "passed": true,
+      "bytes": 641,
+      "tokens": 157,
+      "recovery": {
+        "errorText": "No entry for \"blorf\" — 1 of 1 words missed. \"blorf\" is neither Han characters nor valid numbered pinyin. No headword within edit distance 2. Next: if this is English, call mandarin_find_words({query:\"blorf\", query_type:\"english\"}).",
+        "kind": "literal-call",
+        "suggested": "mandarin_find_words({query:\"blorf\",query_type:\"english\"})",
+        "recovered": false,
+        "detail": "Re-ran and failed again: 0 words match. Filters: query \"blorf\" (english). dropping query \"blorf\" gives 11,092 matches. Next: mandarin_find_words({query_type:\"english\", limit:20})."
+      }
+    },
+    {
+      "id": "fail-unknown-pack",
+      "job": "Guessing a pack id (`hsk3`)",
+      "kind": "failure",
+      "calls": [
+        {
+          "tool": "mandarin_find_words",
+          "args": {
+            "pack": "hsk3"
+          },
+          "isError": true,
+          "bytes": 276,
+          "tokens": 68
+        },
+        {
+          "tool": "mandarin_find_words",
+          "args": {
+            "pack": "hsk-2026-t3"
+          },
+          "isError": false,
+          "bytes": 1249,
+          "tokens": 318
+        }
+      ],
+      "checks": [
+        {
+          "name": "comes back as a tool error",
+          "ok": true,
+          "detail": "No pack \"hsk3\". Did you mean \"hsk-2026-t3\" (973 words) or \"hsk-2026-t1-t3\" (2,24"
+        },
+        {
+          "name": "offers a real pack id",
+          "ok": true,
+          "detail": "No pack \"hsk3\". Did you mean \"hsk-2026-t3\" (973 words) or \"hsk-2026-t1-t3\" (2,245 words)? Call mandarin_packs({kind:\"ban"
+        }
+      ],
+      "passed": true,
+      "bytes": 1525,
+      "tokens": 386,
+      "recovery": {
+        "errorText": "No pack \"hsk3\". Did you mean \"hsk-2026-t3\" (973 words) or \"hsk-2026-t1-t3\" (2,245 words)? Call mandarin_packs({kind:\"band\"}) for the full list of 28.",
+        "kind": "param-override",
+        "suggested": "mandarin_find_words({pack:\"hsk-2026-t3\"})",
+        "recovered": true,
+        "detail": "Returned 1249 B, isError: false."
+      }
+    },
+    {
+      "id": "fail-stale-cursor",
+      "job": "Paging with a cursor from an older release",
+      "kind": "failure",
+      "calls": [
+        {
+          "tool": "mandarin_find_words",
+          "args": {
+            "hsk": 2,
+            "limit": 5,
+            "cursor": "dex:w:ni3hao3:你好:int@2025.01"
+          },
+          "isError": true,
+          "bytes": 305,
+          "tokens": 75
+        }
+      ],
+      "checks": [
+        {
+          "name": "comes back as a tool error",
+          "ok": true,
+          "detail": "Cursor \"dex:w:ni3hao3:你好:int@2025.01\" is from release 2025.01; this server is 20"
+        },
+        {
+          "name": "names the release the cursor came from",
+          "ok": true,
+          "detail": "Cursor \"dex:w:ni3hao3:你好:int@2025.01\" is from release 2025.01; this server is 2026.09 and the ordering changed. Restart without a cursor. Cu"
+        }
+      ],
+      "passed": true,
+      "bytes": 305,
+      "tokens": 75,
+      "recovery": {
+        "errorText": "Cursor \"dex:w:ni3hao3:你好:int@2025.01\" is from release 2025.01; this server is 2026.09 and the ordering changed. Restart without a cursor. Cursors are stable within a release.",
+        "kind": "none",
+        "suggested": "",
+        "recovered": false,
+        "detail": "The message names no call, no replacement value and no replacement parameter. An agent has to infer the next step from prose."
+      }
+    },
+    {
+      "id": "fail-unknown-pattern",
+      "job": "Filtering by a grammar pattern this release does not ship",
+      "kind": "failure",
+      "calls": [
+        {
+          "tool": "mandarin_find_sentences",
+          "args": {
+            "pattern": "ba-disposal",
+            "hsk": 4,
+            "count": 10
+          },
+          "isError": true,
+          "bytes": 330,
+          "tokens": 81
+        },
+        {
+          "tool": "mandarin_find_sentences",
+          "args": {
+            "contains": "把",
+            "hsk": 4
+          },
+          "isError": false,
+          "bytes": 2026,
+          "tokens": 500
+        }
+      ],
+      "checks": [
+        {
+          "name": "comes back as a tool error",
+          "ok": true,
+          "detail": "No pattern \"ba-disposal\". This release ships no grammar-pattern index, so the pa"
+        },
+        {
+          "name": "says the index is absent rather than pretending to search it",
+          "ok": true,
+          "detail": "No pattern \"ba-disposal\". This release ships no grammar-pattern index, so the pattern filter matches nothing. Next: filter by the character "
+        }
+      ],
+      "passed": true,
+      "bytes": 2356,
+      "tokens": 581,
+      "recovery": {
+        "errorText": "No pattern \"ba-disposal\". This release ships no grammar-pattern index, so the pattern filter matches nothing. Next: filter by the character instead, e.g. mandarin_find_sentences({contains:\"把\", hsk:4}).",
+        "kind": "literal-call",
+        "suggested": "mandarin_find_sentences({contains:\"把\",hsk:4})",
+        "recovered": true,
+        "detail": "Returned 2026 B, isError: false."
+      }
+    },
+    {
+      "id": "fail-bad-enum",
+      "job": "Passing the voice's name instead of its value (`voice:\"amy\"`)",
+      "kind": "failure",
+      "calls": [
+        {
+          "tool": "mandarin_lookup",
+          "args": {
+            "words": [
+              "一"
+            ],
+            "voice": "amy"
+          },
+          "isError": true,
+          "bytes": 261,
+          "tokens": 63
+        },
+        {
+          "tool": "mandarin_lookup",
+          "args": {
+            "words": [
+              "一"
+            ],
+            "voice": "female"
+          },
+          "isError": false,
+          "bytes": 539,
+          "tokens": 131
+        }
+      ],
+      "checks": [
+        {
+          "name": "comes back as a tool error",
+          "ok": true,
+          "detail": "voice must be one of: both, female, male. You passed \"amy\" — that is the name of"
+        },
+        {
+          "name": "lists the legal values",
+          "ok": true,
+          "detail": "voice must be one of: both, female, male. You passed \"amy\" — that is the name of the female voice, not a value. Pass voi"
+        }
+      ],
+      "passed": true,
+      "bytes": 800,
+      "tokens": 194,
+      "recovery": {
+        "errorText": "voice must be one of: both, female, male. You passed \"amy\" — that is the name of the female voice, not a value. Pass voice:\"female\".",
+        "kind": "param-override",
+        "suggested": "mandarin_lookup({words:[\"一\"],voice:\"female\"})",
+        "recovered": true,
+        "detail": "Returned 539 B, isError: false."
+      }
+    },
+    {
+      "id": "fail-not-a-headword",
+      "job": "Looking up 你好, which this list does not carry as one entry",
+      "kind": "failure",
+      "calls": [
+        {
+          "tool": "mandarin_lookup",
+          "args": {
+            "words": [
+              "你好"
+            ]
+          },
+          "isError": true,
+          "bytes": 278,
+          "tokens": 70
+        },
+        {
+          "tool": "mandarin_lookup",
+          "args": {
+            "words": [
+              "你",
+              "好"
+            ]
+          },
+          "isError": false,
+          "bytes": 1691,
+          "tokens": 412
+        }
+      ],
+      "checks": [
+        {
+          "name": "comes back as a tool error",
+          "ok": true,
+          "detail": "No entry for \"你好\". Segmented into known words: 你 (dex:w:ni3:你:pron) and 好 (dex:w"
+        },
+        {
+          "name": "segments it into words the corpus does have",
+          "ok": true,
+          "detail": "No entry for \"你好\". Segmented into known words: 你 (dex:w:ni3:你:pron) and 好 (dex:w:hao3:好:adj). Next: mandarin_lookup({words:[\"你\",\"好\"]}).\n\n— a"
+        },
+        {
+          "name": "every id it names is a real canon record",
+          "ok": true,
+          "detail": "0"
+        }
+      ],
+      "passed": true,
+      "bytes": 1969,
+      "tokens": 482,
+      "recovery": {
+        "errorText": "No entry for \"你好\". Segmented into known words: 你 (dex:w:ni3:你:pron) and 好 (dex:w:hao3:好:adj). Next: mandarin_lookup({words:[\"你\",\"好\"]}).",
+        "kind": "literal-call",
+        "suggested": "mandarin_lookup({words:[\"你\",\"好\"]})",
+        "recovered": true,
+        "detail": "Returned 1691 B, isError: false."
+      }
+    },
+    {
+      "id": "fail-batch-cap",
+      "job": "Sending 25 words to a tool that takes 20",
+      "kind": "failure",
+      "calls": [
+        {
+          "tool": "mandarin_lookup",
+          "args": {
+            "words": [
+              "一",
+              "一些",
+              "一半",
+              "一块儿",
+              "一样",
+              "一点儿",
+              "一起",
+              "一边",
+              "七",
+              "三",
+              "上",
+              "上午",
+              "上学",
+              "上次",
+              "上班",
+              "上网",
+              "上课",
+              "上车",
+              "上边",
+              "下午",
+              "下次",
+              "下班",
+              "下课",
+              "下车",
+              "下边"
+            ]
+          },
+          "isError": true,
+          "bytes": 362,
+          "tokens": 89
+        }
+      ],
+      "checks": [
+        {
+          "name": "comes back as a tool error",
+          "ok": true,
+          "detail": "mandarin_lookup takes at most 20 words; you passed 25. The cap keeps one lookup "
+        },
+        {
+          "name": "states the cap and what was passed",
+          "ok": true,
+          "detail": "mandarin_lookup takes at most 20 words; you passed 25. The cap keeps one lookup inside the 10,000-token client warning. "
+        },
+        {
+          "name": "nothing is silently truncated",
+          "ok": true,
+          "detail": "no records returned alongside the error"
+        }
+      ],
+      "passed": true,
+      "bytes": 362,
+      "tokens": 89,
+      "recovery": {
+        "errorText": "mandarin_lookup takes at most 20 words; you passed 25. The cap keeps one lookup inside the 10,000-token client warning. Build 2: words 1-20, 21-25. If these came from mandarin_find_words, call it with limit:20 and page with the cursor.",
+        "kind": "none",
+        "suggested": "",
+        "recovered": false,
+        "detail": "The message names no call, no replacement value and no replacement parameter. An agent has to infer the next step from prose."
+      }
+    }
+  ],
+  "llmTier": {
+    "status": "ran",
+    "reason": "carried over from the 2026-08-24 run; re-run with --llm to refresh.",
+    "model": "gemini-2.5-flash",
+    "ranAt": "2026-08-24",
+    "tasks": [
+      {
+        "id": "deck-hsk3-50",
+        "trajectory": [
+          "mandarin_find_words({\"hsk\":3,\"limit\":50,\"scope\":\"band\"})",
+          "mandarin_build_deck({\"words\":[\"了\",\"为\",\"被\",\"并\",\"时\",\"把\",\"由\",\"就是\",\"所\",\"发展\",\"开始\",\"社会\",\"世界\",\"只\",\"需要\",\"已\",\"地区\",\"内\",\"经济\",\"情况\",\"人民\",\"发生\",\"为了\",\"如何\",\"决定\",\"文化\",\"希望\",\"技术\",\"使\",\"只是\",\"关系\",\"任何\",\"只有\",\"因此\",\"游戏\",\"代表\",\"支持\",\"较\",\"区\",\"城市\",\"市场\",\"约\",\"继续\",\"内容\",\"由于\",\"方式\",\"目前\",\"死\"],\"deck_name\":\"Zhongdex::HSK 3\"})"
+        ],
+        "passed": false,
+        "detail": "48 notes, 0 not in band 3",
+        "measuredTokens": 1439
+      },
+      {
+        "id": "polyphone-readings",
+        "trajectory": [
+          "mandarin_lookup({\"words\":[\"行\"],\"sentences\":0})"
+        ],
+        "passed": true,
+        "detail": "found both readings",
+        "measuredTokens": 336
+      },
+      {
+        "id": "ba-sentences",
+        "trajectory": [
+          "mandarin_find_sentences({\"contains\":\"把\",\"difficulty\":4,\"count\":10})"
+        ],
+        "passed": true,
+        "detail": "10/10 sentences contain 把",
+        "measuredTokens": 850
+      },
+      {
+        "id": "i-plus-one",
+        "trajectory": [
+          "mandarin_find_sentences({\"contains\":\"把\",\"hsk\":4,\"max_new_words\":1,\"count\":5})"
+        ],
+        "passed": true,
+        "detail": "5 sentences, 0 over the i+1 limit",
+        "measuredTokens": 460
+      },
+      {
+        "id": "packs-catalogue",
+        "trajectory": [
+          "mandarin_packs({})",
+          "mandarin_packs({})"
+        ],
+        "passed": true,
+        "detail": "28/28 packs listed",
+        "measuredTokens": 3997
+      },
+      {
+        "id": "deck-minus-known",
+        "trajectory": [
+          "mandarin_packs({\"q\":\"numerals\"})",
+          "mandarin_build_deck({\"pack\":\"pos-numerals\",\"exclude_packs\":[\"hsk-2026-1\"],\"deck_name\":\"Zhongdex::Numerals (excluding HSK 1)\"})",
+          "mandarin_build_deck({\"pack\":\"pos-numerals\",\"exclude_packs\":[\"hsk-2026-t1\"],\"deck_name\":\"Zhongdex::Numerals (excluding HSK 1)\"})"
+        ],
+        "passed": true,
+        "detail": "7 notes, 0 already known",
+        "measuredTokens": 434
+      }
+    ],
+    "summary": {
+      "tasksAttempted": 6,
+      "tasksPassed": 5,
+      "passRate": 83.3
+    },
+    "tokenAccuracy": {
+      "estimatedTokens": 12322,
+      "measuredTokens": 19031,
+      "ratio": 0.65,
+      "tokenizer": "gemini-2.5-flash countTokens, over 32 tier-1 responses"
+    }
+  }
+}
