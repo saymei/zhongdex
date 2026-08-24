@@ -27,12 +27,18 @@ const list = (values: readonly string[]): string => values.join(', ');
 /** E15 — there is no quota. Said in every envelope because agents plan around one. */
 export const NO_QUOTA = 'no key · no quota · no rate limit';
 
-/** E1 — not found, and not Chinese either. `nearest` is empty when nothing is within edit distance 2. */
+/**
+ * E1 — not found, and not Chinese either. `nearest` is empty when nothing is
+ * within edit distance 2. `nextCall` is computed by the caller: suggesting an
+ * English search for a string no gloss contains would hand the agent a second
+ * empty result, which is a worse failure than the first.
+ */
 export function e1NotChinese(
     term: string,
     missed: number,
     total: number,
-    nearest: readonly string[]
+    nearest: readonly string[],
+    nextCall: string
 ): string {
     const others =
         total > missed
@@ -44,7 +50,7 @@ export function e1NotChinese(
             : `Nearest headwords: ${list(nearest)}.`;
     return (
         `No entry for "${term}"${others} "${term}" is neither Han characters nor valid numbered pinyin. ` +
-        `${near} Next: if this is English, call mandarin_find_words({query:"${term}", query_type:"english"}).`
+        `${near} Next: ${nextCall}`
     );
 }
 
@@ -99,7 +105,7 @@ export function e5BadPinyin(term: string, syllable: string, suggestion: string |
         `"${term}" is not valid numbered pinyin: the syllable "${syllable}" carries no tone digit. ` +
         'Every syllable needs 1-5 (5 = neutral), separated by a space or an apostrophe.';
     if (suggestion === null) {
-        return `${head} No headword matches those syllables under any tones. Next: pass the characters instead, e.g. mandarin_lookup({words:["你好"]}).`;
+        return `${head} No headword matches those syllables under any tones. Next: pass the characters instead, e.g. mandarin_lookup({words:["苹果"]}).`;
     }
     return `${head} Did you mean "${suggestion}"? Next: mandarin_lookup({words:["${suggestion}"]}).`;
 }
@@ -247,26 +253,32 @@ export function e11UnknownPattern(
 }
 
 /** E12 — a cursor from a previous release. Cursors are stable within a release, not across. */
-export function e12StaleCursor(cursor: string, from: string, current: string): string {
+export function e12StaleCursor(
+    cursor: string,
+    from: string,
+    current: string,
+    nextCall: string
+): string {
     return (
         `Cursor "${cursor}" is from release ${from}; this server is ${current} and the ordering changed. ` +
-        'Restart without a cursor. Cursors are stable within a release.'
+        `Cursors are stable within a release, never across one. Restart from the first page. Next: ${nextCall}`
     );
 }
 
 /** E13 — over the batch cap. */
-export function e13BatchCap(tool: string, cap: number, passed: number, why: string): string {
-    const batches: string[] = [];
-    for (let start = 1; start <= passed; start += cap) {
-        batches.push(`${start}-${Math.min(start + cap - 1, passed)}`);
-    }
-    const plan =
-        batches.length <= 4
-            ? `Build ${batches.length}: words ${batches.join(', ')}.`
-            : `Build ${batches.length}: words ${batches.slice(0, 3).join(', ')} … ${batches[batches.length - 1]}.`;
+export function e13BatchCap(
+    tool: string,
+    cap: number,
+    passed: number,
+    why: string,
+    nextCall: string,
+    unit = 'words'
+): string {
+    const batches = Math.ceil(passed / cap);
     return (
-        `${tool} takes at most ${cap} words; you passed ${passed}. ${why} ${plan} ` +
-        `If these came from mandarin_find_words, call it with limit:${cap} and page with the cursor.`
+        `${tool} takes at most ${cap} ${unit}; you passed ${passed}. ${why} ` +
+        `Split into ${batches} calls of at most ${cap} and repeat with the next slice each time. ` +
+        `Next: ${nextCall}`
     );
 }
 
@@ -313,7 +325,7 @@ export function e17UnknownPack(
     total: number
 ): string {
     if (near.length === 0) {
-        return `No pack "${passed}". Call mandarin_packs() for the full list of ${total}.`;
+        return `No pack "${passed}". Call mandarin_packs({}) for the full list of ${total}.`;
     }
     const shown = near.map((p) => `"${p.slug}" (${p.size.toLocaleString('en-US')} words)`).join(' or ');
     return `No pack "${passed}". Did you mean ${shown}? Call mandarin_packs({kind:"band"}) for the full list of ${total}.`;

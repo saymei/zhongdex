@@ -18,21 +18,18 @@
     "failureTasksPassed": 10,
     "checks": 84,
     "checksPassed": 84,
-    "calls": 32,
-    "totalBytes": 49220,
-    "totalTokens": 12322,
-    "medianTokensPerTask": 386,
+    "calls": 34,
+    "totalBytes": 65736,
+    "totalTokens": 16371,
+    "medianTokensPerTask": 482,
     "maxTokensPerTask": 2966,
     "tokenBudgetPerResponse": 10000,
     "responsesOverBudget": 0,
-    "recoveriesOffered": 8,
-    "recoveriesExecuted": 8,
-    "recoveriesSucceeded": 6,
-    "recoveryRate": 75,
-    "errorsWithNoNextCall": [
-      "fail-stale-cursor",
-      "fail-batch-cap"
-    ]
+    "recoveriesOffered": 10,
+    "recoveriesExecuted": 10,
+    "recoveriesSucceeded": 10,
+    "recoveryRate": 100,
+    "errorsWithNoNextCall": []
   },
   "tasks": [
     {
@@ -681,7 +678,7 @@
         {
           "name": "it says nothing was synthesised or billed",
           "ok": true,
-          "detail": "Nothing is hosted in release 2026.09, so this is availability only — no URL is returned for any string below, and \"recorded, not published\" means a clip exists in the source archive with no address yet. Corpus-wide: 11,040 of 11,092 headwords have a female recording, 0 a male one, 23,744 of 29,613 sentences have one. Nothing was synthesised and nothing was billed."
+          "detail": "Nothing is hosted in release 2026.09, so this is availability only — no URL is returned for any string below, and \"recorded, not published\" means a clip exists in the source archive with no address yet. Corpus-wide: 11,040 of 11,092 headwords have a female recording, 0 a male one, 23,744 of 29,619 sentences have one. Nothing was synthesised and nothing was billed."
         },
         {
           "name": "a check sweep is cheap",
@@ -706,19 +703,18 @@
             "freq_min": 200000
           },
           "isError": true,
-          "bytes": 303,
-          "tokens": 74
+          "bytes": 286,
+          "tokens": 69
         },
         {
           "tool": "mandarin_find_words",
           "args": {
             "hsk": 1,
-            "freq_min": 200000,
             "limit": 20
           },
-          "isError": true,
-          "bytes": 303,
-          "tokens": 74
+          "isError": false,
+          "bytes": 1385,
+          "tokens": 351
         }
       ],
       "checks": [
@@ -740,18 +736,18 @@
         {
           "name": "counts what relaxing a filter would give",
           "ok": true,
-          "detail": "0 words match. Filters: hsk 1 (hsk2026, band) · freq 200000-∞. dropping the frequency range gives 500 matches. Next: mandarin_find_words({hsk:1, freq_min:200000"
+          "detail": "0 words match. Filters: hsk 1 (hsk2026, band) · freq 200000-∞. dropping the frequency range gives 500 matches. Next: mandarin_find_words({hsk:1, limit:20}).\n\n— "
         }
       ],
       "passed": true,
-      "bytes": 606,
-      "tokens": 148,
+      "bytes": 1671,
+      "tokens": 420,
       "recovery": {
-        "errorText": "0 words match. Filters: hsk 1 (hsk2026, band) · freq 200000-∞. dropping the frequency range gives 500 matches. Next: mandarin_find_words({hsk:1, freq_min:200000, limit:20}).",
+        "errorText": "0 words match. Filters: hsk 1 (hsk2026, band) · freq 200000-∞. dropping the frequency range gives 500 matches. Next: mandarin_find_words({hsk:1, limit:20}).",
         "kind": "literal-call",
-        "suggested": "mandarin_find_words({hsk:1,freq_min:200000,limit:20})",
-        "recovered": false,
-        "detail": "Re-ran and failed again: 0 words match. Filters: hsk 1 (hsk2026, band) · freq 200000-∞. dropping the frequency range gives 500 matches. Next: mandarin_find_words({hsk:1, freq_min:200000"
+        "suggested": "mandarin_find_words({hsk:1,limit:20})",
+        "recovered": true,
+        "detail": "Returned 1385 B, isError: false."
       }
     },
     {
@@ -869,18 +865,15 @@
             ]
           },
           "isError": true,
-          "bytes": 360,
-          "tokens": 88
+          "bytes": 439,
+          "tokens": 108
         },
         {
-          "tool": "mandarin_find_words",
-          "args": {
-            "query": "blorf",
-            "query_type": "english"
-          },
-          "isError": true,
-          "bytes": 281,
-          "tokens": 69
+          "tool": "mandarin_packs",
+          "args": {},
+          "isError": false,
+          "bytes": 5528,
+          "tokens": 1336
         }
       ],
       "checks": [
@@ -896,14 +889,14 @@
         }
       ],
       "passed": true,
-      "bytes": 641,
-      "tokens": 157,
+      "bytes": 5967,
+      "tokens": 1444,
       "recovery": {
-        "errorText": "No entry for \"blorf\" — 1 of 1 words missed. \"blorf\" is neither Han characters nor valid numbered pinyin. No headword within edit distance 2. Next: if this is English, call mandarin_find_words({query:\"blorf\", query_type:\"english\"}).",
+        "errorText": "No entry for \"blorf\" — 1 of 1 words missed. \"blorf\" is neither Han characters nor valid numbered pinyin. No headword within edit distance 2. Next: nothing in this corpus matches \"blorf\" as hanzi, pinyin or English, so no search will find it. If you are browsing rather than looking up, call mandarin_packs({}).",
         "kind": "literal-call",
-        "suggested": "mandarin_find_words({query:\"blorf\",query_type:\"english\"})",
-        "recovered": false,
-        "detail": "Re-ran and failed again: 0 words match. Filters: query \"blorf\" (english). dropping query \"blorf\" gives 11,092 matches. Next: mandarin_find_words({query_type:\"english\", limit:20})."
+        "suggested": "mandarin_packs({})",
+        "recovered": true,
+        "detail": "Returned 5528 B, isError: false."
       }
     },
     {
@@ -966,8 +959,18 @@
             "cursor": "dex:w:ni3hao3:你好:int@2025.01"
           },
           "isError": true,
-          "bytes": 305,
-          "tokens": 75
+          "bytes": 370,
+          "tokens": 92
+        },
+        {
+          "tool": "mandarin_find_words",
+          "args": {
+            "hsk": 2,
+            "limit": 5
+          },
+          "isError": false,
+          "bytes": 442,
+          "tokens": 111
         }
       ],
       "checks": [
@@ -979,18 +982,18 @@
         {
           "name": "names the release the cursor came from",
           "ok": true,
-          "detail": "Cursor \"dex:w:ni3hao3:你好:int@2025.01\" is from release 2025.01; this server is 2026.09 and the ordering changed. Restart without a cursor. Cu"
+          "detail": "Cursor \"dex:w:ni3hao3:你好:int@2025.01\" is from release 2025.01; this server is 2026.09 and the ordering changed. Cursors are stable within a "
         }
       ],
       "passed": true,
-      "bytes": 305,
-      "tokens": 75,
+      "bytes": 812,
+      "tokens": 203,
       "recovery": {
-        "errorText": "Cursor \"dex:w:ni3hao3:你好:int@2025.01\" is from release 2025.01; this server is 2026.09 and the ordering changed. Restart without a cursor. Cursors are stable within a release.",
-        "kind": "none",
-        "suggested": "",
-        "recovered": false,
-        "detail": "The message names no call, no replacement value and no replacement parameter. An agent has to infer the next step from prose."
+        "errorText": "Cursor \"dex:w:ni3hao3:你好:int@2025.01\" is from release 2025.01; this server is 2026.09 and the ordering changed. Cursors are stable within a release, never across one. Restart from the first page. Next: mandarin_find_words({hsk:2, limit:5})",
+        "kind": "literal-call",
+        "suggested": "mandarin_find_words({hsk:2,limit:5})",
+        "recovered": true,
+        "detail": "Returned 442 B, isError: false."
       }
     },
     {
@@ -1190,8 +1193,38 @@
             ]
           },
           "isError": true,
-          "bytes": 362,
-          "tokens": 89
+          "bytes": 528,
+          "tokens": 140
+        },
+        {
+          "tool": "mandarin_lookup",
+          "args": {
+            "words": [
+              "一",
+              "一些",
+              "一半",
+              "一块儿",
+              "一样",
+              "一点儿",
+              "一起",
+              "一边",
+              "七",
+              "三",
+              "上",
+              "上午",
+              "上学",
+              "上次",
+              "上班",
+              "上网",
+              "上课",
+              "上车",
+              "上边",
+              "下午"
+            ]
+          },
+          "isError": false,
+          "bytes": 9452,
+          "tokens": 2311
         }
       ],
       "checks": [
@@ -1212,14 +1245,14 @@
         }
       ],
       "passed": true,
-      "bytes": 362,
-      "tokens": 89,
+      "bytes": 9980,
+      "tokens": 2451,
       "recovery": {
-        "errorText": "mandarin_lookup takes at most 20 words; you passed 25. The cap keeps one lookup inside the 10,000-token client warning. Build 2: words 1-20, 21-25. If these came from mandarin_find_words, call it with limit:20 and page with the cursor.",
-        "kind": "none",
-        "suggested": "",
-        "recovered": false,
-        "detail": "The message names no call, no replacement value and no replacement parameter. An agent has to infer the next step from prose."
+        "errorText": "mandarin_lookup takes at most 20 words; you passed 25. The cap keeps one lookup inside the 10,000-token client warning. Split into 2 calls of at most 20 and repeat with the next slice each time. Next: mandarin_lookup({words:[\"一\",\"一些\",\"一半\",\"一块儿\",\"一样\",\"一点儿\",\"一起\",\"一边\",\"七\",\"三\",\"上\",\"上午\",\"上学\",\"上次\",\"上班\",\"上网\",\"上课\",\"上车\",\"上边\",\"下午\"]})",
+        "kind": "literal-call",
+        "suggested": "mandarin_lookup({words:[\"一\",\"一些\",\"一半\",\"一块儿\",\"一样\",\"一点儿\",\"一起\",\"一边\",\"七\",\"三\",\"上\",\"上午\",\"上学\",\"上次\",\"上班\",\"上网\",\"上课\",\"上车\",\"上边\",\"下午\"]})",
+        "recovered": true,
+        "detail": "Returned 9452 B, isError: false."
       }
     }
   ],

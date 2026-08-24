@@ -91,7 +91,7 @@ export function buildInstructions(corpus: Corpus): string {
 
 Typical jobs and the call that does them:
 - "Make me an HSK 3 deck" -> mandarin_find_words, then mandarin_build_deck, which returns an array already shaped for the Anki MCP server's addNotes tool.
-- "What does 你好 mean / give me a sentence with it" -> mandarin_lookup.
+- "What does 苹果 mean / give me a sentence with it" -> mandarin_lookup.
 - "Sentences using 把 at HSK 4" / "where this is the only new word" -> mandarin_find_sentences.
 - "What ready-made word lists do you have?" -> mandarin_packs.
 

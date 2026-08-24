@@ -14,7 +14,7 @@
  *   - `additionalProperties: false` on every inputSchema, paired with E8, which
  *     names the legal set (the schema alone does not tell the model what to do).
  *   - every optional parameter has a default that makes the common case a
- *     one-liner: `mandarin_lookup({words:["你好"]})` returns a deck-ready record.
+ *     one-liner: `mandarin_lookup({words:["苹果"]})` returns a deck-ready record.
  *   - any parameter with fewer than twelve legal values is an enum, never free text.
  *   - no `$ref`, no `oneOf`: it is unvalidated whether models parse them reliably.
  *   - `outputSchema` is declared on `mandarin_build_deck` only. Declaring it
@@ -196,7 +196,7 @@ function describe(corpus: Corpus): Record<(typeof TOOL_NAMES)[number], string> {
         mandarin_lookup:
             'Look up Chinese (Mandarin) words you already know the spelling of, and get everything needed to make a flashcard in one call: simplified and traditional hanzi, tone-marked and numbered pinyin, English glosses, part of speech, measure words, HSK band, frequency rank, and up to 3 graded example sentences per word. ' +
             'Batch up to 20 words per call. Use this when you already have the words. To FIND words by level, frequency or pack, call mandarin_find_words first and pass its ids here. ' +
-            'Accepts simplified hanzi ("你好"), traditional, or numbered pinyin ("ni3 hao3"). For a character with more than one reading, append the reading to pin it: "行:hang2"; without one, every reading is returned. ' +
+            'Accepts simplified hanzi ("苹果"), traditional, or numbered pinyin ("ping2 guo3"). For a character with more than one reading, append the reading to pin it: "行:hang2"; without one, every reading is returned. ' +
             `Release ${corpus.version} covers ${n(s.words)} headwords: ${pct(s.withGloss, s.words)} carry a gloss, ${pct(s.withFreq, s.words)} a frequency rank, ${pct(s.withSentence, s.words)} at least one example sentence. ` +
             `No audio is returned — nothing is hosted in this release. ${free} Identical arguments always return an identical response within a release.`,
 
@@ -225,6 +225,7 @@ function describe(corpus: Corpus): Record<(typeof TOOL_NAMES)[number], string> {
             `In release ${corpus.version} media[] is always empty and no [sound:] reference is written into any field, because no audio is hosted; a note pointing at media that is not in the collection renders as a broken card, so those fields are omitted instead. ` +
             'Maximum 100 words per call, the same cap addNotes enforces, so one build maps to exactly one addNotes call; for more, page mandarin_find_words and call this once per page. ' +
             'Accepts a pack id instead of a word list, and exclude_packs to subtract words the learner already knows. ' +
+            'words accepts either the ids mandarin_find_words returned or bare hanzi, but pass the ids: they are unambiguous, they survive polyphones, and retyping the hanzi is how a 50-word deck silently becomes 48. ' +
             `format defaults to 'anki-mcp'; 'anki-csv', 'tsv', 'json' and 'pleco' return the file inline as text — there is no download host in this release. Building a deck creates nothing on our side. ${free}`,
 
         mandarin_packs:
@@ -540,7 +541,18 @@ function readStringArray(args: Args, key: string, min: number, max: number, tool
     if (out.length < min) {
         throw new ToolError(`${key} needs at least ${min} entry. You passed ${out.length}.`);
     }
-    if (out.length > max) throw new ToolError(e13BatchCap(tool, max, out.length, why));
+    if (out.length > max) {
+        throw new ToolError(
+            e13BatchCap(
+                tool,
+                max,
+                out.length,
+                why,
+                renderCall(tool, { [key]: out.slice(0, max) }),
+                key === 'text' ? 'strings' : key
+            )
+        );
+    }
     return out;
 }
 
@@ -681,7 +693,17 @@ function resolveTerm(
         if (Math.abs(word.simplified.length - term.length) > 2) continue;
         if (editDistance(term, word.simplified, 2) <= 2) near.push(word.simplified);
     }
-    throw new ToolError(e1NotChinese(term, missIndex, total, near));
+    // Compute the next call rather than assuming one: pointing an agent at an
+    // English search for a string no gloss contains just produces a second
+    // empty result, which is a worse outcome than the miss it is recovering from.
+    const needle = term.toLowerCase();
+    const glossHit = corpus.words.some((w) => w.gloss.some((g) => g.toLowerCase().includes(needle)));
+    const nextCall = glossHit
+        ? `if this is English, call mandarin_find_words({query:"${term}", query_type:"english"}).`
+        : near.length > 0
+          ? `mandarin_lookup({words:["${near[0] ?? ''}"]}) for the nearest headword.`
+          : `nothing in this corpus matches "${term}" as hanzi, pinyin or English, so no search will find it. If you are browsing rather than looking up, call mandarin_packs({}).`;
+    throw new ToolError(e1NotChinese(term, missIndex, total, near, nextCall));
 }
 
 function runLookup(corpus: Corpus, tool: ToolDefinition, args: Args): ToolResult {
@@ -696,7 +718,7 @@ function runLookup(corpus: Corpus, tool: ToolDefinition, args: Args): ToolResult
     );
     if (words.length === 0) {
         throw new ToolError(
-            'mandarin_lookup needs words. Next: mandarin_lookup({words:["你好"]}), or call mandarin_find_words first to select a set.'
+            'mandarin_lookup needs words. Next: mandarin_lookup({words:["苹果"]}), or call mandarin_find_words first to select a set.'
         );
     }
     const sentences = readInt(args, 'sentences', 0, 3, 2, 'Each word carries at most 3 curated sentences.');
@@ -790,6 +812,12 @@ function runLookup(corpus: Corpus, tool: ToolDefinition, args: Args): ToolResult
 
 interface WordFilter {
     key: string;
+    /**
+     * The argument names this filter came from. Not always its `key`: the
+     * frequency filter is keyed `freq` but arrives as freq_min / freq_max, and
+     * deleting the wrong name hands back the filter that just failed.
+     */
+    argKeys: string[];
     label: string;
     test: (word: WordRecord) => boolean;
     /** How to describe dropping it, and the args that result. */
@@ -816,7 +844,7 @@ function packOrThrow(corpus: Corpus, slug: string, param: 'pack' | 'topic'): Pac
     if (pool.length === 0 && param === 'topic') {
         throw new ToolError(
             `No topic "${slug}": release ${corpus.version} ships no topic packs yet. ` +
-                'Next: call mandarin_packs() and pass one of its ids as pack, e.g. mandarin_find_words({pack:"hsk-2026-t1"}).'
+                'Next: mandarin_packs({}) lists every pack id; pass one as pack, e.g. mandarin_find_words({pack:"hsk-2026-t1"}).'
         );
     }
     const needle = alnum(slug);
@@ -850,6 +878,7 @@ function buildWordFilters(corpus: Corpus, args: Args): { filters: WordFilter[]; 
         base['hsk'] = hsk;
         filters.push({
             key: 'hsk',
+            argKeys: ['hsk'],
             label: `hsk ${hsk} (${standard}, ${scope})`,
             test: (w) => {
                 const band = bandOf(w, standard);
@@ -883,6 +912,7 @@ function buildWordFilters(corpus: Corpus, args: Args): { filters: WordFilter[]; 
         const pinyinNeedle = numberedKey(query);
         filters.push({
             key: 'query',
+            argKeys: ['query', 'query_type'],
             label: `query "${query}" (${resolved})`,
             test: (w) => {
                 if (resolved === 'hanzi') return w.simplified.includes(query) || w.traditional.includes(query);
@@ -903,6 +933,7 @@ function buildWordFilters(corpus: Corpus, args: Args): { filters: WordFilter[]; 
         const members = new Set(packWords(corpus, pack).map((w) => w.id));
         filters.push({
             key: 'topic',
+            argKeys: ['topic'],
             label: `topic ${topic}`,
             test: (w) => members.has(w.id),
             relaxed: {},
@@ -917,6 +948,7 @@ function buildWordFilters(corpus: Corpus, args: Args): { filters: WordFilter[]; 
         const members = new Set(packWords(corpus, pack).map((w) => w.id));
         filters.push({
             key: 'pack',
+            argKeys: ['pack'],
             label: `pack ${packSlug}`,
             test: (w) => members.has(w.id),
             relaxed: {},
@@ -931,6 +963,7 @@ function buildWordFilters(corpus: Corpus, args: Args): { filters: WordFilter[]; 
         if (freqMax !== null) base['freq_max'] = freqMax;
         filters.push({
             key: 'freq',
+            argKeys: ['freq_min', 'freq_max'],
             label: `freq ${freqMin ?? 1}-${freqMax ?? '∞'}`,
             test: (w) =>
                 w.freq !== null && (freqMin === null || w.freq >= freqMin) && (freqMax === null || w.freq <= freqMax),
@@ -944,6 +977,7 @@ function buildWordFilters(corpus: Corpus, args: Args): { filters: WordFilter[]; 
         base['has_audio'] = hasAudio;
         filters.push({
             key: 'has_audio',
+            argKeys: ['has_audio'],
             label: `has_audio ${hasAudio}`,
             // No clips are hosted in 0.1, so this filter is honestly empty rather
             // than quietly matching everything.
@@ -973,7 +1007,7 @@ function relaxationsFor(
         const kept = filters.filter((_, j) => j !== i);
         const widened = Object.keys(dropped.relaxed).length > 0;
         const relaxedArgs: Args = { ...base, ...dropped.relaxed };
-        if (!widened) delete relaxedArgs[dropped.key];
+        if (!widened) for (const key of dropped.argKeys) delete relaxedArgs[key];
         const count = applyFilters(words, kept).length;
         out.push({
             describe: `${dropped.describe} ${matchCount(count)}`,
@@ -1014,12 +1048,19 @@ function runFindWords(corpus: Corpus, tool: ToolDefinition, args: Args): ToolRes
 
     let start = 0;
     if (cursor !== null) {
+        // The retry is this exact call minus the cursor, and it is known to work:
+        // this point is only reached once `matched` is non-empty.
+        const restart = renderCall('mandarin_find_words', { ...base, order: args['order'], limit });
         const { id, release } = decodeCursor(cursor);
         if (release !== null && release !== corpus.version) {
-            throw new ToolError(e12StaleCursor(cursor, release, corpus.version));
+            throw new ToolError(e12StaleCursor(cursor, release, corpus.version, restart));
         }
         const at = matched.findIndex((w) => w.id === id);
-        if (at === -1) throw new ToolError(e12StaleCursor(cursor, release ?? 'an earlier release', corpus.version));
+        if (at === -1) {
+            throw new ToolError(
+                e12StaleCursor(cursor, release ?? 'an earlier release', corpus.version, restart)
+            );
+        }
         start = at;
     }
 
@@ -1100,7 +1141,9 @@ function runFindSentences(corpus: Corpus, tool: ToolDefinition, args: Args): Too
                 'mandarin_find_sentences',
                 ['contains', 'pattern', 'word', 'hsk'],
                 passed,
-                'For the 把 construction at HSK 4: mandarin_find_sentences({pattern:"ba-disposal", hsk:4, count:10}).'
+                corpus.patterns.length > 0
+                    ? `For the 把 construction at HSK 4: mandarin_find_sentences({pattern:"${corpus.patterns[0]?.id ?? ''}", hsk:4, count:10}).`
+                    : 'This release ships no grammar-pattern index, so filter by the character: mandarin_find_sentences({contains:"把", hsk:4, count:10}).'
             )
         );
     }
@@ -1116,7 +1159,7 @@ function runFindSentences(corpus: Corpus, tool: ToolDefinition, args: Args): Too
     if (corpus.sentences.length === 0) {
         throw new ToolError(
             'This release ships no sentence corpus, so mandarin_find_sentences has nothing to search. ' +
-                'Next: mandarin_lookup({words:["你好"]}) returns the curated sentences attached to a headword, ' +
+                'Next: mandarin_lookup({words:["苹果"]}) returns the curated sentences attached to a headword, ' +
                 'and mandarin_find_words selects vocabulary.'
         );
     }
@@ -1242,12 +1285,17 @@ function runFindSentences(corpus: Corpus, tool: ToolDefinition, args: Args): Too
 
     let start = 0;
     if (cursor !== null) {
+        const restart = renderCall('mandarin_find_sentences', base);
         const { id, release } = decodeCursor(cursor);
         if (release !== null && release !== corpus.version) {
-            throw new ToolError(e12StaleCursor(cursor, release, corpus.version));
+            throw new ToolError(e12StaleCursor(cursor, release, corpus.version, restart));
         }
         const at = matched.findIndex((s) => s.id === id);
-        if (at === -1) throw new ToolError(e12StaleCursor(cursor, release ?? 'an earlier release', corpus.version));
+        if (at === -1) {
+            throw new ToolError(
+                e12StaleCursor(cursor, release ?? 'an earlier release', corpus.version, restart)
+            );
+        }
         start = at;
     }
 
@@ -1282,7 +1330,7 @@ function runAudio(corpus: Corpus, tool: ToolDefinition, args: Args): ToolResult 
     );
     if (items.length === 0) {
         throw new ToolError(
-            'mandarin_audio needs text. Next: mandarin_audio({text:["你好"], check_only:true}).'
+            'mandarin_audio needs text. Next: mandarin_audio({text:["苹果"], check_only:true}).'
         );
     }
     const voice = readEnum(args, 'voice', VOICES, 'both');
@@ -1396,7 +1444,7 @@ function runBuildDeck(corpus: Corpus, tool: ToolDefinition, args: Args): ToolRes
                 'mandarin_build_deck',
                 ['words', 'pack'],
                 Object.keys(args),
-                'For a ready-made list: mandarin_build_deck({pack:"hsk-2026-t1", voice:"female"}). For your own: mandarin_build_deck({words:["你好","谢谢"]}).'
+                'For a ready-made list: mandarin_build_deck({pack:"hsk-2026-t1", voice:"female"}). For your own: mandarin_build_deck({words:["苹果","谢谢"]}).'
             )
         );
     }
@@ -1424,10 +1472,29 @@ function runBuildDeck(corpus: Corpus, tool: ToolDefinition, args: Args): ToolRes
         members = packWords(corpus, packOrThrow(corpus, packSlug, 'pack'));
     }
     const missing: string[] = [];
+    const ambiguous: string[] = [];
+    // A bare surface form can carry several headwords: 了 is both le5 and liao3,
+    // 为 is three. Always taking the first reading silently collapses a 50-word
+    // list into 48 notes. Repeated forms therefore take successive readings, in
+    // list order, and any ambiguity is disclosed rather than absorbed.
+    const takenPerForm = new Map<string, number>();
     for (const ref of requested) {
-        const word = corpus.byId.get(ref) ?? corpus.bySimplified.get(ref)?.[0] ?? corpus.byTraditional.get(ref)?.[0];
-        if (word === undefined) missing.push(ref);
-        else if (!members.some((m) => m.id === word.id)) members.push(word);
+        const byId = corpus.byId.get(ref);
+        if (byId !== undefined) {
+            if (!members.some((m) => m.id === byId.id)) members.push(byId);
+            continue;
+        }
+        const candidates = corpus.bySimplified.get(ref) ?? corpus.byTraditional.get(ref) ?? [];
+        if (candidates.length === 0) {
+            missing.push(ref);
+            continue;
+        }
+        const taken = takenPerForm.get(ref) ?? 0;
+        const word = candidates[Math.min(taken, candidates.length - 1)];
+        takenPerForm.set(ref, taken + 1);
+        if (word === undefined) continue;
+        if (candidates.length > 1 && !ambiguous.includes(ref)) ambiguous.push(ref);
+        if (!members.some((m) => m.id === word.id)) members.push(word);
     }
 
     const excludeSlugs = readStringArray(args, 'exclude_packs', 0, 60, 'mandarin_build_deck', '');
@@ -1445,7 +1512,10 @@ function runBuildDeck(corpus: Corpus, tool: ToolDefinition, args: Args): ToolRes
                 'mandarin_build_deck',
                 100,
                 members.length,
-                'The cap matches the Anki MCP addNotes cap so one build is one addNotes call.'
+                'The cap matches the Anki MCP addNotes cap so one build is one addNotes call.',
+                packSlug === null
+                    ? renderCall('mandarin_build_deck', { words: members.slice(0, 100).map((w) => w.id) })
+                    : `${renderCall('mandarin_find_words', { pack: packSlug, limit: 100 })}, then pass its ids to mandarin_build_deck and page with the cursor it returns.`
             )
         );
     }
@@ -1545,9 +1615,18 @@ function runBuildDeck(corpus: Corpus, tool: ToolDefinition, args: Args): ToolRes
     };
 
     if (format === 'anki-mcp') {
+        const shortfall =
+            notes.length < requested.length && packSlug === null
+                ? `${requested.length} inputs produced ${notes.length} notes.`
+                : null;
         const summary = [
             `${notes.length} notes for deck "${deckName}" (model "${modelName}", voice ${voice} requested).`,
+            shortfall,
             missing.length === 0 ? null : `Not found, skipped: ${missing.join(', ')}.`,
+            ambiguous.length === 0
+                ? null
+                : `Ambiguous surface forms, resolved to readings in list order: ${ambiguous.join(', ')}. ` +
+                  'Pass the ids from mandarin_find_words instead of bare hanzi to remove the ambiguity.',
             'media[]: 0 entries — audio hosting is pending, so no [sound:] reference was written.',
             nextSteps,
             envelopeFooter(corpus),
@@ -1647,7 +1726,7 @@ function runPacks(corpus: Corpus, tool: ToolDefinition, args: Args): ToolResult 
         }
         relaxations.push({
             describe: `the whole catalogue is ${corpus.packs.length} packs`,
-            nextCall: 'mandarin_packs()',
+            nextCall: 'mandarin_packs({})',
         });
         throw new ToolError(
             e9Empty(
